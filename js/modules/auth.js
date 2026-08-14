@@ -123,6 +123,13 @@ export function initLogin(onSuccessCallback) {
         togglePassBtn.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
     });
 
+    // Link "¿Olvidó su clave?" (diseño Figma): no hay flujo de reset local;
+    // se orienta al analista a contactar al administrador.
+    document.getElementById('login-forgot')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (errorEl) errorEl.textContent = '🔑 Contacta al administrador para restablecer tu clave de acceso';
+    });
+
     loginForm.onsubmit = async function (e) {
         e.preventDefault();
         const userInput = document.getElementById('login-user');
