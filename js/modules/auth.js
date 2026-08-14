@@ -102,7 +102,6 @@ export function getSessionData() {
 
 export function initLogin(onSuccessCallback) {
     const loginForm = document.getElementById('login-form');
-    const errorEl = document.getElementById('login-error');
 
     if (!loginForm) return;
 
@@ -127,7 +126,15 @@ export function initLogin(onSuccessCallback) {
     // se orienta al analista a contactar al administrador.
     document.getElementById('login-forgot')?.addEventListener('click', (e) => {
         e.preventDefault();
-        if (errorEl) errorEl.textContent = '🔑 Contacta al administrador para restablecer tu clave de acceso';
+        setLoginError('Contacta al administrador para restablecer tu clave de acceso');
+    });
+
+    // Al volver a escribir se limpia el error y el borde rojo de los campos
+    ['login-user', 'login-pass'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+            setLoginError('');
+            document.querySelectorAll('.login-input-well').forEach(w => w.classList.remove('has-error'));
+        });
     });
 
     loginForm.onsubmit = async function (e) {
@@ -139,7 +146,7 @@ export function initLogin(onSuccessCallback) {
         const pass = passInput ? passInput.value.trim() : '';
 
         if (!user || !pass) {
-            if (errorEl) errorEl.textContent = '❌ Por favor ingresa usuario y contraseña';
+            setLoginError('Por favor ingresa usuario y contraseña');
             return;
         }
 
@@ -163,9 +170,10 @@ export function initLogin(onSuccessCallback) {
         }
 
         if (isValid) {
-            completeLogin(user, errorEl, onSuccessCallback);
+            completeLogin(user, onSuccessCallback);
         } else {
-            if (errorEl) errorEl.textContent = '❌ Usuario o contraseña incorrectos';
+            setLoginError('Usuario o contraseña incorrectos');
+            document.querySelectorAll('.login-input-well').forEach(w => w.classList.add('has-error'));
             if (passInput) {
                 passInput.value = '';
                 passInput.focus();
@@ -179,8 +187,8 @@ export function initLogin(onSuccessCallback) {
     };
 }
 
-function completeLogin(user, errorEl, onSuccessCallback) {
-    if (errorEl) errorEl.textContent = '';
+function completeLogin(user, onSuccessCallback) {
+    setLoginError('');
     AppState.set('currentUser', user);
     AppState.set('isLoggedIn', true);
 
@@ -237,12 +245,24 @@ export function logout() {
 
     const passInput = document.getElementById('login-pass');
     const userInput = document.getElementById('login-user');
-    const errorEl = document.getElementById('login-error');
 
     if (passInput) passInput.value = '';
-    if (errorEl) errorEl.textContent = '';
+    setLoginError('');
     if (userInput) {
         userInput.value = '';
         userInput.focus();
     }
+}
+
+/**
+ * Muestra u oculta el banner de error del formulario de login.
+ * Usa un ícono material + mensaje (diseño Figma — estado de error S9).
+ */
+function setLoginError(message) {
+    const errorEl = document.getElementById('login-error');
+    if (!errorEl) return;
+    errorEl.innerHTML = message
+        ? `<span class="material-symbols-outlined" aria-hidden="true">error</span><span>${message}</span>`
+        : '';
+    errorEl.classList.toggle('show', Boolean(message));
 }
