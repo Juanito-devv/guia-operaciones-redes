@@ -127,8 +127,15 @@ Reglas de oro:
 
 ## 6. Reglas de navegación y estados de pantalla
 
-- Pantallas: `login → launcher (móvil) | app directa (escritorio) → app`.
-- Móvil: bottom-nav `Inicio · Guía · Espacio · Ajustes`.
+- Pantallas: `login → launcher → app`. El launcher es un **HUB de módulos** que
+  se muestra **SIEMPRE tras el login** (web y móvil), nunca se salta: el analista
+  elige dónde entrar primero.
+- **Cada módulo tiene su propio espacio**: página completa en
+  `#/dashboard/<tool>` (Calendario, CDC, Guardia, Mail, Impacto, Perfil,
+  Ajustes). El panel lateral `Ctrl+.` es un **acceso rápido** superpuesto, NO la
+  vista principal ni un reemplazo de la página del módulo.
+- Móvil: bottom-nav `Inicio · Guía · Espacio · Ajustes`; desde "Espacio" se
+  abre el dashboard con las tarjetas de cada módulo.
 - Escritorio: sidebar + contenido; panel de trabajo lateral `Ctrl+.`.
 - Deep links resueltos por un **único router**; evitar doble render: si el
   hash apunta a la ruta ya activa, no re-renderizar.
@@ -194,14 +201,29 @@ Reglas de oro:
 | # | Pantalla | Layout |
 |---|----------|--------|
 | S1 | Login | Centrado, card en el medio, toggle de ver contraseña |
-| S2 | Launcher (móvil) | 2 tarjetas grandes: GUÍA / ESPACIO DE TRABAJO |
+| S2 | Launcher-HUB (post-login, web+móvil) | "Hola, \<nombre\>" + grid de tarjetas de módulo: Guía · Calendario · CDC · Guardia (5 Msg) · Mail · Impacto · Perfil · Ajustes. Actividad reciente al pie. Grid 2 col (móvil) / 4 col (escritorio). **SIEMPRE visible tras login** (consistente en web y móvil) |
 | S3 | Inicio (home) | Hero + bento grid (ya existe, mantener identidad) |
 | S4 | Guía (artículo) | Header con eyebrow + título + breadcrumb, contenido tipográfico + TOC lateral (escritorio), prev/next al pie |
-| S5 | Dashboard | Hero + rejilla de tarjetas de herramientas (grid responsivo 1/2/4 col) |
+| S5 | Dashboard (Espacio de Trabajo) | Hero + rejilla de tarjetas de módulos (grid 1/2/4 col) + métricas |
 | S6 | Panel de trabajo lateral | Drawer derecho Ctrl+. con tabs: Mapa · Calendario · CDC · Guardia · Mail · Impacto |
-| S7 | Herramientas en página completa | Calendario, CDC, Guardia (5 msg), Mail, Impacto, Perfil, Ajustes |
-| S8 | Notificaciones | Campana + drawer de lista con badge de no leídas |
-| S9 | Estados de apoyo | Carga (loading), error con Reintentar, acceso denegado, banner degradación |
+| S7 | Módulo Calendario (página completa) | Toolbar del módulo (título + mes + botón nuevo) + grid mensual + lista de eventos del día |
+| S8 | Módulo CDC (página completa) | Toolbar (título + filtros + búsqueda + nuevo) + tabla/kanban por estado + aviso de recordatorios |
+| S9 | Módulo Guardia (página completa) | 5 tarjetas de mensaje con plantillas, estados ✅⚠️❌, auto-guardado, copiar individual/combo |
+| S10 | Módulo Mail (página completa) | Selector de proveedor + formulario de variables + preview en vivo + copiar |
+| S11 | Módulo Impacto (página completa) | Formulario equipo/tipo/capacidad/afectación + texto generado + copiar |
+| S12 | Módulo Perfil (página completa) | Avatar, datos del usuario, rol, cambio de contraseña, preferencias |
+| S13 | Módulo Ajustes (página completa) | Tema (dark/light), acento, densidad |
+| S14 | Notificaciones | Campana + drawer de lista con badge de no leídas por usuario |
+| S15 | Detalle de CDC | Vista de un cambio: info + estado + acciones + historial |
+| S16 | Detalle de evento | Modal con info + acciones |
+| S17 | Búsqueda global | Overlay Ctrl+K con resultados en vivo (guía + módulos) |
+| S18 | Estados de apoyo | Carga (loading), error con Reintentar, acceso denegado, vacío (empty), banner degradación |
+
+> **Anatomía común de página de módulo** (S7–S13): header propio (eyebrow +
+> título + acciones: nuevo/buscar/exportar) + contenedor de contenido + estados
+> (loading/vacío/error). Cada módulo vive en su URL `#/dashboard/<tool>`; desde
+> cualquier pantalla se llega a su página completa, y el panel lateral
+> (`Ctrl+.`) es solo un acceso rápido superpuesto.
 
 ### 12.2 Sistema de diseño (obligatorio para el CSS exportado)
 

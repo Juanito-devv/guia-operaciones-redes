@@ -164,14 +164,10 @@ async function afterLogin() {
             document.getElementById('launcher-screen').style.display = 'none';
             document.getElementById('app').style.display = 'flex';
             syncAppBottomNav();
-        } else if (window.innerWidth >= 768) {
-            // Desktop: entrar directo a la app (la guía ya quedó renderizada por loadData),
-            // el launcher es una pantalla móvil y en escritorio estorba.
-            document.getElementById('launcher-screen').style.display = 'none';
-            document.getElementById('app').style.display = 'flex';
-            syncAppBottomNav();
         } else {
-            // Móvil: el launcher para que el analista decida GUÍA o ESPACIO DE TRABAJO
+            // Launcher SIEMPRE tras el login (web y móvil): el analista elige
+            // dónde entrar primero. Consistente en todas las pantallas, ya que
+            // antes en escritorio (>= 768px) se saltaba y no aparecía.
             showLauncher();
         }
     } catch (err) {
