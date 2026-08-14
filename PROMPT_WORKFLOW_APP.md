@@ -184,6 +184,57 @@ Reglas de oro:
 - `PLAN_TRABAJO.md` y `DEBUG_PLAN.md` actualizados tras cada fase.
 - Commit por fase con mensaje semántico.
 
+## 12. Diseño visual para el generador (Figma / v0 / similar)
+
+> Esta sección es para quien genera el **diseño visual** (layout + CSS + PNG).
+> La lógica ya está especificada arriba; aquí se define el "cómo se ve".
+
+### 12.1 Pantallas a diseñar (web + móvil)
+
+| # | Pantalla | Layout |
+|---|----------|--------|
+| S1 | Login | Centrado, card en el medio, toggle de ver contraseña |
+| S2 | Launcher (móvil) | 2 tarjetas grandes: GUÍA / ESPACIO DE TRABAJO |
+| S3 | Inicio (home) | Hero + bento grid (ya existe, mantener identidad) |
+| S4 | Guía (artículo) | Header con eyebrow + título + breadcrumb, contenido tipográfico + TOC lateral (escritorio), prev/next al pie |
+| S5 | Dashboard | Hero + rejilla de tarjetas de herramientas (grid responsivo 1/2/4 col) |
+| S6 | Panel de trabajo lateral | Drawer derecho Ctrl+. con tabs: Mapa · Calendario · CDC · Guardia · Mail · Impacto |
+| S7 | Herramientas en página completa | Calendario, CDC, Guardia (5 msg), Mail, Impacto, Perfil, Ajustes |
+| S8 | Notificaciones | Campana + drawer de lista con badge de no leídas |
+| S9 | Estados de apoyo | Carga (loading), error con Reintentar, acceso denegado, banner degradación |
+
+### 12.2 Sistema de diseño (obligatorio para el CSS exportado)
+
+- **Colores**: SOLO tokens, nunca hex fijos en componentes. Mapeo de referencia:
+  - Fondo app: `var(--bg-primary)` · tarjetas: `var(--bg-card)` / `var(--md-surface-container)`
+  - Texto: `var(--text-primary)` / `var(--text-secondary)` / `var(--text-muted)`
+  - Líneas: `var(--border-color)` · acento: `var(--accent)` · danger: `var(--md-error)` / rojo `#ef4444`
+  - En dark **nunca** `var(--navy)` como color de texto.
+- **Tipografía**: títulos `var(--heading)` (Hanken Grotesk), mono `var(--mono)` (JetBrains Mono), base 16px/1.7.
+- **Espaciado**: escala 4px (4/8/12/16/24/32). Radio: 8–12px cards, 9999px pills/badges.
+- **Sombra**: sutiles, `box-shadow` con canal alpha, no colores planos.
+- **Densidad**: reglas bajo `.density-compact` para reducir padding/typo.
+- **Responsive**: móvil (bottom-nav + contenido apilado) y escritorio (sidebar + contenido + panel lateral). Breakpoints ya existentes en `style.css`.
+- **Tema oscuro**: el CSS exportado debe declarar variantes `[data-theme="dark"] .selector { … }` (o usar tokens que cambian solos). Si la herramienta solo da hex, entregar la paleta y la equivalencia de tokens, no el hex crudo.
+
+### 12.3 Componentes y sus estados
+
+- Botones: `btn` primario/accent, secundario (outline), danger, disabled, loading.
+- Cards de herramienta: icono + título + descripción + CTA (con variante "error" con badge).
+- Tabs del panel: activo con línea/subrayado de acento.
+- Listas (eventos, CDC, notif): item con icono de estado, hover, unread marcado.
+- Modales: overlay + card, header con título y cierre, acciones.
+- Badges: pill, con color por tipo (cdc/guide/warning/mail/system).
+- Inputs/selects: borde `--border-color`, focus con anillo de acento.
+- Tabla de contenidos (TOC): sticky a la derecha, item activo resaltado.
+
+### 12.4 Entregables del generador visual
+
+- CSS usando SOLO tokens (o paleta + tabla de mapeo a tokens).
+- PNG exportado por pantalla (móvil y escritorio, dark y light) como referencia.
+- Alturas/medidas concretas para espaciado y radio (escala 4px).
+- Nota de qué parte del layout corresponde a `core/` (no dibujar lógica, solo UI).
+
 ---
 
 > **Instrucción final para la IA/generador**: no reescribas la UI de cero
