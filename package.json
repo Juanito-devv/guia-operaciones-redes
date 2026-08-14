@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Guía de operaciones para redes IP, agregadores, DSLAM, OLTs y enlaces internacionales",
   "scripts": {
-    "lint": "eslint js/ --ext .js",
+    "lint": "eslint js/ core/ tests/ scripts/ --ext .js",
     "lint:css": "stylelint css/**/*.css",
-    "format": "prettier --write js/ css/ *.html *.json",
+    "format": "prettier --write js/ core/ tests/ css/ *.html *.json",
+    "test": "node --test tests/*.test.js",
     "validate:security": "node scripts/check-secrets.js"
   },
   "devDependencies": {
