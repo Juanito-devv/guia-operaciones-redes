@@ -39,26 +39,28 @@ export function hideLauncher() {
 }
 
 /**
- * Vincula los botones del launcher: GUÍA, ESPACIO DE TRABAJO, cuenta y navegación.
+ * Vincula las tarjetas y la navegación del launcher (diseño Figma CONNECT — S2).
  */
 export function initLauncher() {
     document.getElementById('launcher-go-guide')?.addEventListener('click', enterGuide);
     document.getElementById('launcher-go-workspace')?.addEventListener('click', enterWorkspace);
-    document.getElementById('launcher-account-btn')?.addEventListener('click', () => {
-        // Ir al perfil del usuario dentro del Espacio de Trabajo
-        window.location.hash = '#/dashboard/perfil';
-        hideLauncher();
-    });
 
-    // Navegación inferior (móvil) y lateral (escritorio)
     document.querySelectorAll('.launcher-nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            setActiveNav(btn.dataset.dest);
             const dest = btn.dataset.dest;
+            setActiveNav(dest);
             if (dest === 'guia') enterGuide();
             else if (dest === 'espacio') enterWorkspace();
-            else if (dest === 'ajustes') {
-                window.location.hash = '#/dashboard/settings';
+            else if (dest === 'busqueda') {
+                // Ir a la guía y enfocar la búsqueda
+                enterGuide();
+                setTimeout(() => document.getElementById('search-input')?.focus(), 60);
+            } else if (dest === 'alertas') {
+                // Abrir el espacio de trabajo y desplegar las notificaciones
+                enterWorkspace();
+                setTimeout(() => document.getElementById('notif-bell-btn')?.click(), 60);
+            } else if (dest === 'perfil') {
+                window.location.hash = '#/dashboard/perfil';
                 hideLauncher();
             }
             // 'inicio' = quedarse en el launcher

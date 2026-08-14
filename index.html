@@ -105,54 +105,32 @@
         </main>
     </div>
 
-    <!-- Launcher (pantalla post-login: el analista elige GUÍA o ESPACIO DE TRABAJO) -->
+    <!-- Launcher (S2: post-login, el analista elige GUÍA o ESPACIO DE TRABAJO) -->
     <div id="launcher-screen" class="launcher-screen" style="display: none;">
-        <!-- TopAppBar -->
-        <header class="launcher-topbar">
-            <button class="launcher-icon-btn" id="launcher-menu-btn" aria-label="Menú">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
-            </button>
-            <h1 class="launcher-brand">CONNECT</h1>
-            <button class="launcher-icon-btn" id="launcher-account-btn" aria-label="Cuenta">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_circle</span>
-            </button>
-        </header>
-
-        <!-- Main Canvas -->
         <main class="launcher-main">
             <!-- Welcome Section -->
-            <div class="launcher-welcome">
+            <header class="launcher-welcome">
                 <h2 class="launcher-hello">Hola, <span class="launcher-name" id="launcher-user-name">Analista</span></h2>
                 <p class="launcher-subtitle">¿Qué necesitas hacer hoy?</p>
-            </div>
+            </header>
 
-            <!-- Primary Actions -->
-            <div class="launcher-actions">
-                <button class="launcher-action-btn" id="launcher-go-guide" type="button">
-                    <span class="launcher-action-overlay" aria-hidden="true"></span>
-                    <span class="material-symbols-outlined launcher-action-icon" style="font-variation-settings: 'FILL' 1;">explore</span>
-                    <span class="launcher-action-label">GUÍA</span>
-                </button>
-                <button class="launcher-action-btn" id="launcher-go-workspace" type="button">
-                    <span class="launcher-action-overlay" aria-hidden="true"></span>
-                    <span class="material-symbols-outlined launcher-action-icon" style="font-variation-settings: 'FILL' 1;">work</span>
-                    <span class="launcher-action-label">ESPACIO DE TRABAJO</span>
-                </button>
-            </div>
-
-            <!-- Recent Activity Context (Decorative) -->
-            <div class="launcher-recent">
-                <p class="launcher-recent-label">Actividad Reciente</p>
-                <div class="launcher-recent-card">
-                    <div class="launcher-recent-icon">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
-                    </div>
-                    <div class="launcher-recent-body">
-                        <p class="launcher-recent-title">Actualización de sistema</p>
-                        <p class="launcher-recent-meta">Hace 2 horas</p>
-                    </div>
+            <!-- Launcher Card 1: GUÍA -->
+            <button class="launcher-card" id="launcher-go-guide" type="button">
+                <div class="launcher-card-icon">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">menu_book</span>
                 </div>
-            </div>
+                <h3 class="launcher-card-title">GUÍA</h3>
+                <p class="launcher-card-sub">Documentación COR</p>
+            </button>
+
+            <!-- Launcher Card 2: ESPACIO DE TRABAJO -->
+            <button class="launcher-card launcher-card-primary" id="launcher-go-workspace" type="button">
+                <div class="launcher-card-icon">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">terminal</span>
+                </div>
+                <h3 class="launcher-card-title">ESPACIO DE TRABAJO</h3>
+                <p class="launcher-card-sub">Herramientas Nivel 2</p>
+            </button>
         </main>
 
         <!-- BottomNavBar (solo móvil) -->
@@ -161,17 +139,17 @@
                 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
                 <span>Inicio</span>
             </button>
-            <button class="launcher-nav-btn" data-dest="guia" type="button">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
-                <span>Guía</span>
+            <button class="launcher-nav-btn" data-dest="busqueda" type="button">
+                <span class="material-symbols-outlined">search</span>
+                <span>Búsqueda</span>
             </button>
-            <button class="launcher-nav-btn" data-dest="espacio" type="button">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">work</span>
-                <span>Espacio</span>
+            <button class="launcher-nav-btn" data-dest="alertas" type="button">
+                <span class="material-symbols-outlined">notifications</span>
+                <span>Alertas</span>
             </button>
-            <button class="launcher-nav-btn" data-dest="ajustes" type="button">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
-                <span>Ajustes</span>
+            <button class="launcher-nav-btn" data-dest="perfil" type="button">
+                <span class="material-symbols-outlined">person</span>
+                <span>Perfil</span>
             </button>
         </nav>
 
@@ -181,17 +159,17 @@
                 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
                 <span>Inicio</span>
             </button>
-            <button class="launcher-nav-btn" data-dest="guia" type="button">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
-                <span>Guía</span>
+            <button class="launcher-nav-btn" data-dest="busqueda" type="button">
+                <span class="material-symbols-outlined">search</span>
+                <span>Búsqueda</span>
             </button>
-            <button class="launcher-nav-btn" data-dest="espacio" type="button">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">work</span>
-                <span>Espacio</span>
+            <button class="launcher-nav-btn" data-dest="alertas" type="button">
+                <span class="material-symbols-outlined">notifications</span>
+                <span>Alertas</span>
             </button>
-            <button class="launcher-nav-btn" data-dest="ajustes" type="button">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
-                <span>Ajustes</span>
+            <button class="launcher-nav-btn" data-dest="perfil" type="button">
+                <span class="material-symbols-outlined">person</span>
+                <span>Perfil</span>
             </button>
         </nav>
     </div>
