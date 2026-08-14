@@ -1,0 +1,19 @@
+{
+  "name": "guia-cor-redes-ip",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Guía de operaciones para redes IP, agregadores, DSLAM, OLTs y enlaces internacionales",
+  "scripts": {
+    "lint": "eslint js/ --ext .js",
+    "lint:css": "stylelint css/**/*.css",
+    "format": "prettier --write js/ css/ *.html *.json",
+    "validate:security": "node scripts/check-secrets.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "stylelint": "^16.9.0",
+    "stylelint-config-standard": "^36.0.1",
+    "prettier": "^3.3.3"
+  }
+}

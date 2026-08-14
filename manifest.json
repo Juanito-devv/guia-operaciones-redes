@@ -1,0 +1,37 @@
+{
+  "name": "Guía COR - Redes IP",
+  "short_name": "Guía COR",
+  "description": "Guía de operaciones para redes IP, agregadores, DSLAM, OLTs y enlaces internacionales.",
+  "start_url": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "background_color": "#0b1120",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

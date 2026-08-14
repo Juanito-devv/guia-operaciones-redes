@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+
+# Logs y temporales
+*.log
+.DS_Store
+Thumbs.db
+
+# Archivos de prueba temporales
+_cdp_test*.mjs
+_refactor*.mjs
+
+# Secretos y respaldos locales — NUNCA subir a GitHub
+_local_backup/
+data/credenciales.json

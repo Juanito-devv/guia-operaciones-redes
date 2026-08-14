@@ -1,0 +1,200 @@
+{
+  "title": "Guía Integral de Operaciones para Redes IP (COR)",
+  "version": "1.0.0",
+  "sections": [
+    {
+      "id": "herramientas-accesos",
+      "title": "1. Herramientas y Accesos",
+      "icon": "🔧",
+      "subsections": [
+        {
+          "id": "plataformas-monitoreo",
+          "title": "1.1 Plataformas de Monitoreo y Gestión (Enlaces)",
+          "content": "<ul><li><strong>Netcool</strong><br><a href='https://netcool-01.cantv.net:16311/ibm/console/login.do?action=secure' target='_blank'>https://netcool-01.cantv.net:16311/</a><br><a href='https://netcool-02.cantv.net:16311/ibm/console/login.do?action=secure' target='_blank'>https://netcool-02.cantv.net:16311/</a></li><li><strong>Graficas Monitoreo</strong><br><a href='https://monitoreo.cantv.com.ve/backbone_ip.html' target='_blank'>https://monitoreo.cantv.com.ve/backbone_ip.html</a></li><li><strong>SSOMP</strong><br><a href='http://161.196.42.68/' target='_blank'>http://161.196.42.68/</a></li><li><strong>Plataforma GCOR</strong> (Escalatorios, Documentación, Horarios, Proveedor, Materiales de plataforma)<br><a href='http://gcor.cantv.com.ve/' target='_blank'>http://gcor.cantv.com.ve/</a></li><li><strong>NCE FAN Monitoreo de OLT y MDU</strong><br><a href='https://10.120.78.70:31943' target='_blank'>https://10.120.78.70:31943</a></li><li><strong>NCE FAN Monitoreo de BBIP</strong><br><a href='https://10.120.78.20:31943/' target='_blank'>https://10.120.78.20:31943/</a></li><li><strong>Bossprov para validación de Números</strong><br><a href='http://bossprov.cantv.net/' target='_blank'>http://bossprov.cantv.net/</a></li><li><strong>Sistema BOSS</strong> (Reconexión y visualización de perfil user)<br><a href='http://boss.cantv.net/' target='_blank'>http://boss.cantv.net/</a></li><li><strong>Listado OLT (SSOMP)</strong><br><a href='http://ssomp.cantv.com.ve/check_mk/view.py?selected_rows=&view_name=hostgroup&hostgroup=OLT-Nacional&sort=site%2Csitealias%2C-hoststate%2Csite%2Csite_host' target='_blank'>http://ssomp.cantv.com.ve/...</a></li><li><strong>Listado OLT</strong><br><a href='http://gcor.cantv.com.ve/index.php/olt/' target='_blank'>http://gcor.cantv.com.ve/index.php/olt/</a></li><li><strong>Validación GPON por serial</strong><br><a href='https://gpon.cantv.com.ve/reporteGeneralSerial' target='_blank'>https://gpon.cantv.com.ve/reporteGeneralSerial</a></li><li><strong>NetFlow</strong><br><a href='http://200.44.32.240:8381/sso/sign-in.jsp?SsoProductCode=ra&SsoRedirectUrl=http%3A%2F%2F200.44.32.240%2Fra%2Fdefault.aspx' target='_blank'>http://200.44.32.240:8381/</a><br><strong>User:</strong> cor<br><strong>Password:</strong> [[consultar gestor de secretos]]</li></ul>"
+        },
+        {
+          "id": "bitacoras-documentacion",
+          "title": "1.2 Bitácoras y Documentación",
+          "content": "<ul><li><strong>Bitácora mensual IP</strong><br><a href='https://docs.google.com/spreadsheets/d/1sU-e-9p2_vgH5JMXWppMxJKZXq28cx8J/edit?gid=962391541#gid=962391541' target='_blank'>https://docs.google.com/spreadsheets/...</a></li><li><strong>Respaldo</strong><br><a href='https://we.tl/t-wcJp70bREk' target='_blank'>https://we.tl/t-wcJp70bREk</a></li><li><strong>Cableado Submarino</strong> (Solo por diversion)<br><a href='https://submarinecablemap.com' target='_blank'>submarinecablemap.com</a></li><li><strong>Journal</strong> - Espacio para registrar eventos y lecciones aprendidas</li><li><strong>Bitácora</strong> - Bitácora de operaciones diarias</li></ul>"
+        },
+        {
+          "id": "acceso-equipos-cli",
+          "title": "1.3 Acceso a Equipos (CLI)",
+          "content": "<h4>Secure CRT</h4><p>Iniciar en Huawei, Cisco y todos los agregadores con <strong>Usuario de Red</strong>.</p><h4>Huawei - UA - NGN</h4><ul><li><strong>User:</strong> OPSCOR</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li><li><strong>User:</strong> corcx1</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li></ul><h4>ZTE (NGN)</h4><ul><li><strong>User:</strong> admin</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li><li><strong>User:</strong> zte</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li></ul><h4>DSLAM Alcatel 7302</h4><ul><li><strong>User:</strong> isadmin</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li><li>(Se ingresa para validar gestión y tarjetería del equipo)</li></ul><h4>Equipos OPSUT</h4><ul><li><strong>User:</strong> admin</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li><li><strong>User:</strong> ingopsut</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li></ul><h4>Switches de Dx</h4><p>Ingreso con Usuario de Red. (Se ingresa para validar tráfico hacia el equipo y puerto de conexión con el mismo)</p><h4>Equipos Juniper</h4><p>Se ingresan usando Usuario y Clave de Red.</p><ul><li>Router PFI-JBORDE-MX-00 - 10.125.20.206</li><li>Router MBO-JBORDE-MX-00 - 10.125.20.209</li></ul>"
+        },
+        {
+          "id": "acceso-gestores",
+          "title": "1.4 Acceso a Gestores y Herramientas Específicas",
+          "content": "<h4>Gestor de alarmas Netcool</h4><ul><li><strong>User:</strong> cmoral06</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li></ul><h4>Gestor de Monitoreo de Graficas</h4><ul><li><strong>User:</strong> cmoral06</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li></ul><h4>Tickera Gran Sabana</h4><ul><li><strong>User:</strong> acontr20@cantv.com.ve</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li></ul><h4>Go Global (Gestor Alcatel)</h4><ul><li><strong>Modelos 7300 y 7301</strong> (se visualizan solo por este gestor)</li><li><strong>IP:</strong> alcatel@161.196.89.43</li><li><strong>User:</strong> Alcatel</li><li><strong>Pass:</strong> [[consultar gestor de secretos]]</li><li>(Luego de ingresar, se procede con Usuario de Red)</li></ul><h4>Gestor Gran Tepuy / Gran Sabana</h4><ul><li><a href='http://161.196.42.67:4201/' target='_blank'>http://161.196.42.67:4201/</a></li></ul>"
+        }
+      ]
+    },
+    {
+      "id": "conceptos-fundamentales",
+      "title": "2. Conceptos Fundamentales",
+      "icon": "📖",
+      "subsections": [
+        {
+          "id": "fabricantes-equipos",
+          "title": "2.1 Fabricantes y Equipos",
+          "content": "<h4>NGN</h4><ul><li><strong>UA</strong> = HUAWEI</li><li><strong>NGN</strong> = ZTE</li><li><strong>Nota:</strong> NGN NO RESPONDE A COMANDOS SNMP (si tiene gestión y servicio el equipo esta operativo pero no tiene conexión con servidores snmp, escalar a soporte Datos).</li></ul><h4>Agregadores</h4><p>Equipos de agregación a los cuales se ingresa para validar captura de ip y perfiles de usuario en una svlan especifica o una cvlan especifica, también se utiliza para visualizar rechazos de peticiones (rejects), ver el tráfico de paquetes del dhcp, perfiles de navegación, usuarios en navegación actual y usuarios con navegación cortada por pago.</p><h4>Equipos y sus Identificadores</h4><ul><li><strong>Cuanto tiene una E</strong> = \"Ericsson\"</li><li><strong>Cuanto tiene una A o F</strong> = \"Alcatel\" 7301/02 (Alcatel LAG)</li><li><strong>Cuanto tiene una Z</strong> = \"ZTE\" (Smartgroup)</li><li><strong>Modelo Clientes ABA (huawei)</strong> = \"HW\" o \"H\" (H5600)</li><li><strong>BRAS</strong> = ME60-X8</li><li><strong>Router</strong> = Cortes de fibra o fallas en el router de nosotros vía CLI en el equipo el puerto físico o Lógico y las alarmas \"display interface\", también revisar las alarmas de ese puerto cuando esta caído una interconexión en el router y luego mandar a validar con transmisión las alarmas</li><li><strong>HWRR</strong> = Routers reflector, actúan como alerta para re-enrutar enlaces caídos.</li><li><strong>RAI</strong> = Equipos de clientes dedicados</li><li><strong>Interfaz de Cisco (router)</strong> = Cortes de fibra, Patch Cord dañado, tarjeta del router, altas temperaturas</li></ul><h4>Diferencias DSLAM</h4><ul><li><strong>7300/01:</strong> 28 usuarios (Gestor)</li><li><strong>7302:</strong> 48 usuarios</li><li><strong>FD:</strong> Tiene la tarjeta controladora en el medio (empieza por la 4)</li><li><strong>XD:</strong> Tiene la tarjeta controladora a la izquierda (slot 8 tiene un salto)</li></ul>"
+        },
+        {
+          "id": "servicios-mpls",
+          "title": "2.2 Servicios MPLS (VPLS / VLL)",
+          "content": "<h4>VPLS (Virtual Private LAN Service)</h4><p>Servicio del equipo multipunto (Desde un punto A hasta un punto B-C-D), re-enrutable.</p><ul><li><strong>Definición:</strong> Servicio de red que emula una LAN (Local Area Network) Ethernet multipunto sobre una infraestructura MPLS (Multiprotocol Label Switching). Permite conectar múltiples sitios geográficamente dispersos como si estuvieran en la misma red de área local.</li><li><strong>Topología:</strong> Multipunto a Multipunto. Conecta un sitio a múltiples sitios remotos, creando una única red conmutada (similar a un switch Ethernet extendido).</li><li><strong>Capacidad de Re-enrutamiento:</strong> Sí, re-enrutable. Inhereda la capacidad de re-enrutamiento rápido de MPLS, permitiendo la resiliencia y la optimización de rutas en caso de fallos. El tráfico puede encontrar caminos alternativos dinámicamente.</li><li><strong>Uso Principal:</strong> Interconexión de oficinas o campus distribuidos, servicios de acceso a internet para múltiples clientes, o cualquier escenario donde se requiera una conectividad tipo Ethernet de capa 2 entre varios puntos.</li><li><strong>Modelo de Emulación:</strong> Simula el comportamiento de un puente (bridge) Ethernet.</li></ul><h4>VLL (Virtual Leased Line) / E-Pipe</h4><p>Servicio del equipo EPIPE (Punto a Punto A - B), no enrutable.</p><ul><li><strong>Definición:</strong> Servicio de red que emula una línea privada punto a punto (Point-to-Point) sobre una infraestructura MPLS. Ofrece una conectividad transparente de capa 2 entre dos puntos finales específicos.</li><li><strong>Topología:</strong> Punto a Punto (A - B). Conecta exclusivamente dos ubicaciones.</li><li><strong>Capacidad de Re-enrutamiento:</strong> No es re-enrutable en sí mismo como el VPLS. El concepto de \"no enrutable\" se refiere a que la VLL proporciona una tubería virtual transparente que no realiza funciones de enrutamiento a nivel de capa 3. El enrutamiento lo gestiona la red MPLS subyacente para mantener la conexión punto a punto. La VLL en sí es un \"conducto\" directo. Si bien la ruta física MPLS subyacente puede ser re-enrutable para mantener el enlace, el servicio VLL siempre presentará un camino lógico directo entre A y B.</li><li><strong>Uso Principal:</strong> Conexiones directas y dedicadas entre dos ubicaciones, como interconexión de routers o switches entre sedes, backhaul de estaciones base, o cualquier servicio que requiera una emulación de línea dedicada.</li><li><strong>Modelo de Emulación:</strong> Simula un cable Ethernet o una línea privada (leased line). Es comúnmente implementado como E-Pipe (Ethernet Pipe).</li></ul>"
+        },
+        {
+          "id": "gestion-banda-fuera-banda",
+          "title": "2.3 Gestión en Banda vs. Fuera de Banda",
+          "content": "<p><strong>Guía verificación gestión en banda de DSLAM.</strong> Cuando no se tiene gestión en los equipos que van en banda.</p><ul><li><strong>En banda:</strong> DSLAM, Gestión y servicio van por F.O (hacer seguimiento de servicio, tracer)</li><li><strong>Fuera de banda:</strong> Servicio por F.O y la gestión por un cable UTP (posible falla de hardware elementos físicos patch cord, cableado, o fibra) Va a la red DCN.</li></ul><p><strong>NOTA:</strong> Se utiliza la guía de verificación cuando:</p><h4>Verificación de la red DCN</h4><ul><li>Revisar archivo odg dcn y excel dcn en documentos.</li><li>Buscar el equipo en el archivo odg y conectarme al dcn</li><li>show brief interface para ver el puerto de la dcn</li></ul><p><strong>Si tiene ping tiene gestión y si no tiene captura IP no tiene servicio</strong> esto no quiere decir que el equipo este fuera.</p><ul><li>Para el servicio es la VLAN 100-01-02-03 etc</li><li>Y para la gestión 30-32 etc.</li><li>Para la voz es la 50 (Solo UA y prox GPON)</li><li>Tiene 2 service ID diferentes por VPLS</li></ul><p><strong>fuera de banda validar puerto dcn si esta operativo y si tiene mac address, los servicios van por cable distinto</strong></p><p>Si esta fuera de banda y tiene gestión mas no servicio puede que la solución sea:</p><p><strong>Como saber:</strong> en banda empieza por (10.125) y fuera de banda empieza por 10.119 - 124)</p><p>Si el equipo es <strong>7302</strong> las led son <strong>POWER:</strong> , <strong>ALARMA</strong> y <strong>A/S</strong> (si están fijos es controladora, se recomienda sacarla y volverla a insertar y si no funciona, insertar en el slot B, sino llamar a soporte informar y esperar que digan ellos).</p><p>Si no tengo servicio me voy al agregador y si no tengo gestión hacer ping y tracert.</p>"
+        }
+      ]
+    },
+    {
+      "id": "procedimientos-validacion",
+      "title": "3. Procedimientos de Validación y Diagnóstico",
+      "icon": "🔍",
+      "subsections": [
+        {
+          "id": "flujo-validacion",
+          "title": "3.1 Flujo de Validación de Incidentes (Primeros Pasos)",
+          "content": "<ol><li><strong>Ingresar IP DSLAM:</strong> Ver equipo, tarjetas, alarmas, temperatura.</li><li><strong>Ingresar Agregador:</strong> Validar Captura de IP > 50%.</li></ol><h4>Comandos Iniciales:</h4><ul><li><strong>Display</strong> (zte, alcatel, huawei)</li><li><strong>Show</strong> (cisco)</li></ul>"
+        },
+        {
+          "id": "validacion-agregadores",
+          "title": "3.2 Validación en Agregadores (BRAS)",
+          "content": "<h4>Comandos de Uso General:</h4><ul><li><code>display access-user online-total-number</code></li><li><code>display bas-interface</code></li><li><code>display device</code></li></ul><h4>Validación cuando hay perdida de captura IP</h4><ul><li><strong>DSLAM:</strong> Se reconoce o preguntando al técnico (tarjeta de línea se ingresa por CLI para ver la tarjetería o gestor dependiendo de configuración, algo físico o servicio por agregador con \"display access user pevlan\" )</li><li><strong>Captura de IP:</strong> <code>display access user pevlan</code> (Casos puntuales agregar cevlan y ver en boss con el num de tlf)</li></ul><h4>Validación de Perfil de Navegación</h4><ul><li><code>display access-user pevlan</code></li><li><code>display access-user user-group aba-rbe-free pevlan &lt;SVLAN&gt;</code> (Para ver usuarios en mora)</li></ul>"
+        },
+        {
+          "id": "validacion-rejects",
+          "title": "3.3 Validación de Rejects (AAA vs. DHCP)",
+          "content": "<p><strong>Authentication, Authorization, and Accounting (AAA)</strong></p><ul><li>Son los equipos BRAS</li><li>Validar DHCP de igual manera (si servidores dice que es aaa no validar)</li><li>Puede ser <strong>AAA</strong> o <strong>DHCP</strong></li><li>Se observa en el Netcool alarma <strong>Number of auth timeouts</strong></li><li>En el secure para validar usar el comando (agr hw me 60) - <code>display aaa statistics authentication domain aba</code></li><li>Para limpiar contadores y validar mejor <code>reset aaa statistics authentication domain aba</code></li><li>Para validar si esta en el aaa nuevo o en el aaa viejo se usa <code>display radius-server authorization configuration</code></li><li>También se puede validar vía grafica en el monitoreo/buscador/number of authen</li></ul><div class='note'><strong>Nota importante:</strong> En caso de que se produzca rejects hacia el AAA, la Plataforma de Servidores deben contactar al Sr. Domingo, quien deberá validar los tiempos desde el AAA hacia Boss y podrá colocar el AAA en modo local. En este caso, validamos el <code>display aaa statistics authentication domain aba</code>, ejecutamos el comando <code>reset aaa statistics authentication domain aba</code> una vez que borremos los contadores, y luego volvemos a ejecutar el <code>display aaa statistics authentication domain aba</code>. Si no observamos rejects, todo está bien. De lo contrario, si se observan rejects, se debe contactar a la Unidad Soporte IP para colocar los Agregadores en modo sin autenticación.</div><p>Para el caso del <strong>AAAV5</strong>, la Plataforma de Servidores deben contactar al Sr. Domingo, quien deberá validar y a la vez a Soporte IP para colocar los BRAS en modo sin autenticación. Recuerden que AAAV5 (es el nuevo de Huawei) y el AAA (viejo).</p><h4>BRAS apuntando al AAA (VIEJO):</h4><ul><li>ANZ-BRAS-01</li><li>ANZ-BRAS-02</li><li>BTO-BRAS-00</li><li>CNT-BRAS-00</li><li>CNT-BRAS-08</li><li>MAY-BRAS-08</li><li>MIL-BRAS-00</li><li>MIL-BRAS-01</li><li>POD-BRAS-06</li><li>SCR-BRAS-00</li><li>SCR-BRAS-01</li></ul><h4>Modos de AAA:</h4><ul><li><strong>Radius =</strong> va al AAA</li><li><strong>Sin autenticación =</strong> a todos los deja pasar porque no maneja una bd local</li><li><strong>Local =</strong> tiene una base de datos de clientes en el bras para autenticar</li></ul><h4>Validación de Comunicación DHCP</h4><ul><li>Verificar instancia DHCP: <code>display dhcp-server group</code></li><li>Validar estadísticas: <code>Display dhcp-server statistics &lt;IP_DHCP&gt;</code></li><li>Prueba de ping: <code>ping -a &lt;IP_LOOPBACK_BRAS&gt; -c 10 &lt;IP_DHCP&gt;</code></li></ul>"
+        },
+        {
+          "id": "validacion-metro",
+          "title": "3.4 Validación en Metro HWSAR / SAR",
+          "content": "<h4>Seguimiento de servicio</h4><ul><li>Si son muchos DSLAM caídos (puede ser el switch)</li><li>Si no tiene captura de IP pero si tiene gestión</li><li>Ver mac address por la Vlan 100 para validar navegación \"show vlan shub-fdb\" y luego \"show interface shub port\"</li><li>Si la tarjeta controladora esta bien en el equipo y la voz también (todo con evidencia)</li></ul>"
+        },
+        {
+          "id": "validacion-nodos-dslam-olt",
+          "title": "3.5 Validación en Nodos NGN, DSLAM y OLTs",
+          "content": "<h4>Ver Mac address del agregador en los equipos</h4><p>Para validar si el equipo tiene mac address del agregador se revisa por la tarjeta controladora (normalmente slot 9 y 10 en zte). Se consulta la vlan servicio (100 / 101) por el sap using y luego dentro del equipo buscar la Mac address con la vlan obtenida.</p><h4>NODOS NGN</h4><p>Si tiene archivos inválidos <strong>flash state</strong> a la tarjeta controladora y dependiendo si tiene captura de IP se le abre un ticket. (P1) Solo en UA HW, los ZTE lo único que se puede hacer es cuando se va la luz o se apaga el equipo pierden configuración.</p><ul><li><strong>Config:</strong> <code>config</code> - <code>enable</code></li><li>Ver mac address en el adsl con el equipo <strong><code>disp mac add all</code></strong> y buscar la VLAN de Servicio (100) en la tarjeta controladora que coincida con el puerto que se esta revisando o hacer una visión general si no es algo especifico.</li></ul><h4>DSLAM</h4><p>Validaciones con personal en sitio.</p><p>Si reportan tarjeta controladora, es necesario preguntar al técnico estatus de los leds.</p><p>Si está encendida la tarjeta y con estatus up/up del puerto de la metro, y tomando en cuenta el estado de los leds, la prueba siguiente es:</p><ul><li>Realizar loop del dslam a la metro</li><li>Certificación de modulo del dslam en el puerto de la metro</li></ul><p>Cualquier maniobra con respecto a la controladora, se debe llamar a personal de soporte Dx. Solicita realizada por el Supervisor del Área <strong>Manuel Medina</strong>.</p><h5>Tarjeta Controladora (Dslam)</h5><ol><li>Reinicio físico de tarjeta controladora (con Sx)</li><li>Cambio de slot</li><li>Prueba de loop desde el dslam</li><li>Prueba de loop desde la metro</li></ol><h5>Luces led de las tarjetas:</h5><ul><li><strong>Power:</strong> Encendido-estático = ok; Encendido-intermitente / OFF = Falla</li><li><strong>A/S:</strong> Encendido- Intermitente = ok; Encendido- estático/ OFF = Falla</li><li><strong>Alarm:</strong> OFF = Ok; Encendido- estático = Falla</li></ul><h5>Notas adicionales:</h5><ul><li>Cambio de modulo SFP a multimodo y no ve actividad (no se puede cambiar sino a uno Alcatel)</li><li>Se hizo una medición en el DSLAM hay recepción de la metro pero no transmite nada.</li><li>Ya se realizo el loop del DSLAM a la metro cierra pero viceversa no pasa no hay actividad en el puerto óptico.</li><li>No abre el gestor / verificar el modulo 3FE / revisar las leds si están fijos cambiar de slot.</li><li>DSLAM de datos tiene 2 puertos para probar el modulo 3FE.</li><li>Para validar cuando es un DSLAM sin servicio pero con gestión antes de hacerle el seguimiento de servicio, se debe revisar el ping y revisar el equipo o desde la metro, luego hacerle un loop con transmisión, si el loop no cierra, puede ser el modulo SFP.</li></ul><h4>GPON</h4><ul><li>Verificar la SVLAN de un equipo para validar captura de ip o revisar a través del enlace si esta la OLT.</li><li><strong>Listado de referencia:</strong> <a href='https://docs.google.com/spreadsheets/d/1SAR3irhz3rSmtMFc6ZgtfGM292ojRtzvnMtjNOlO8sY/edit?gid=0#gid=0' target='_blank'>https://docs.google.com/spreadsheets/...</a></li></ul><h5>Alarmas GPON</h5><ul><li>Guia para reconocimiento de enlaces VPLS(1).docx.docx</li><li>Ante cualquier falla se debe realizar la apertura del reporte dependiendo la criticidad del mismo.</li><li>Se declara masiva toda falla desde el puerto PON del equipo.</li><li>Se valida la capa de trasporte y agregación.</li><li>Se cuenta con el apoyo de la unidad de soporte NGN, IP para sus validaciones.</li></ul><h4>ABA Ultra</h4><p>Abrir ticket cuando presente falla y comunicarse con <strong>Jimmy Montañez 0414-9039894</strong> (Coordinador de Soporte NGN o Personal de Proyectos Mayores).</p><h4>Anillos (?)</h4><ul><li>Oriente I</li><li>Occidente I</li></ul>"
+        },
+        {
+          "id": "validacion-enlaces-dedicados",
+          "title": "3.6 Validación en Enlaces y Clientes Dedicados",
+          "content": "<h4>Enlaces o Clientes dedicados (Si tiene conectividad o salida de internet)</h4><p>Para ver donde sale:</p><ul><li>Se le hace un ping de donde esta el enlace de nosotros al enlace del cliente (Nuestro CNT-rai o cualquier router que están en clientes dedicados monitoreo).</li><li>Se le hace ping a los dns de google: <code>ping -c &lt;cantidad de respuestas 10/20 etc&gt; -a &lt;ip del cliente&gt; 8.8.8.8</code>.</li><li>Si esto tiene respuesta tiene salida internacional y para hacer el doble check también se puede meter hacia el router de oregon ip (128.223.51.103) y se verifica a través del comando <strong><code>show ip bgp ip del cliente -1 en el último octeto best | include 8048</code></strong> (para ver en que sistema autónomo está transitando) de <strong>CANTV es 8048</strong>.</li><li>Antes de nuestro sistema autónomo sale el del proveedor (columbus, tgc, lanautilus etc) y para identificar porque enlace internacional específico está transitando se le hace un tracert.</li></ul><h4>Llamadas internacionales</h4><ul><li>* 72 * 200253#9</li></ul><h4>Saturación</h4><p>Subida en las graficas (98% es mucho llamar a soporte ip para que saquen los pools y hagan balanceo de carga).</p>"
+        },
+        {
+          "id": "seguimiento-olt",
+          "title": "3.7 Seguimiento de Servicio para OLTs",
+          "content": "<ol><li>Buscar el equipo en la metro</li><li>La vlan de servicio ADSL de la 200 a 2xx (vlan de la metro)</li><li><code>show l2vpn brief | inc olt</code> (buscar servicios por olt)</li><li>Si el 3 no funciona buscar por la vlan de servicio ADSL y ubicar aba ultra o la svlan de servicio y la svlan del agregador</li><li>Luego para ver la descripción del servicio <code>show l2vpn instance-name *id del servicio*</code> (ej. 2020001006)</li></ol>"
+        }
+      ]
+    },
+    {
+      "id": "gestion-incidentes",
+      "title": "4. Gestión de Incidentes y Escalamientos",
+      "icon": "📋",
+      "subsections": [
+        {
+          "id": "tipos-tickets",
+          "title": "4.1 Tipos de Tickets y Afectación",
+          "content": "<h4>Tickets</h4><ul><li>Por tarjeta de línea (Disponibilidad)</li><li><strong>Servicio:</strong> \"Cuando el equipo no tiene captura de IP\"</li><li><strong>Gestión:</strong> \"Cuando el equipo no tiene ping\"</li><li>Todo lo que no afecte el equipo completamente es (Disponibilidad)</li><li>Si esta afectado todo el equipo (Disponibilidad de Servicio)</li></ul><p>Cuando reporten una tarjeta y la van a llevar a reparación cambiar a \"pendiente por\" y enviar correo Sx (si es Alcatel ZTE y Ericsson Sx ATM) y si es HW (SX NGN al mail \"ops acceso ops-atm\").</p><p><strong>HEJ:</strong> Se le escala al sup. coord. gte. cuando es disp de servicio.</p><h4>Impacto</h4><ul><li>Cuando es F/O se coloca el impacto desde el puerto de donde viene y hacia donde va y cuantos Gb es la interfaz</li><li>Cuando es una interfaz solo se coloca la línea de puerto</li><li>Si es dslam hacer captura de ip o verificar el clientes aba</li></ul>"
+        },
+        {
+          "id": "pase-llamadas",
+          "title": "4.2 Pase de Llamadas (Tx, Cx, Dx)",
+          "content": "<ul><li><strong>Tx</strong>: Circuitos que no vemos</li><li><strong>Cx</strong>: Nodo y aba esta bien radio bases, E1</li><li><strong>Dx</strong>: Switches, CX600, RED OPSUT, servicios MPLS y algunos circuitos</li></ul>"
+        },
+        {
+          "id": "generacion-tickets",
+          "title": "4.3 Generación de Tickets",
+          "content": "<p>Sistema de reportes:</p><ol><li>Genera el ticket con detalle e IP</li><li>Luego se agregan las horas (La hora actual luego más 15 min y luego 5 min mas)</li><li>Se agregan las variables:<ul><li><strong>P1:</strong> dp (descripción)</li><li><strong>Ep:</strong> evidencia</li><li><strong>H:</strong> hipótesis</li></ul></li></ol>"
+        },
+        {
+          "id": "contactos",
+          "title": "4.4 Contactos y Escalamientos Clave",
+          "content": "<ul><li><strong>Manuel Medina:</strong> Soporte Dx para maniobras con tarjeta controladora.</li><li><strong>Jimmy Montañez 0414-9039894:</strong> Coordinador de Soporte NGN o Personal de Proyectos Mayores (ABA Ultra).</li><li><strong>Juan Urriola / Yacsibit Monagas:</strong> Reportar Migraciones.</li><li><strong>Sr. Domingo:</strong> Validaciones de tiempos AAA hacia Boss, modo local.</li></ul><h4>Correos de Contacto:</h4><ul><li>Operaciones red ATM</li><li>ops-ip (DSLAM, Cambio de tarjetas)</li><li>supervisores, redes ip</li><li>Soporte NGN (Cuando sea nodo y MDU, cargas de archivos)</li><li>Cuando sea a proveedor Liberty es Columbus</li></ul>"
+        }
+      ]
+    },
+    {
+      "id": "proveedores-modelos-correo",
+      "title": "5. Proveedores y Modelos de Correo",
+      "icon": "📧",
+      "subsections": [
+        {
+          "id": "enlaces-internacionales",
+          "title": "5.1 Enlaces Internacionales",
+          "content": "<h4>Modelo reporte de enlaces internacionales</h4><p>Buenos días, equipo de soporte de Liberty Networks,</p><p>Por medio del presente, informamos que nuestro circuito <strong>COLUMBUS II (I7180.CN)</strong>, se encuentra en estado <strong>DOWN (LOS - Loss of Signal)</strong> desde las <strong>02:41:12 UTC-04:00</strong>, según los logs de nuestro equipo.</p><ol><li><strong>Validación interna exhaustiva:</strong><ul><li>No se detectaron anomalías en nuestra red (configuraciones, equipos locales, o fibra óptica).</li><li><strong>Pruebas de LOOP realizadas:</strong> El circuito responde correctamente desde nuestro lado, descartando fallas en nuestro segmento.</li></ul></li><li><strong>Alarmas críticas registradas:</strong><ul><li><strong>Loss of Signal (LOS):</strong> Detectado en múltiples ocasiones.</li><li><strong>Caída física del puerto:</strong> Interface <strong>100GE14/0/0</strong> reportó estado \"Down\".</li><li><strong>Conflicto de MAC/IP:</strong> Registrado a las 03:58:36.</li></ul></li><li><strong>Métricas ópticas anómalas:</strong><ul><li><strong>Rx Power fuera de rango:</strong><ul><li>Canal 0: <strong>30.00 dBm</strong> (fuera de rango warning).</li><li>Canales 1-3: Entre <strong>25.22 dBm</strong> y <strong>32.21 dBm</strong> (indicando posible ruptura de fibra o falla en transceiver).</li></ul></li></ul></li></ol>"
+        },
+        {
+          "id": "proveedores-especificos",
+          "title": "5.2 Proveedores Específicos (Columbus, VNET, BTSE, etc.)",
+          "content": "<h4>Modelo VNET</h4><p>Buenas noches estimados compañeros de <strong>VNET</strong>.</p><p>La presente tiene como finalidad solicitar la validación del siguiente circuito <strong>30-003-CA de 10GB</strong>. Se observa que presentó una variación a las <strong>09:00 pm</strong> aproximadamente. En nuestros equipos observamos variación <strong>PEER BGP</strong> es decir que perdimos conexión por un momento con su red.</p><p>Ticket aperturado XXXXX</p>"
+        },
+        {
+          "id": "reporte-tarjetas-sx",
+          "title": "5.3 Reporte de Tarjetas con SX",
+          "content": "<h4>Modelo reporte de tarjetas con SX</h4><p>Reporte de tarjetas para sustitución / reparación.</p>"
+        }
+      ]
+    },
+    {
+      "id": "plantillas-comandos",
+      "title": "6. Plantillas de Comandos por Equipo y Fabricante",
+      "icon": "⌨️",
+      "subsections": [
+        {
+          "id": "huawei",
+          "title": "6.1 Huawei (ME60, MA5800, Switches)",
+          "content": "<h4>Agregadores (BRAS)</h4><pre><code>display access-user online-total-number\ndisplay bas-interface\ndisplay device\ndisplay aaa statistics authentication domain aba\nreset aaa statistics authentication domain aba\ndisplay access-user pevlan &lt;SVLAN&gt;\ndisplay access-user pevlan &lt;SVLAN&gt; cevlan &lt;CVLAN&gt;\ndisplay access-user ip-address &lt;IP&gt;\ndisplay dhcp-server group\nDisplay dhcp-server statistics &lt;IP_DHCP&gt;\nping -a &lt;IP_LOOPBACK_BRAS&gt; -c 10 &lt;IP_DHCP&gt;</code></pre><h4>HWSAR / SR (Metro Huawei)</h4><pre><code>display interface Eth-Trunk&lt;ID&gt;\ndisplay interface GigabitEthernet X/X/X\ndisplay l2vpn forward-info\ndisplay l2vpn instance-name &lt;ID&gt;\ndisplay mpls l2vpn vpws\ndisplay mpls l2vc &lt;VCID&gt;\ndisplay eth-trunk &lt;ID&gt;\ndisplay temperature</code></pre>"
+        },
+        {
+          "id": "zte",
+          "title": "6.2 ZTE (NGN)",
+          "content": "<pre><code>show card\nshow running-config | include &lt;CVLAN&gt;\nshow mac-address all\nshow interface adsl &lt;slot/puerto&gt;\nenable → config → display data sync state\ndisplay board 0\ndisplay flash state 0/2\ndisplay mac-address all</code></pre>"
+        },
+        {
+          "id": "alcatel",
+          "title": "6.3 Alcatel (7302)",
+          "content": "<pre><code>show card\nshow interface shub port\nshow bridge port &lt;slot/port&gt;:&lt;vlan&gt;\nadmin software-mngt shub database save</code></pre>"
+        },
+        {
+          "id": "cisco",
+          "title": "6.4 Cisco",
+          "content": "<pre><code>show interface &lt;interface&gt;\nshow ip bgp &lt;IP&gt;\nshow l2vpn brief\nshow l2vpn instance-name &lt;ID&gt;</code></pre>"
+        },
+        {
+          "id": "juniper",
+          "title": "6.5 Juniper MX",
+          "content": "<pre><code>show interfaces et-0/0/12\nshow interfaces diagnostics optics et-0/0/12\nclear interfaces statistics et-0/0/12\nshow bgp neighbor 200.84.132.2\nshow interfaces ae1 terse\nshow log messages | last 20</code></pre>"
+        }
+      ]
+    },
+    {
+      "id": "apendice-referencias",
+      "title": "7. Apéndice y Referencias",
+      "icon": "📚",
+      "subsections": [
+        {
+          "id": "guia-dhcp",
+          "title": "7.1 Guía de Verificación de DHCP",
+          "content": "<p><strong>Link de referencia:</strong> <a href='http://gcor.cantv.com.ve/wp-content/uploads/2024/06/Verificacion-para-posible-afectacion-del-servidor-DHCP.pdf' target='_blank'>Verificación para posible afectación del servidor DHCP</a></p>"
+        },
+        {
+          "id": "portales-mitigacion",
+          "title": "7.2 Portales de Mitigación (DDoS)",
+          "content": "<h4>SPARKLE - LAN</h4><p><a href='https://arbor.noc.seabone.net' target='_blank'>https://arbor.noc.seabone.net</a></p><h4>Liberty - Columbus / TGC</h4><p><a href='https://ddos.llabusiness.com/' target='_blank'>https://ddos.llabusiness.com/</a></p><h4>VTAL</h4><p><a href='https://portalantiddos.vtal.com/' target='_blank'>https://portalantiddos.vtal.com/</a></p>"
+        },
+        {
+          "id": "glosario",
+          "title": "7.3 Glosario de Términos y Abreviaturas",
+          "content": "<ul><li><strong>AAA:</strong> Authentication, Authorization, and Accounting</li><li><strong>BRAS:</strong> Broadband Remote Access Server</li><li><strong>COR:</strong> Centro Operaciones de la Red</li><li><strong>CVLAN:</strong> Customer VLAN</li><li><strong>DSLAM:</strong> Digital Subscriber Line Access Multiplexer</li><li><strong>GPON:</strong> Gigabit Passive Optical Network</li><li><strong>MPLS:</strong> Multiprotocol Label Switching</li><li><strong>NGN:</strong> Next Generation Network</li><li><strong>OLT:</strong> Optical Line Terminal</li><li><strong>SVLAN:</strong> Service VLAN</li><li><strong>VPLS:</strong> Virtual Private LAN Service</li></ul>"
+        }
+      ]
+    }
+  ]
+}

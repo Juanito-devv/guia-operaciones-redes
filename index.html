@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía COR - Redes IP</title>
+
+    <!-- Meta Tags (GitHub Pages no permite headers HTTP reales, así que evitamos CSP/meta que generan warnings en consola) -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="no-referrer">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#3b82f6">
+
+    <!-- SEO & Manifest -->
+    <meta name="description" content="Guía de operaciones para redes IP, agregadores, DSLAM, OLTs y enlaces internacionales. Centro de Operaciones de Red.">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌐</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Hanken+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Skip Link de Accesibilidad -->
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <!-- Noscript Fallback -->
+    <noscript>
+        <div style="padding: 20px; background: #ef4444; color: white; text-align: center; font-weight: bold;">
+            ⚠️ Esta aplicación requiere JavaScript habilitado para funcionar. Por favor actívalo en tu navegador.
+        </div>
+    </noscript>
+
+    <!-- Banner de degradación de Firebase (visible cuando Firestore falla) -->
+    <div id="fb-status-banner" class="fb-status-banner" role="alert" hidden>
+        <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
+        <span class="fb-status-msg"></span>
+    </div>
+
+    <!-- Login Screen (diseño Figma CONNECT) -->
+    <div id="login-screen" class="login-screen" role="dialog" aria-labelledby="login-title">
+        <!-- Toggle de tema (dark mode por defecto) -->
+        <button id="login-theme-toggle" class="login-theme-toggle" type="button" aria-label="Cambiar a modo claro" title="Cambiar tema">
+            <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
+        </button>
+
+        <!-- Elementos decorativos de fondo -->
+        <div class="login-deco login-deco-top" aria-hidden="true"></div>
+        <div class="login-deco login-deco-blob login-deco-blob-1" aria-hidden="true"></div>
+        <div class="login-deco login-deco-blob login-deco-blob-2" aria-hidden="true"></div>
+
+        <main class="login-main">
+            <!-- Hero / Marca -->
+            <header class="login-hero">
+                <div class="login-logo">
+                    <span class="material-symbols-outlined login-logo-icon" aria-hidden="true">devices</span>
+                </div>
+                <h1 id="login-title" class="login-brand">Guía COR</h1>
+                <p class="login-tagline">Redes IP · Operaciones</p>
+            </header>
+
+            <!-- Tarjeta del formulario -->
+            <div class="login-container">
+                <form id="login-form" class="login-form" autocomplete="on">
+                    <div class="login-field">
+                        <label class="login-label" for="login-user">Usuario</label>
+                        <div class="login-input-well">
+                            <span class="material-symbols-outlined login-input-icon" aria-hidden="true">person</span>
+                            <input type="text" id="login-user" name="username" placeholder="Ingresa tu usuario" autocomplete="username" autofocus required>
+                        </div>
+                    </div>
+                    <div class="login-field">
+                        <label class="login-label" for="login-pass">Contraseña</label>
+                        <div class="login-input-well">
+                            <span class="material-symbols-outlined login-input-icon" aria-hidden="true">lock</span>
+                            <input type="password" id="login-pass" name="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" required>
+                            <button type="button" id="login-toggle-pass" class="login-pass-toggle" aria-label="Mostrar contraseña">
+                                <span class="material-symbols-outlined" id="login-toggle-icon" aria-hidden="true">visibility_off</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="login-error" class="login-error" aria-live="polite"></div>
+                    <button type="submit" class="login-btn">INICIAR SESIÓN</button>
+                </form>
+                <div class="login-divider" aria-hidden="true"></div>
+                <div class="login-footer">
+                    <small>© CANTV · COR — Acceso restringido al personal autorizado</small>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Launcher (pantalla post-login: el analista elige GUÍA o ESPACIO DE TRABAJO) -->
+    <div id="launcher-screen" class="launcher-screen" style="display: none;">
+        <!-- TopAppBar -->
+        <header class="launcher-topbar">
+            <button class="launcher-icon-btn" id="launcher-menu-btn" aria-label="Menú">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+            </button>
+            <h1 class="launcher-brand">CONNECT</h1>
+            <button class="launcher-icon-btn" id="launcher-account-btn" aria-label="Cuenta">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_circle</span>
+            </button>
+        </header>
+
+        <!-- Main Canvas -->
+        <main class="launcher-main">
+            <!-- Welcome Section -->
+            <div class="launcher-welcome">
+                <h2 class="launcher-hello">Hola, <span class="launcher-name" id="launcher-user-name">Analista</span></h2>
+                <p class="launcher-subtitle">¿Qué necesitas hacer hoy?</p>
+            </div>
+
+            <!-- Primary Actions -->
+            <div class="launcher-actions">
+                <button class="launcher-action-btn" id="launcher-go-guide" type="button">
+                    <span class="launcher-action-overlay" aria-hidden="true"></span>
+                    <span class="material-symbols-outlined launcher-action-icon" style="font-variation-settings: 'FILL' 1;">explore</span>
+                    <span class="launcher-action-label">GUÍA</span>
+                </button>
+                <button class="launcher-action-btn" id="launcher-go-workspace" type="button">
+                    <span class="launcher-action-overlay" aria-hidden="true"></span>
+                    <span class="material-symbols-outlined launcher-action-icon" style="font-variation-settings: 'FILL' 1;">work</span>
+                    <span class="launcher-action-label">ESPACIO DE TRABAJO</span>
+                </button>
+            </div>
+
+            <!-- Recent Activity Context (Decorative) -->
+            <div class="launcher-recent">
+                <p class="launcher-recent-label">Actividad Reciente</p>
+                <div class="launcher-recent-card">
+                    <div class="launcher-recent-icon">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+                    </div>
+                    <div class="launcher-recent-body">
+                        <p class="launcher-recent-title">Actualización de sistema</p>
+                        <p class="launcher-recent-meta">Hace 2 horas</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- BottomNavBar (solo móvil) -->
+        <nav class="launcher-bottom-nav">
+            <button class="launcher-nav-btn active" data-dest="inicio" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+                <span>Inicio</span>
+            </button>
+            <button class="launcher-nav-btn" data-dest="guia" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
+                <span>Guía</span>
+            </button>
+            <button class="launcher-nav-btn" data-dest="espacio" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">work</span>
+                <span>Espacio</span>
+            </button>
+            <button class="launcher-nav-btn" data-dest="ajustes" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+                <span>Ajustes</span>
+            </button>
+        </nav>
+
+        <!-- Side Nav (solo escritorio) -->
+        <nav class="launcher-side-nav">
+            <button class="launcher-nav-btn active" data-dest="inicio" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+                <span>Inicio</span>
+            </button>
+            <button class="launcher-nav-btn" data-dest="guia" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
+                <span>Guía</span>
+            </button>
+            <button class="launcher-nav-btn" data-dest="espacio" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">work</span>
+                <span>Espacio</span>
+            </button>
+            <button class="launcher-nav-btn" data-dest="ajustes" type="button">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+                <span>Ajustes</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- App principal -->
+    <div id="app" style="display: none;">
+        <aside id="sidebar" role="navigation" aria-label="Navegación principal">
+            <div class="sidebar-header">
+                <div class="sidebar-brand" tabIndex="0" role="button" aria-label="Ir a la página de inicio">
+                    <span class="brand-mark" aria-hidden="true"><span class="material-symbols-outlined">hub</span></span>
+                    <div class="brand-text">
+                        <span class="brand-title">Guía COR · Redes IP</span>
+                        <span class="brand-sub">Redes IP · Operaciones</span>
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <button id="theme-toggle" class="sidebar-icon-btn" aria-label="Cambiar tema" title="Cambiar tema (Ctrl+Shift+D)"><span class="material-symbols-outlined">dark_mode</span></button>
+                    <button id="menu-close" class="sidebar-icon-btn" aria-label="Cerrar menú de navegación" title="Cerrar menú"><span class="material-symbols-outlined">close</span></button>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+                    <input type="text" id="search-input" placeholder="Buscar secciones..." aria-label="Buscar en la guía" autocomplete="off">
+                    <kbd id="search-shortcut">Ctrl+K</kbd>
+                </div>
+                <div id="search-results" class="search-results" aria-live="polite"></div>
+            </div>
+
+            <nav id="nav">
+                <ul id="nav-list" role="menubar"></ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-profile">
+                    <div class="sidebar-profile-avatar user-avatar-display" aria-hidden="true">👤</div>
+                    <div class="sidebar-profile-info">
+                        <span class="sidebar-profile-name user-name-display">Analista</span>
+                        <span class="sidebar-profile-role user-role-display">@usuario</span>
+                    </div>
+                    <button id="logout-btn" class="sidebar-profile-logout" aria-label="Cerrar sesión" title="Cerrar sesión"><span class="material-symbols-outlined">logout</span></button>
+                </div>
+                <small class="sidebar-copy">© CANTV · COR</small>
+            </div>
+        </aside>
+
+        <div id="sidebar-overlay" aria-hidden="true"></div>
+
+        <main id="main-content" tabIndex="-1">
+            <div class="content-header">
+                <div class="content-header-left">
+                    <button id="menu-toggle" aria-label="Abrir menú de navegación" title="Abrir menú">☰</button>
+                    <h2 id="content-title">Bienvenido</h2>
+                </div>
+                <div class="content-header-right">
+                    <button id="header-logout-btn" class="header-logout-btn" aria-label="Cerrar sesión" title="Cerrar sesión">🚪 Salir</button>
+                    <div id="notif-bell-target"></div>
+                </div>
+            </div>
+            <div class="breadcrumb" id="breadcrumb" aria-label="Migas de pan" style="display: none;"></div>
+            <div id="content-body" class="content-body" aria-live="polite"></div>
+        </main>
+
+        <!-- BottomNavBar (móvil — diseño Figma) -->
+        <nav id="app-bottom-nav" class="app-bottom-nav" aria-label="Navegación principal móvil">
+            <button type="button" class="app-bnav-btn" data-dest="inicio" aria-label="Inicio">
+                <span class="material-symbols-outlined" aria-hidden="true">home</span>
+                <span>Inicio</span>
+            </button>
+            <button type="button" class="app-bnav-btn" data-dest="guia" aria-label="Guía">
+                <span class="material-symbols-outlined" aria-hidden="true">menu_book</span>
+                <span>Guía</span>
+            </button>
+            <button type="button" class="app-bnav-btn" data-dest="espacio" aria-label="Espacio de trabajo">
+                <span class="material-symbols-outlined" aria-hidden="true">workspaces</span>
+                <span>Espacio</span>
+            </button>
+            <button type="button" class="app-bnav-btn" data-dest="ajustes" aria-label="Ajustes">
+                <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+                <span>Ajustes</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- JS Modular (ES6 Native Modules) -->
+    <script type="module" src="js/app.js?v=6"></script>
+</body>
+</html>
