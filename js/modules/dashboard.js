@@ -3,6 +3,7 @@
 // ========================================
 
 import { AppState } from '../state.js';
+import { Storage } from '../utils/storage.js';
 import { openPanelTab } from './panel.js';
 import { showGuardia } from './guardia.js';
 import { showMail } from './mail.js';
@@ -133,19 +134,57 @@ export function showDashboard(toolId) {
         return;
     }
 
-    // Dashboard general: rejilla de herramientas (diseño Figma)
+    // Dashboard general: hub de módulos (diseño Figma). Cada tarjeta NAVEGA
+    // a la página completa de su módulo (#/dashboard/<id>); nada se despliega aquí.
     titleEl.textContent = 'Espacio de Trabajo';
     breadcrumb.innerHTML = '<span>Dashboard</span>';
     body.classList.add('loading');
 
+    const metrics = buildMetrics();
+
     setTimeout(() => {
         body.innerHTML = `
             <div class="dashboard-page">
-                <section class="db-hero">
-                    <p class="db-eyebrow">Centro de Control</p>
-                    <h1>Dashboard de Operaciones</h1>
-                    <p>Vista general de métricas clave, alertas del sistema y accesos rápidos a los módulos de gestión.</p>
+                <header class="db-header">
+                    <div>
+                        <p class="db-eyebrow">Centro de Control</p>
+                        <h1>Dashboard General</h1>
+                        <p>Visión global de las operaciones. Cada módulo tiene su propia página: selecciona una tarjeta para abrirla.</p>
+                    </div>
+                    <div class="db-status-pill">
+                        <span class="db-status-dot" aria-hidden="true"></span>
+                        SISTEMA OPERATIVO
+                    </div>
+                </header>
+
+                <section class="db-metrics">
+                    <a class="db-metric" href="#/dashboard/cdc">
+                        <div class="db-metric-top">
+                            <h3>CDC Activos</h3>
+                            <span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span>
+                        </div>
+                        <div class="db-metric-value">${metrics.cdcActive}</div>
+                        <p>Programados o en ejecución</p>
+                        <div class="db-metric-bar"><div style="width:${metrics.cdcPct}%"></div></div>
+                    </a>
+                    <a class="db-metric" href="#/dashboard/calendar">
+                        <div class="db-metric-top">
+                            <h3>Eventos Hoy</h3>
+                            <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+                        </div>
+                        <div class="db-metric-value">${metrics.eventsToday}</div>
+                        <p>En el calendario de hoy</p>
+                    </a>
+                    <a class="db-metric db-metric-alert" href="#" data-open-notifs>
+                        <div class="db-metric-top">
+                            <h3>Alertas</h3>
+                            <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+                        </div>
+                        <div class="db-metric-value">${metrics.unread}</div>
+                        <p>Notificaciones sin leer</p>
+                    </a>
                 </section>
+
                 <section class="db-grid">
                     ${TOOLS.map(t => `
                         <a class="db-card${t.error ? ' db-card-error' : ''}" href="#/dashboard/${t.id}">
@@ -163,8 +202,8 @@ export function showDashboard(toolId) {
 
                 <!-- Vista móvil: lista de acceso rápido (diseño Figma) -->
                 <section class="db-mobile-head">
-                    <h2>Resumen</h2>
-                    <p>Acceso rápido a operaciones clave.</p>
+                    <h2>Módulos</h2>
+                    <p>Acceso rápido a cada módulo en su propia página.</p>
                 </section>
                 <section class="db-mobile">
                     ${TOOLS.map(t => `
@@ -182,5 +221,39 @@ export function showDashboard(toolId) {
         `;
         body.classList.remove('loading');
         document.getElementById('main-content').scrollTop = 0;
+
+        // Tarjeta de Alertas: abre el drawer de notificaciones (superpuesto, no inline)
+        document.querySelector('[data-open-notifs]')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('notif-bell-btn')?.click();
+        });
     }, 120);
+}
+
+/**
+ * Métricas en vivo del dashboard, leídas del storage local compartido.
+ * (CDC activos, eventos de hoy, notificaciones sin leer del usuario).
+ */
+function buildMetrics() {
+    const cdcList = Storage.get('cor_cdc', []);
+    const list = Array.isArray(cdcList) ? cdcList : [];
+    const active = list.filter(c => ['programado', 'ejecucion'].includes(c.status)).length;
+    const cdcPct = list.length > 0 ? Math.round((active / list.length) * 100) : 0;
+
+    const events = Storage.get('cor_events', {}) || {};
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const eventsToday = Array.isArray(events[todayKey]) ? events[todayKey].length : 0;
+
+    let unread = 0;
+    try {
+        const user = AppState.get('currentUser');
+        const notifs = Storage.get('cor_notifications', []);
+        const readIds = user ? Storage.get(`cor_read_notifs_${user}`, []) : [];
+        unread = Array.isArray(notifs) ? notifs.filter(n => !(n.readBy || []).includes(user) && !readIds.includes(n.id)).length : 0;
+    } catch (e) {
+        unread = 0;
+    }
+
+    return { cdcActive: active, cdcPct, eventsToday, unread };
 }
