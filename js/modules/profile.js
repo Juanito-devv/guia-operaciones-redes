@@ -120,7 +120,7 @@ export function showProfile() {
                                     <div class="profile-avatar">${avatarMarkup(avatar)}</div>
                                 </div>
                                 <span class="profile-role">
-                                    <span class="material-symbols-outlined filled" aria-hidden="true">${roleIcon}</span>
+                                    <span class="material-symbols-outlined fill" aria-hidden="true">${roleIcon}</span>
                                     ${roleLabel}
                                 </span>
                             </div>

@@ -14,7 +14,7 @@ const ACCENTS = [
 ];
 
 /**
- * Página completa de Estilo/Ajustes (#/dashboard/settings — diseño Figma):
+ * Página completa de Estilo/Ajustes (#/dashboard/settings — diseño S13):
  * selector de tema claro/oscuro, color de acento del Espacio de Trabajo,
  * densidad de diseño y vista previa en vivo de los componentes.
  */
@@ -28,20 +28,20 @@ export function showSettings() {
 
     const themeOptions = `
         <button type="button" class="theme-option ${savedTheme === 'light' ? 'active' : ''}" data-theme="light" aria-pressed="${savedTheme === 'light'}">
+            <span class="theme-check"><span class="material-symbols-outlined fill" aria-hidden="true">check</span></span>
             <span class="theme-mini theme-mini-light">
-                <span class="theme-mini-bar"><i></i><i></i></span>
-                <span class="theme-mini-lines"><i></i><i></i></span>
+                <span class="theme-mini-top"></span>
+                <span class="theme-mini-cols"><i></i><i></i></span>
             </span>
             <span class="theme-option-label">Claro (Kinetic Light)</span>
-            <span class="material-symbols-outlined theme-check" aria-hidden="true">check_circle</span>
         </button>
         <button type="button" class="theme-option ${savedTheme === 'dark' ? 'active' : ''}" data-theme="dark" aria-pressed="${savedTheme === 'dark'}">
+            <span class="theme-check"><span class="material-symbols-outlined fill" aria-hidden="true">check</span></span>
             <span class="theme-mini theme-mini-dark">
-                <span class="theme-mini-bar"><i></i><i></i></span>
-                <span class="theme-mini-lines"><i></i><i></i></span>
+                <span class="theme-mini-top"></span>
+                <span class="theme-mini-cols"><i></i><i></i></span>
             </span>
             <span class="theme-option-label">Oscuro (Kinetic Dark)</span>
-            <span class="material-symbols-outlined theme-check" aria-hidden="true">check_circle</span>
         </button>`;
 
     body.innerHTML = `
@@ -57,39 +57,46 @@ export function showSettings() {
                 <div class="settings-controls">
                     <!-- Tema de interfaz -->
                     <section class="settings-card">
-                        <h2 class="settings-card-title"><span class="material-symbols-outlined" aria-hidden="true">contrast</span> Tema de Interfaz</h2>
+                        <div class="settings-card-head">
+                            <span class="settings-card-ico"><span class="material-symbols-outlined" aria-hidden="true">contrast</span></span>
+                            <h2 class="settings-card-title">Tema de Interfaz</h2>
+                        </div>
                         <div class="settings-theme-row">${themeOptions}</div>
                     </section>
 
                     <!-- Color de acento -->
                     <section class="settings-card">
-                        <h2 class="settings-card-title"><span class="material-symbols-outlined" aria-hidden="true">palette</span> Color de Acento</h2>
+                        <div class="settings-card-head">
+                            <span class="settings-card-ico"><span class="material-symbols-outlined" aria-hidden="true">palette</span></span>
+                            <h2 class="settings-card-title">Color de Acento</h2>
+                        </div>
                         <p class="settings-hint">Define el tono principal para botones, enlaces y elementos destacados activos.</p>
                         <div class="settings-accent-row">
                             ${ACCENTS.map(a => `
                                 <button type="button" class="accent-swatch ${savedAccent === a.color ? 'active' : ''}" data-color="${a.color}" style="background:${a.color};" title="${a.label}" aria-label="${a.label}">
-                                    <span class="material-symbols-outlined" aria-hidden="true">check</span>
+                                    <span class="material-symbols-outlined fill" aria-hidden="true">check</span>
                                 </button>`).join('')}
                         </div>
                     </section>
 
                     <!-- Densidad de diseño -->
                     <section class="settings-card">
-                        <h2 class="settings-card-title"><span class="material-symbols-outlined" aria-hidden="true">view_agenda</span> Densidad de Diseño</h2>
-                        <label class="density-option ${savedDensity === 'comfortable' ? 'active' : ''}">
-                            <div>
-                                <b>Cómodo (Táctil)</b>
-                                <span>Espaciado amplio, ideal para uso con pantallas táctiles.</span>
-                            </div>
-                            <input type="radio" name="density" value="comfortable" ${savedDensity === 'comfortable' ? 'checked' : ''} aria-label="Cómodo">
-                        </label>
-                        <label class="density-option ${savedDensity === 'compact' ? 'active' : ''}">
-                            <div>
-                                <b>Compacto</b>
-                                <span>Mayor densidad de información, preferido para análisis de datos.</span>
-                            </div>
-                            <input type="radio" name="density" value="compact" ${savedDensity === 'compact' ? 'checked' : ''} aria-label="Compacto">
-                        </label>
+                        <div class="settings-card-head">
+                            <span class="settings-card-ico"><span class="material-symbols-outlined" aria-hidden="true">view_agenda</span></span>
+                            <h2 class="settings-card-title">Densidad de Diseño</h2>
+                        </div>
+                        <div class="settings-density-grid">
+                            <label class="density-option ${savedDensity === 'comfortable' ? 'active' : ''}">
+                                <span class="density-bars comfortable"><i></i><i></i><i></i></span>
+                                <span class="density-name">Cómodo (Táctil)</span>
+                                <input type="radio" name="density" value="comfortable" ${savedDensity === 'comfortable' ? 'checked' : ''} aria-label="Cómodo">
+                            </label>
+                            <label class="density-option ${savedDensity === 'compact' ? 'active' : ''}">
+                                <span class="density-bars compact"><i></i><i></i><i></i><i></i></span>
+                                <span class="density-name">Compacto</span>
+                                <input type="radio" name="density" value="compact" ${savedDensity === 'compact' ? 'checked' : ''} aria-label="Compacto">
+                            </label>
+                        </div>
                     </section>
                 </div>
 
@@ -97,30 +104,43 @@ export function showSettings() {
                 <div class="settings-preview">
                     <div class="settings-preview-head">
                         <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                        <h3>Vista Previa en Vivo</h3>
+                        <h3>Vista Previa del Entorno</h3>
                     </div>
                     <div class="settings-preview-panel">
-                        <div class="settings-preview-card">
+                        <div class="settings-preview-card settings-preview-form">
                             <h4>Ejemplo de Formulario</h4>
-                            <label class="settings-preview-label">Entrada de Texto</label>
-                            <input class="settings-preview-input" type="text" placeholder="Escribe aquí...">
-                            <div class="settings-preview-chips">
-                                <span class="chip chip-neutral">Etiqueta 1</span>
-                                <span class="chip chip-accent">Activa</span>
+                            <div class="settings-preview-formbody">
+                                <div>
+                                    <label class="settings-preview-label">Entrada de Texto</label>
+                                    <input class="settings-preview-input" type="text" value="Valor de telemetría actual">
+                                </div>
+                                <div class="settings-preview-chips">
+                                    <span class="chip chip-neutral">Etiqueta 1</span>
+                                    <span class="chip chip-accent"><i class="chip-dot"></i> Activa</span>
+                                </div>
+                                <div class="settings-preview-actions">
+                                    <button type="button" class="settings-preview-btn">
+                                        <span class="material-symbols-outlined" aria-hidden="true">save</span> Guardar Cambios
+                                    </button>
+                                </div>
                             </div>
-                            <button type="button" class="settings-preview-btn">
-                                <span>Guardar Cambios</span>
-                                <span class="material-symbols-outlined" aria-hidden="true">save</span>
-                            </button>
                         </div>
                         <div class="settings-preview-card settings-preview-list">
                             <div class="settings-preview-row">
                                 <div class="settings-preview-ico"><span class="material-symbols-outlined" aria-hidden="true">insert_chart</span></div>
-                                <div><b>Reporte Mensual</b><span>Generado hoy</span></div>
+                                <div class="settings-preview-text">
+                                    <b>Reporte Mensual</b>
+                                    <span class="settings-preview-sub">Generado hoy</span>
+                                </div>
+                                <span class="material-symbols-outlined settings-preview-chev" aria-hidden="true">chevron_right</span>
                             </div>
                             <div class="settings-preview-row">
                                 <div class="settings-preview-ico"><span class="material-symbols-outlined" aria-hidden="true">folder</span></div>
-                                <div><b>Archivos Antiguos</b><span>Hace 3 días</span></div>
+                                <div class="settings-preview-text">
+                                    <b>Archivos Antiguos</b>
+                                    <span class="settings-preview-sub">Hace 3 días</span>
+                                </div>
+                                <span class="material-symbols-outlined settings-preview-chev" aria-hidden="true">chevron_right</span>
                             </div>
                         </div>
                     </div>
