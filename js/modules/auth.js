@@ -219,6 +219,8 @@ export function logout() {
     AppState.set('isLoggedIn', false);
     AppState.set('currentSectionId', null);
     AppState.set('currentSubsectionId', null);
+    AppState.set('currentDashboardTool', null);
+    AppState.set('currentView', 'home');
     AppState.set('isHomePage', true);
     AppState.set('panelOpen', false);
     AppState.set('currentTab', 'map');

@@ -12,6 +12,7 @@ class State {
             isLoggedIn: false,
             currentUser: null,
             currentDashboardTool: null,
+            currentView: 'home',
             panelOpen: false,
             currentTab: 'map',
             searchResultsVisible: false,

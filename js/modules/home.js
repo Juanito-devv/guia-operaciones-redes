@@ -126,6 +126,7 @@ export const HOME_PAGE_HTML = `
 
 export function showHome() {
     AppState.set('isHomePage', true);
+    AppState.set('currentView', 'home');
     AppState.set('currentSectionId', null);
     AppState.set('currentSubsectionId', null);
     AppState.set('currentDashboardTool', null);

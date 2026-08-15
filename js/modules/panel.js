@@ -200,16 +200,6 @@ export function createQuickPanel() {
     `;
     document.body.appendChild(panel);
 
-    if (!document.getElementById('quick-nav-toggle')) {
-        const toggleBtn = document.createElement('button');
-        toggleBtn.id = 'quick-nav-toggle';
-        toggleBtn.textContent = '⚡';
-        toggleBtn.title = 'Abrir espacio de trabajo (Ctrl+.)';
-        toggleBtn.setAttribute('aria-label', 'Abrir espacio de trabajo');
-        document.body.appendChild(toggleBtn);
-        toggleBtn.addEventListener('click', togglePanel);
-    }
-
     bindPanelEvents();
 }
 

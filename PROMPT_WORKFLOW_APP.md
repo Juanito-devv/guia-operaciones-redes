@@ -137,6 +137,13 @@ Reglas de oro:
 - Móvil: bottom-nav `Inicio · Guía · Espacio · Ajustes`; desde "Espacio" se
   abre el dashboard con las tarjetas de cada módulo.
 - Escritorio: sidebar + contenido; panel de trabajo lateral `Ctrl+.`.
+- **Sidebar (S19)**: único origen de navegación web; accesible desde "Inicio" y
+  colapsable a iconos (toggle persistente). NUNCA botones flotantes que abran
+  módulos: el acceso al Espacio de Trabajo vive en el sidebar y en el home.
+  "➕ Agregar Procedimiento" abre el modal de procedimientos (solo admin).
+- **Retroceso**: cada página de módulo (`#/dashboard/<tool>`) tiene una acción
+  "Volver al dashboard" (botón o breadcrumb clicable); no dejar al usuario sin
+  salida dentro de un módulo.
 - Deep links resueltos por un **único router**; evitar doble render: si el
   hash apunta a la ruta ya activa, no re-renderizar.
 - Estados de apoyo: error de carga (Reintentar), acceso denegado, degradación
@@ -218,6 +225,7 @@ Reglas de oro:
 | S16 | Detalle de evento | Modal con info + acciones |
 | S17 | Búsqueda global | Overlay Ctrl+K con resultados en vivo (guía + módulos) |
 | S18 | Estados de apoyo | Carga (loading), error con Reintentar, acceso denegado, vacío (empty), banner degradación |
+| S19 | Sidebar de navegación (web) | Panel izquierdo colapsable: toggle dark_mode + search "Buscar secciones… Ctrl+K" + "➕ Agregar Procedimiento" (solo admin) + "Espacio de Trabajo" + secciones 1–7 de la Guía con chevrons + perfil ("👑 Admin" o "👷 Operador") + logout |
 
 > **Anatomía común de página de módulo** (S7–S13): header propio (eyebrow +
 > título + acciones: nuevo/buscar/exportar) + contenedor de contenido + estados

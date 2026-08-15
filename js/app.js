@@ -210,7 +210,7 @@ function handleHashChange() {
 
     if (hash === 'dashboard' || hash.startsWith('dashboard/')) {
         const toolId = hash === 'dashboard' ? null : hash.split('/')[1].split('?')[0];
-        if (AppState.get('currentDashboardTool') === toolId) {
+        if (AppState.get('currentView') === 'dashboard' && AppState.get('currentDashboardTool') === toolId) {
             syncAppBottomNav();
             return;
         }
@@ -226,7 +226,7 @@ function handleHashChange() {
             if (section) {
                 const subsection = section.subsections.find(s => s.id === parts[1]);
                 if (subsection) {
-                    if (AppState.get('currentSectionId') === parts[0] && AppState.get('currentSubsectionId') === parts[1]) {
+                    if (AppState.get('currentView') === 'article' && AppState.get('currentSectionId') === parts[0] && AppState.get('currentSubsectionId') === parts[1]) {
                         syncAppBottomNav();
                         return;
                     }
@@ -237,7 +237,7 @@ function handleHashChange() {
             }
         }
     }
-    if (AppState.get('isHomePage')) {
+    if (AppState.get('currentView') === 'home') {
         syncAppBottomNav();
         return;
     }
@@ -287,6 +287,48 @@ function syncAppBottomNav() {
         const icon = b.querySelector('.material-symbols-outlined');
         if (icon) icon.style.fontVariationSettings = `'FILL' ${isActive ? 1 : 0}`;
     });
+
+    // Botón "Volver": visible dentro del dashboard/espacio de trabajo
+    const backBtn = document.getElementById('btn-back');
+    if (backBtn) {
+        const inWorkspace = hash === 'dashboard' || hash.startsWith('dashboard/');
+        backBtn.style.display = inWorkspace ? 'inline-flex' : 'none';
+        const backLabel = backBtn.querySelector('.btn-back-text');
+        const isHub = hash === 'dashboard';
+        if (backLabel) backLabel.textContent = isHub ? 'Inicio' : 'Espacio';
+        backBtn.title = isHub ? 'Volver al inicio' : 'Volver al Espacio de Trabajo';
+        backBtn.setAttribute('aria-label', isHub ? 'Volver al inicio' : 'Volver al Espacio de Trabajo');
+    }
+}
+
+/**
+ * Acciones del encabezado: botón Volver (dashboards/módulos) y breadcrumb clicable.
+ */
+function bindHeaderActions() {
+    document.getElementById('btn-back')?.addEventListener('click', () => {
+        const hash = window.location.hash.replace('#', '').replace(/^\//, '');
+        if (hash.startsWith('dashboard/')) {
+            window.location.hash = '#/dashboard';
+        } else {
+            showHome();
+        }
+        syncAppBottomNav();
+    });
+
+    document.getElementById('breadcrumb')?.addEventListener('click', (e) => {
+        const link = e.target.closest('[data-bc]');
+        if (!link) return;
+        e.preventDefault();
+        const dest = link.dataset.bc;
+        if (dest === 'home') {
+            showHome();
+        } else if (dest === 'dashboard') {
+            window.location.hash = '#/dashboard';
+        } else if (dest === 'first-section') {
+            navigateToFirstSection();
+        }
+        syncAppBottomNav();
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -298,6 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initCalendar();
         initLauncher();
         bindAppBottomNav();
+        bindHeaderActions();
         initErrorMonitor();
         initFirebaseStatusBanner();
         registerServiceWorker();

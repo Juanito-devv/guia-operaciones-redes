@@ -851,6 +851,11 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     border-right: 1px solid rgba(148, 163, 184, 0.1);
 }
 
+/* Sidebar oculto por completo en escritorio (preferencia persistente) */
+#app.sidebar-hidden #sidebar {
+    display: none;
+}
+
 .sidebar-header {
     padding: 16px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -921,7 +926,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     transform: rotate(20deg) scale(0.95);
 }
 #menu-close {
-    display: none;
+    display: block;
 }
 
 .logout-btn {
@@ -1312,7 +1317,6 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 }
 
 #menu-toggle {
-    display: none;
     background: none;
     border: none;
     font-size: 1.4rem;
@@ -1347,6 +1351,52 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 .breadcrumb span:not(:last-child)::after {
     content: " › ";
     margin: 0 4px;
+}
+.breadcrumb a {
+    color: var(--text-muted);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color var(--transition);
+}
+.breadcrumb a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+.breadcrumb a::after {
+    content: " › ";
+    margin: 0 4px;
+}
+
+/* Botón "Volver" del encabezado (módulos del Espacio de Trabajo) */
+#btn-back {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    white-space: nowrap;
+    transition: background var(--transition), border-color var(--transition);
+}
+#btn-back:hover {
+    background: var(--border-color);
+}
+#btn-back .material-symbols-outlined {
+    font-size: 18px;
+}
+@media (max-width: 480px) {
+    .btn-back-text {
+        display: none;
+    }
+    #btn-back {
+        padding: 6px 8px;
+    }
 }
 
 /* Content Body */
@@ -3439,22 +3489,6 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     resize: vertical;
 }
 .quick-panel-content label { color: #5f5e5e; font-size: 0.62rem; letter-spacing: 0.4px; text-transform: uppercase; }
-
-#quick-nav-toggle {
-    position: fixed; bottom: 24px; right: 24px; z-index: 50; width: 60px; height: 60px; border-radius: 50%;
-    border: 1px solid #003ab3; background: linear-gradient(180deg, #0055fe 0%, #0041c7 100%); color: #fff;
-    font-size: 1.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 28px rgba(0, 65, 199, 0.4), 0 0 0 0 rgba(0, 65, 199, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
-    animation: pulseGlow 2.6s ease-in-out infinite;
-}
-#quick-nav-toggle:hover { transform: scale(1.12) rotate(10deg); box-shadow: 0 10px 34px rgba(0, 65, 199, 0.55); }
-#quick-nav-toggle:active { transform: scale(0.94); }
-
-@keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 8px 28px rgba(0, 65, 199, 0.4), 0 0 0 0 rgba(0, 65, 199, 0.3); }
-    50% { box-shadow: 0 8px 28px rgba(0, 65, 199, 0.55), 0 0 0 14px rgba(0, 65, 199, 0); }
-}
 
 /* Mapa (panel claro) */
 .map-item { padding: 4px 0 4px 8px; border-left: 2px solid transparent; transition: border-color 0.2s, padding-left 0.2s; }
@@ -6672,10 +6706,6 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     }
     .density-compact #main-content {
         padding-bottom: 92px;
-    }
-    /* El FAB del panel se esconde en móvil: la BottomNavBar tiene el tab Espacio */
-    #quick-nav-toggle {
-        display: none;
     }
 }
 

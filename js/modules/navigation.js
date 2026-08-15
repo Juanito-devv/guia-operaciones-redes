@@ -3,8 +3,8 @@
 // ========================================
 
 import { AppState } from '../state.js';
+import { Storage } from '../utils/storage.js';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize.js';
-import { showHome } from './home.js';
 import { hideSearchResults } from './search.js';
 import { openProcedureModal, deleteCustomProcedure } from './guide_edit.js';
 import { isAdmin } from './auth.js';
@@ -166,6 +166,7 @@ export function navigateTo(sectionId, subsectionId) {
         return;
     }
     AppState.set('isHomePage', false);
+    AppState.set('currentView', 'article');
     AppState.set('currentDashboardTool', null);
     window.location.hash = `${sectionId}/${subsectionId}`;
 
@@ -202,9 +203,10 @@ export function navigateTo(sectionId, subsectionId) {
         // Título del encabezado fijo: nombre de la sección (contexto)
         document.getElementById('content-title').textContent = section.title;
 
-        // Breadcrumb visible: Sección › Subsección
+        // Breadcrumb visible: Inicio › Sección › Subsección
         const breadcrumb = document.getElementById('breadcrumb');
         breadcrumb.innerHTML = `
+            <a href="#" data-bc="home">Inicio</a>
             <span>${escapeHtml(section.title)}</span>
             <span>${escapeHtml(subsection.title)}</span>
         `;
@@ -425,13 +427,36 @@ export function closeMobileMenu() {
 }
 
 export function initMobileMenu() {
+    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+    const app = document.getElementById('app');
+
     document.getElementById('menu-toggle')?.addEventListener('click', function () {
-        document.getElementById('sidebar')?.classList.add('open');
-        document.getElementById('sidebar-overlay')?.classList.add('active');
+        if (isMobile()) {
+            document.getElementById('sidebar')?.classList.add('open');
+            document.getElementById('sidebar-overlay')?.classList.add('active');
+        } else if (app) {
+            // Escritorio: alternar sidebar (ocultar/mostrar), preferencia persistente
+            const hidden = app.classList.toggle('sidebar-hidden');
+            Storage.set('cor_sidebar_hidden', hidden ? '1' : '0');
+        }
     });
 
-    document.getElementById('menu-close')?.addEventListener('click', closeMobileMenu);
+    document.getElementById('menu-close')?.addEventListener('click', function () {
+        if (isMobile()) {
+            closeMobileMenu();
+        } else if (app) {
+            // Escritorio: ocultar el sidebar por completo (persistente)
+            app.classList.add('sidebar-hidden');
+            Storage.set('cor_sidebar_hidden', '1');
+        }
+    });
+
     document.getElementById('sidebar-overlay')?.addEventListener('click', closeMobileMenu);
+
+    // Preferencia persistida: sidebar oculto en escritorio
+    if (!isMobile() && Storage.get('cor_sidebar_hidden') === '1' && app) {
+        app.classList.add('sidebar-hidden');
+    }
 
     let touchStartX = 0;
     const sidebar = document.getElementById('sidebar');

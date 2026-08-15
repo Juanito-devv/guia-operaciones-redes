@@ -34,6 +34,7 @@ const TOOL_TITLES = Object.fromEntries(TOOLS.map(t => [t.id, t.title]));
  */
 export function showDashboard(toolId) {
     AppState.set('isHomePage', false);
+    AppState.set('currentView', 'dashboard');
     AppState.set('currentSectionId', null);
     AppState.set('currentSubsectionId', null);
     AppState.set('currentDashboardTool', toolId ?? null);
@@ -49,7 +50,7 @@ export function showDashboard(toolId) {
     if (toolId === 'guardia') {
         // Herramienta Guardia: página completa (5 mensajes para Telegram)
         titleEl.textContent = 'Guardia';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Guardia</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Guardia</span>`;
         showGuardia();
         return;
     }
@@ -57,7 +58,7 @@ export function showDashboard(toolId) {
     if (toolId === 'mail') {
         // Herramienta Mail: Generador de Comunicados (página completa)
         titleEl.textContent = 'Mail';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Mail</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Mail</span>`;
         showMail();
         return;
     }
@@ -65,7 +66,7 @@ export function showDashboard(toolId) {
     if (toolId === 'calendar') {
         // Herramienta Calendario: página completa (Workspace Panel)
         titleEl.textContent = 'Calendario';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Calendario</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Calendario</span>`;
         showCalendarTool();
         return;
     }
@@ -73,7 +74,7 @@ export function showDashboard(toolId) {
     if (toolId === 'cdc') {
         // Herramienta CDC: página completa (Controles de Cambio Documentados — diseño Figma)
         titleEl.textContent = 'CDC';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Controles de Cambio</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Controles de Cambio</span>`;
         body.innerHTML = '';
         showCDCTool();
         return;
@@ -82,7 +83,7 @@ export function showDashboard(toolId) {
     if (toolId === 'perfil') {
         // Herramienta Perfil: página completa (diseño Figma)
         titleEl.textContent = 'Perfil';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Perfil</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Perfil</span>`;
         body.innerHTML = '';
         showProfile();
         return;
@@ -91,7 +92,7 @@ export function showDashboard(toolId) {
     if (toolId === 'settings') {
         // Herramienta Estilo: página completa (Tema / Acento / Densidad — diseño Figma)
         titleEl.textContent = 'Estilo';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Estilo &amp; Ajustes</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Estilo &amp; Ajustes</span>`;
         body.innerHTML = '';
         showSettings();
         return;
@@ -100,7 +101,7 @@ export function showDashboard(toolId) {
     if (toolId === 'impacto') {
         // Herramienta Impacto: página completa (Generador de impacto de fallas — diseño Kinetic)
         titleEl.textContent = 'Impacto';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Impacto</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Impacto</span>`;
         body.innerHTML = '';
         showImpacto();
         return;
@@ -109,7 +110,7 @@ export function showDashboard(toolId) {
     if (toolId === 'errores') {
         // Registro de errores internos (solo admin; otros roles ven acceso denegado)
         titleEl.textContent = 'Errores';
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>Registro de errores</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Registro de errores</span>`;
         body.innerHTML = '';
         showErrorLogPage();
         return;
@@ -118,7 +119,7 @@ export function showDashboard(toolId) {
     if (toolId && TOOL_TITLES[toolId]) {
         // Expandir la herramienta en el panel
         titleEl.textContent = TOOL_TITLES[toolId];
-        breadcrumb.innerHTML = `<span>Espacio de Trabajo</span><span>${TOOL_TITLES[toolId]}</span>`;
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>${TOOL_TITLES[toolId]}</span>`;
         body.innerHTML = `
             <div class="dashboard-tool-panel">
                 <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
@@ -137,7 +138,7 @@ export function showDashboard(toolId) {
     // Dashboard general: hub de módulos (diseño Figma). Cada tarjeta NAVEGA
     // a la página completa de su módulo (#/dashboard/<id>); nada se despliega aquí.
     titleEl.textContent = 'Espacio de Trabajo';
-    breadcrumb.innerHTML = '<span>Dashboard</span>';
+    breadcrumb.innerHTML = '<a href="#" data-bc="home">Inicio</a><span>Dashboard</span>';
     body.classList.add('loading');
 
     const metrics = buildMetrics();
