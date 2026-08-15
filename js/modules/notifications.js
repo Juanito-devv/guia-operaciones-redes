@@ -9,8 +9,8 @@ import {
     getNotificationsFromFirebase,
     createNotificationInFirebase,
     markNotificationReadInFirebase,
-    deleteNotificationFromFirebase,
-    deleteAllNotificationsFromFirebase
+    hideNotificationFromFirebase,
+    hideAllNotificationsFromFirebase
 } from './firebase.js';
 
 let notificationsList = [];
@@ -132,9 +132,12 @@ export function updateNotifUI() {
     const badge = document.getElementById('notif-badge');
     const listContainer = document.getElementById('notif-drawer-list');
 
+    // Ocultar las que el usuario ocultó para sí (el feed sigue compartido para los demás)
+    const visibleList = notificationsList.filter(n => !(n.hiddenBy && n.hiddenBy.includes(currentUser)));
+
     // Filtrar no leídas para el usuario actual
     const readIds = Storage.get(`cor_read_notifs_${currentUser}`, []);
-    const unreadList = notificationsList.filter(n => {
+    const unreadList = visibleList.filter(n => {
         const isReadLocally = readIds.includes(n.id);
         const isReadFirestore = Array.isArray(n.readBy) && n.readBy.includes(currentUser);
         return !isReadLocally && !isReadFirestore;
@@ -151,7 +154,7 @@ export function updateNotifUI() {
 
     if (!listContainer) return;
 
-    if (notificationsList.length === 0) {
+    if (visibleList.length === 0) {
         listContainer.innerHTML = `
             <div class="notif-empty">
                 <div class="notif-empty-icon"><span class="material-symbols-outlined" aria-hidden="true">notifications_paused</span></div>
@@ -162,7 +165,7 @@ export function updateNotifUI() {
     }
 
     let html = '';
-    notificationsList.forEach(n => {
+    visibleList.forEach(n => {
         const isReadLocally = readIds.includes(n.id);
         const isReadFirestore = Array.isArray(n.readBy) && n.readBy.includes(currentUser);
         const isUnread = !isReadLocally && !isReadFirestore;
@@ -225,26 +228,22 @@ export function markAllAsRead() {
 }
 
 export async function deleteNotification(notifId) {
+    const currentUser = AppState.get('currentUser') || 'invitado';
     markAsRead(notifId);
-    await deleteNotificationFromFirebase(notifId);
+    await hideNotificationFromFirebase(notifId, currentUser);
     notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();
 }
 
 export async function deleteAllNotifications() {
+    const currentUser = AppState.get('currentUser') || 'invitado';
     if (notificationsList.length === 0) return;
-    if (!confirm(`¿Borrar todas las ${notificationsList.length} notificaciones? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Ocultar las ${notificationsList.length} notificaciones solo para ti? Tus compañeros las seguirán viendo.`)) return;
 
     const ids = notificationsList.map(n => n.id);
-    await deleteAllNotificationsFromFirebase(ids);
-
-    // Limpiar marcadas como leídas de todos los usuarios
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('cor_read_notifs_')) {
-            Storage.set(key, []);
-        }
-    });
-
+    markAllAsRead();
+    await hideAllNotificationsFromFirebase(ids, currentUser);
+    notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();
 }
 

@@ -604,39 +604,62 @@ export async function markNotificationReadInFirebase(notifId, username) {
     }
 }
 
-export async function deleteNotificationFromFirebase(notifId) {
+// Oculta una notificación para un usuario (el feed es compartido; cada uno oculta solo para sí)
+export async function hideNotificationFromFirebase(notifId, username) {
+    if (!username) return true;
+
+    // Actualizar la copia local
     const local = Storage.get('cor_notifications', []);
-    const filtered = local.filter(n => n && n.id !== notifId);
-    Storage.set('cor_notifications', filtered);
+    Storage.set('cor_notifications', local.map(n => {
+        if (n && n.id === notifId) {
+            const hiddenBy = Array.isArray(n.hiddenBy) ? [...n.hiddenBy] : [];
+            if (!hiddenBy.includes(username)) hiddenBy.push(username);
+            return { ...n, hiddenBy };
+        }
+        return n;
+    }));
 
     if (!db) return true;
     const authed = await ensureAuth();
     if (!authed) return true;
     try {
-        await db.collection('notifications').doc(notifId).delete();
+        await db.collection('notifications').doc(notifId).update({
+            hiddenBy: firebase.firestore.FieldValue.arrayUnion(username)
+        });
         markFirebaseRecovered();
         return true;
     } catch (error) {
-        markFirebaseFailure('deleteNotification', error);
+        markFirebaseFailure('hideNotification', error);
         return false;
     }
 }
 
-export async function deleteAllNotificationsFromFirebase(ids) {
+// Oculta todas las notificaciones para un usuario (no las borra para los demás)
+export async function hideAllNotificationsFromFirebase(ids, username) {
+    if (!username) return;
+
     const local = Storage.get('cor_notifications', []);
-    const filtered = local.filter(n => n && !ids.includes(n.id));
-    Storage.set('cor_notifications', filtered);
+    Storage.set('cor_notifications', local.map(n => {
+        if (n && ids.includes(n.id)) {
+            const hiddenBy = Array.isArray(n.hiddenBy) ? [...n.hiddenBy] : [];
+            if (!hiddenBy.includes(username)) hiddenBy.push(username);
+            return { ...n, hiddenBy };
+        }
+        return n;
+    }));
 
     if (!db) return;
     const authed = await ensureAuth();
     if (!authed) return;
     try {
-        const batch = db.batch();
-        ids.forEach(id => batch.delete(db.collection('notifications').doc(id)));
-        await batch.commit();
+        await Promise.allSettled(ids.map(id =>
+            db.collection('notifications').doc(id).update({
+                hiddenBy: firebase.firestore.FieldValue.arrayUnion(username)
+            })
+        ));
         markFirebaseRecovered();
     } catch (error) {
-        markFirebaseFailure('deleteAllNotifs', error);
+        markFirebaseFailure('hideAllNotifs', error);
     }
 }
 
