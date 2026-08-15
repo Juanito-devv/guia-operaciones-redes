@@ -54,33 +54,22 @@ function openChangePasswordModal() {
 
     const modal = document.createElement('div');
     modal.id = 'change-pass-modal';
-    modal.className = 'cdc-modal-backdrop open';
+    modal.className = 'profile-modal-backdrop open';
     modal.innerHTML = `
-        <div class="cdc-modal" style="max-width:420px;">
-            <div class="cdc-modal-head">
-                <div>
-                    <h2>Cambiar contraseña</h2>
-                    <p>Seguridad de cuenta</p>
-                </div>
-                <button type="button" class="cdc-modal-close" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button>
+        <div class="profile-modal">
+            <div class="profile-modal-glow"></div>
+            <div class="profile-modal-icon">
+                <div class="profile-modal-pulse"></div>
+                <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
             </div>
-            <div class="cdc-modal-body">
-                <div class="cdc-modal-info">
-                    <span class="material-symbols-outlined" aria-hidden="true">lock</span>
-                    <div>
-                        <b>Gestión por administrador</b>
-                        <p>El cambio de contraseña debe ser solicitado al administrador del sistema (equipo COR). Contactá al soporte para actualizar tus credenciales.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="cdc-modal-foot">
-                <button type="button" class="cdc-modal-btn cdc-modal-btn-primary" data-close="1">Entendido</button>
-            </div>
+            <h3 class="profile-modal-title">Gestión de Credenciales</h3>
+            <p class="profile-modal-text">El cambio de contraseña debe ser gestionado por el administrador de red. Contacte al equipo de soporte COR para proceder.</p>
+            <button type="button" class="profile-modal-btn" data-close="1">Entendido</button>
         </div>`;
 
     document.body.appendChild(modal);
 
-    modal.querySelectorAll('.cdc-modal-close, [data-close]').forEach(btn => {
+    modal.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', () => modal.remove());
     });
     modal.addEventListener('click', (e) => {
@@ -92,12 +81,13 @@ function openChangePasswordModal() {
 }
 
 /**
- * Página completa de Perfil (#/dashboard/perfil — diseño Figma):
- * tarjeta de usuario, rol, datos de sesión y acciones de acceso.
+ * Página completa de Perfil (#/dashboard/perfil — diseño S12):
+ * tarjeta de usuario con avatar, rol, datos de sesión y acciones de acceso.
  */
 export function showProfile() {
     const body = document.getElementById('content-body');
     if (!body) return;
+    body.classList.add('loading');
 
     const userData = getCurrentUser();
     const username = AppState.get('currentUser') || '';
@@ -105,64 +95,79 @@ export function showProfile() {
 
     const name = userData ? userData.name : 'Anónimo';
     const avatar = userData ? userData.avatar : null;
-    const color = userData ? userData.color : '#3b82f6';
     const isAdminUser = !!(userData && userData.role === 'admin');
+    const roleLabel = isAdminUser ? 'Admin' : 'Usuario';
+    const roleIcon = isAdminUser ? 'security' : 'badge';
 
     const lastAccess = formatDateTime(session.lastAccess);
     const expires = formatDateTime(session.expires);
+    const device = deviceLabel();
 
-    body.innerHTML = `
-        <div class="tool-page">
-            <header class="tool-page-header">
-                <div>
-                    <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
-                    <h1 class="tool-title">Perfil</h1>
-                    <p class="tool-sub">Datos de tu cuenta, estado de la sesión y acciones de acceso.</p>
+    setTimeout(() => {
+        body.innerHTML = `
+            <div class="profile-page">
+                <div class="profile-hero">
+                    <span class="profile-eyebrow">Espacio de Trabajo · Herramienta</span>
+                    <h1 class="profile-title">Perfil</h1>
+                    <p class="profile-sub">Datos de tu cuenta, estado de la sesión y acciones de acceso.</p>
                 </div>
-            </header>
-            <div class="profile-wrap">
-                <div class="profile-card">
-                    <div class="profile-avatar-wrap">
-                        <div class="profile-avatar" style="background:linear-gradient(135deg, ${escapeHtml(color)}, ${escapeHtml(color)}66);">
-                            ${avatarMarkup(avatar)}
+                <div class="profile-container">
+                    <div class="profile-card">
+                        <div class="profile-card-glow"></div>
+                        <div class="profile-avatar-head">
+                            <div class="profile-avatar-wrap">
+                                <div class="profile-avatar-ring">
+                                    <div class="profile-avatar">${avatarMarkup(avatar)}</div>
+                                </div>
+                                <span class="profile-role">
+                                    <span class="material-symbols-outlined filled" aria-hidden="true">${roleIcon}</span>
+                                    ${roleLabel}
+                                </span>
+                            </div>
                         </div>
-                        <span class="profile-role ${isAdminUser ? 'admin' : ''}">
-                            <span class="material-symbols-outlined" aria-hidden="true">${isAdminUser ? 'security' : 'badge'}</span>
-                            ${isAdminUser ? 'ADMIN' : 'USUARIO'}
-                        </span>
-                    </div>
-                    <div>
                         <h2 class="profile-name">${escapeHtml(name)}</h2>
                         <p class="profile-handle">@${escapeHtml(username)}</p>
-                    </div>
-                    <hr class="profile-divider">
-                    <div class="profile-rows">
-                        <div class="profile-row">
-                            <span class="profile-row-label"><span class="material-symbols-outlined" aria-hidden="true">schedule</span> Último acceso</span>
-                            <span class="profile-row-value">${escapeHtml(lastAccess)}</span>
+                        <div class="profile-divider"></div>
+                        <h3 class="profile-section">Detalles de Sesión</h3>
+                        <div class="profile-rows">
+                            <div class="profile-row">
+                                <div class="profile-row-label">
+                                    <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+                                    <span>Último acceso</span>
+                                </div>
+                                <span class="profile-row-value">${escapeHtml(lastAccess)}</span>
+                            </div>
+                            <div class="profile-row">
+                                <div class="profile-row-label">
+                                    <span class="material-symbols-outlined warn" aria-hidden="true">timer</span>
+                                    <span>Vencimiento de sesión</span>
+                                </div>
+                                <span class="profile-row-value warn">${escapeHtml(expires)}</span>
+                            </div>
+                            <div class="profile-row">
+                                <div class="profile-row-label">
+                                    <span class="material-symbols-outlined" aria-hidden="true">devices</span>
+                                    <span>Dispositivo activo</span>
+                                </div>
+                                <span class="profile-row-value">${escapeHtml(device)}</span>
+                            </div>
                         </div>
-                        <div class="profile-row">
-                            <span class="profile-row-label"><span class="material-symbols-outlined" aria-hidden="true">timer</span> Vencimiento de sesión</span>
-                            <span class="profile-row-value">${escapeHtml(expires)}</span>
+                        <div class="profile-actions">
+                            <button type="button" class="profile-btn profile-btn-primary" id="profile-change-pass">
+                                <span class="shine"></span>
+                                <span class="material-symbols-outlined" aria-hidden="true">key</span> Cambiar contraseña
+                            </button>
+                            <button type="button" class="profile-btn profile-btn-danger" id="profile-logout">
+                                <span class="material-symbols-outlined" aria-hidden="true">logout</span> Cerrar sesión
+                            </button>
                         </div>
-                        <div class="profile-row">
-                            <span class="profile-row-label"><span class="material-symbols-outlined" aria-hidden="true">devices</span> Dispositivo</span>
-                            <span class="profile-row-value">${escapeHtml(deviceLabel())}</span>
-                        </div>
-                    </div>
-                    <div class="profile-actions">
-                        <button type="button" class="profile-btn profile-btn-primary" id="profile-change-pass">
-                            <span class="material-symbols-outlined" aria-hidden="true">key</span> Cambiar contraseña
-                        </button>
-                        <button type="button" class="profile-btn profile-btn-secondary" id="profile-logout">
-                            <span class="material-symbols-outlined" aria-hidden="true">logout</span> Cerrar sesión
-                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
-
-    document.getElementById('profile-logout')?.addEventListener('click', logout);
-    document.getElementById('profile-change-pass')?.addEventListener('click', openChangePasswordModal);
+        `;
+        body.classList.remove('loading');
+        document.getElementById('main-content').scrollTop = 0;
+        document.getElementById('profile-logout')?.addEventListener('click', logout);
+        document.getElementById('profile-change-pass')?.addEventListener('click', openChangePasswordModal);
+    }, 120);
 }
