@@ -5,6 +5,7 @@
 import { Storage } from '../utils/storage.js';
 import { getCurrentAuthor, getCurrentColor } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { showEmptyState } from './states.js';
 
 let calendarDate = new Date();
 
@@ -107,7 +108,12 @@ export function renderEvents(date) {
     const dayCDC = cdclist.filter(cdc => cdc.date === date);
 
     if (dayEvents.length === 0 && dayCDC.length === 0) {
-        container.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);padding:8px 0;">No hay eventos ni CDC para esta fecha.</div>`;
+        showEmptyState({
+            title: 'Día libre',
+            text: 'No hay eventos ni Controles de Cambio para esta fecha.',
+            icon: 'event_busy',
+            compact: true,
+        }, container);
         return;
     }
 

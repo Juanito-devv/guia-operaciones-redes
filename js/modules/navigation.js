@@ -8,6 +8,7 @@ import { sanitizeHtml, escapeHtml } from '../utils/sanitize.js';
 import { hideSearchResults } from './search.js';
 import { openProcedureModal, deleteCustomProcedure } from './guide_edit.js';
 import { isAdmin } from './auth.js';
+import { showLoading, hideLoading } from './states.js';
 
 export function getMergedGuiaData() {
     const rawData = AppState.get('guiaData');
@@ -197,7 +198,7 @@ export function navigateTo(sectionId, subsectionId) {
     AppState.set('currentSubsectionId', subsectionId);
 
     const body = document.getElementById('content-body');
-    body.classList.add('loading');
+    showLoading(body);
 
     setTimeout(() => {
         // Título del encabezado fijo: nombre de la sección (contexto)
@@ -214,7 +215,7 @@ export function navigateTo(sectionId, subsectionId) {
 
         // Vista de artículo (diseño Figma): header + contenido + TOC + prev/next
         body.innerHTML = buildArticleView(section, subsection, guiaData);
-        body.classList.remove('loading');
+        hideLoading(body);
         document.getElementById('main-content').scrollTop = 0;
         hideSearchResults();
 
