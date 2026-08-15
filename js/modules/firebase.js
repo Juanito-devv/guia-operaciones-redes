@@ -71,17 +71,16 @@ function ensureAuth() {
     if (!authReadyPromise) {
         authReadyPromise = (async () => {
             try {
-                if (firebase.auth && firebase.auth().currentUser) {
-                    markFirebaseRecovered();
-                    return true;
-                }
+                if (firebase.auth && firebase.auth().currentUser) return true;
                 await firebase.auth().signInAnonymously();
-                markFirebaseRecovered();
                 return true;
             } catch (error) {
-                markFirebaseFailure('auth', error);
+                // El método anónimo puede estar deshabilitado en consola o caer
+                // la red. No bloqueamos: las operaciones intentan igual; si las
+                // reglas permiten acceso (modo abierto) sincronizan, y si
+                // rechazan, degradan a localStorage con el aviso visible.
                 authReadyPromise = null;
-                return false;
+                return true;
             }
         })();
     }
