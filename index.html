@@ -272,6 +272,27 @@
                 <span>Ajustes</span>
             </button>
         </nav>
+
+        <!-- Búsqueda global (S17): overlay Ctrl+K con resultados en vivo (guía + módulos) -->
+        <div id="global-search-overlay" class="global-search-overlay" hidden>
+            <div class="gs-backdrop" data-gs-close></div>
+            <div class="gs-panel" role="dialog" aria-modal="true" aria-label="Búsqueda global">
+                <div class="gs-searchbar">
+                    <span class="material-symbols-outlined gs-searchbar-icon" aria-hidden="true">search</span>
+                    <input type="text" id="gs-input" placeholder="Buscar en la guía y en el Espacio de Trabajo..." aria-label="Buscar globalmente" autocomplete="off" spellcheck="false">
+                    <kbd>Esc</kbd>
+                    <button type="button" id="gs-close" class="gs-close" aria-label="Cerrar búsqueda" title="Cerrar (Esc)">
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="gs-results" id="gs-results" role="listbox"></div>
+                <div class="gs-footer">
+                    <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+                    <span><kbd>↵</kbd> abrir</span>
+                    <span><kbd>Esc</kbd> cerrar</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- JS Modular (ES6 Native Modules) -->

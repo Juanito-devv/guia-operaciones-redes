@@ -6,7 +6,7 @@ import { AppState } from './state.js';
 import { initTheme, applyDensity } from './modules/theme.js';
 import { validateSession, initLogin, logout } from './modules/auth.js';
 import { renderNav, navigateTo, initMobileMenu } from './modules/navigation.js';
-import { initSearch, hideSearchResults } from './modules/search.js';
+import { initSearch, hideSearchResults, initGlobalSearch, openGlobalSearch, closeGlobalSearch } from './modules/search.js';
 import { showHome, navigateToFirstSection } from './modules/home.js';
 import { createQuickPanel, togglePanel, updatePanelUserUI } from './modules/panel.js';
 import { initCalendar } from './modules/calendar.js';
@@ -184,14 +184,12 @@ async function afterLogin() {
 function handleGlobalKeys(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) {
-            searchInput.focus();
-            searchInput.select();
-        }
+        openGlobalSearch();
+        return;
     }
 
     if (e.key === 'Escape') {
+        closeGlobalSearch();
         hideSearchResults();
         document.getElementById('search-input')?.blur();
         document.getElementById('sidebar')?.classList.remove('open');
@@ -337,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyDensity();
         initMobileMenu();
         initSearch();
+        initGlobalSearch();
         initCalendar();
         initLauncher();
         bindAppBottomNav();
