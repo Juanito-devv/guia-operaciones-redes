@@ -190,7 +190,7 @@ export function openProcedureModal(editProc = null) {
 /**
  * Elimina un procedimiento personalizado
  */
-export async function deleteCustomProcedure(procId, sectionId, subId) {
+export async function deleteCustomProcedure(procId, _sectionId, _subId) {
     if (!procId) {
         alert('⚠️ No se pudo identificar el procedimiento para eliminar.');
         return;

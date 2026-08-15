@@ -2,7 +2,6 @@
 // LAUNCHER MODULE (pantalla post-login: GUÍA o ESPACIO DE TRABAJO)
 // ========================================
 
-import { AppState } from '../state.js';
 import { getCurrentUser } from './auth.js';
 import { showHome } from './home.js';
 
