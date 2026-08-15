@@ -9,6 +9,8 @@
 import { AppState } from '../state.js';
 import { Storage } from '../utils/storage.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { debounce } from '../utils/debounce.js';
+import { fetchPerUserStateFromFirebase, savePerUserStateToFirebase } from './firebase.js';
 
 const STORAGE_KEY = 'cor_guardia_v3';
 
@@ -219,7 +221,7 @@ export function autoGrowTextarea(ta) {
 // ========================================
 // CARGA / GUARDADO
 // ========================================
-export function loadGuardiaTab(root) {
+export function loadGuardiaTab(root, skipFetch = false) {
     const data = Storage.get(STORAGE_KEY, {});
     const now = new Date();
     const defaultHora = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -251,7 +253,24 @@ export function loadGuardiaTab(root) {
 
     // Ajustar altura de los cuadros de texto al contenido guardado
     (root || document).querySelectorAll('textarea').forEach(autoGrowTextarea);
+
+    // Traer el borrador del operador desde Firestore (sigue al usuario entre equipos)
+    if (!skipFetch) syncGuardiaFromServer(root);
 }
+
+async function syncGuardiaFromServer(root) {
+    const username = AppState.get('currentUser') || Storage.get(STORAGE_KEY, {}).usuario;
+    if (!username) return;
+    const serverData = await fetchPerUserStateFromFirebase('guardia_state', username);
+    if (serverData && typeof serverData === 'object') {
+        Storage.set(STORAGE_KEY, serverData);
+        loadGuardiaTab(root, true);
+    }
+}
+
+const pushGuardiaStateDebounced = debounce((username, data) => {
+    savePerUserStateToFirebase('guardia_state', username, data);
+}, 1200);
 
 function renderStatusList(root, containerId, items) {
     const container = $el(root, containerId);
@@ -347,6 +366,9 @@ function autoSaveGuardia(root) {
     };
 
     Storage.set(STORAGE_KEY, data);
+
+    const username = AppState.get('currentUser') || data.usuario;
+    if (username) pushGuardiaStateDebounced(username, data);
 
     const indicator = $el(root, 'guardia-autosave');
     if (indicator) {

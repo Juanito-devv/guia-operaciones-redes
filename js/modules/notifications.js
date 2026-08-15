@@ -5,6 +5,13 @@
 import { AppState } from '../state.js';
 import { Storage } from '../utils/storage.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import {
+    getNotificationsFromFirebase,
+    createNotificationInFirebase,
+    markNotificationReadInFirebase,
+    deleteNotificationFromFirebase,
+    deleteAllNotificationsFromFirebase
+} from './firebase.js';
 
 let notificationsList = [];
 let unsubscribeNotifs = null;
@@ -15,33 +22,12 @@ let unsubscribeNotifs = null;
 export function initNotifications() {
     renderNotifBell();
 
-    const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+    if (unsubscribeNotifs) unsubscribeNotifs();
 
-    if (db) {
-        if (unsubscribeNotifs) unsubscribeNotifs();
-
-        unsubscribeNotifs = db.collection('notifications')
-            .orderBy('createdAt', 'desc')
-            .limit(30)
-            .onSnapshot((snapshot) => {
-                const list = [];
-                snapshot.forEach(doc => {
-                    list.push({ id: doc.id, ...doc.data() });
-                });
-                notificationsList = list;
-                updateNotifUI();
-            }, (err) => {
-                console.warn('[Notifs] Error al escuchar notificaciones Firestore:', err);
-                loadLocalNotifs();
-            });
-    } else {
-        loadLocalNotifs();
-    }
-}
-
-function loadLocalNotifs() {
-    notificationsList = Storage.get('cor_notifications', []);
-    updateNotifUI();
+    unsubscribeNotifs = getNotificationsFromFirebase((list) => {
+        notificationsList = list;
+        updateNotifUI();
+    });
 }
 
 /**
@@ -59,38 +45,16 @@ function notifVisual(type) {
  * Crea y envía una nueva notificación a todos los usuarios
  */
 export async function createNotification({ title, message, type = 'system', author = 'Sistema' }) {
-    const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
     const newNotif = {
         title: title,
         message: message,
         type: type,
         author: author,
-        createdAt: new Date().toISOString(),
         readBy: []
     };
 
-    if (db) {
-        try {
-            await db.collection('notifications').add({
-                ...newNotif,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (e) {
-            console.error('Error guardando notificación en Firebase:', e);
-            saveLocalNotif(newNotif);
-        }
-    } else {
-        saveLocalNotif(newNotif);
-    }
-}
-
-function saveLocalNotif(notif) {
-    const local = Storage.get('cor_notifications', []);
-    notif.id = 'local_' + Date.now();
-    local.unshift(notif);
-    if (local.length > 30) local.pop();
-    Storage.set('cor_notifications', local);
-    notificationsList = local;
+    await createNotificationInFirebase(newNotif);
+    notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();
 }
 
@@ -248,6 +212,7 @@ export function markAsRead(notifId) {
         readIds.push(notifId);
         Storage.set(`cor_read_notifs_${currentUser}`, readIds);
     }
+    markNotificationReadInFirebase(notifId, currentUser);
     updateNotifUI();
 }
 
@@ -255,21 +220,14 @@ export function markAllAsRead() {
     const currentUser = AppState.get('currentUser') || 'invitado';
     const readIds = notificationsList.map(n => n.id);
     Storage.set(`cor_read_notifs_${currentUser}`, readIds);
+    notificationsList.forEach(n => markNotificationReadInFirebase(n.id, currentUser));
     updateNotifUI();
 }
 
 export async function deleteNotification(notifId) {
     markAsRead(notifId);
-    notificationsList = notificationsList.filter(n => n.id !== notifId);
-    
-    const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
-    if (db && !notifId.startsWith('local_')) {
-        try {
-            await db.collection('notifications').doc(notifId).delete();
-        } catch (e) {
-            console.warn('Error eliminando notificación de Firebase:', e);
-        }
-    }
+    await deleteNotificationFromFirebase(notifId);
+    notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();
 }
 
@@ -278,23 +236,7 @@ export async function deleteAllNotifications() {
     if (!confirm(`¿Borrar todas las ${notificationsList.length} notificaciones? Esta acción no se puede deshacer.`)) return;
 
     const ids = notificationsList.map(n => n.id);
-    const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
-
-    if (db) {
-        const batch = db.batch();
-        ids.filter(id => !id.startsWith('local_')).forEach(id => {
-            batch.delete(db.collection('notifications').doc(id));
-        });
-        try {
-            await batch.commit();
-        } catch (e) {
-            console.warn('Error borrando notificaciones de Firebase:', e);
-        }
-    }
-
-    // Limpiar también las locales
-    notificationsList = [];
-    Storage.set('cor_notifications', []);
+    await deleteAllNotificationsFromFirebase(ids);
 
     // Limpiar marcadas como leídas de todos los usuarios
     Object.keys(localStorage).forEach(key => {
@@ -306,9 +248,11 @@ export async function deleteAllNotifications() {
     updateNotifUI();
 }
 
-function formatTimeAgo(isoString) {
+function formatTimeAgo(value) {
     try {
-        const date = new Date(isoString);
+        const ms = value && typeof value.toMillis === 'function' ? value.toMillis() : Date.parse(value);
+        if (Number.isNaN(ms)) return 'reciente';
+        const date = new Date(ms);
         const now = new Date();
         const diffSec = Math.floor((now - date) / 1000);
         if (diffSec < 60) return 'ahora';

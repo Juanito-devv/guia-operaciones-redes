@@ -509,3 +509,163 @@ export async function updateCustomProcedureInFirebase(id, procData) {
         return false;
     }
 }
+
+// ========================================
+// FUNCIONES PARA NOTIFICACIONES (compartidas entre todos los usuarios)
+// ========================================
+
+// Valor numérico de una fecha (soporta Timestamp de Firestore e ISO string)
+function notifTs(n) {
+    const t = n && n.createdAt;
+    if (!t) return 0;
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    const ms = Date.parse(t);
+    return Number.isNaN(ms) ? 0 : ms;
+}
+
+export function getNotificationsFromFirebase(callback) {
+    let unsubscribe = () => {};
+    if (!db) {
+        callback(Storage.get('cor_notifications', []));
+        return unsubscribe;
+    }
+    ensureAuth().then((authed) => {
+        if (!authed) {
+            callback(Storage.get('cor_notifications', []));
+            return;
+        }
+        unsubscribe = db.collection('notifications')
+            .orderBy('createdAt', 'desc')
+            .limit(30)
+            .onSnapshot((snapshot) => {
+                const serverList = [];
+                snapshot.forEach((doc) => {
+                    serverList.push({ id: doc.id, ...doc.data() });
+                });
+                const serverIds = new Set(serverList.map(n => n && n.id));
+                const local = Storage.get('cor_notifications', []);
+                const localOnly = local.filter(n => n && !serverIds.has(n.id));
+                const list = [...serverList, ...localOnly];
+                // Subir automáticamente las creadas sin conexión
+                localOnly.forEach(n => pushLocalItem('notifications', n));
+                list.sort((a, b) => notifTs(b) - notifTs(a));
+                markFirebaseRecovered();
+                Storage.set('cor_notifications', list);
+                callback(list);
+            }, (error) => {
+                markFirebaseFailure('getNotifications', error);
+                callback(Storage.get('cor_notifications', []));
+            });
+    });
+    return () => unsubscribe();
+}
+
+// Crea una notificación compartida (id de documento = id del evento, sin duplicar)
+export async function createNotificationInFirebase(notif) {
+    const id = 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const localNotif = { ...notif, id, createdAt: new Date().toISOString() };
+
+    // Escritura local optimista
+    const local = Storage.get('cor_notifications', []);
+    if (!local.some(n => n && n.id === id)) {
+        local.unshift(localNotif);
+        if (local.length > 30) local.pop();
+        Storage.set('cor_notifications', local);
+    }
+
+    if (!db) return localNotif;
+    const authed = await ensureAuth();
+    if (!authed) return localNotif;
+    try {
+        await db.collection('notifications').doc(id).set({
+            ...notif,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        markFirebaseRecovered();
+        return localNotif;
+    } catch (error) {
+        markFirebaseFailure('createNotification', error);
+        return localNotif;
+    }
+}
+
+// Marca una notificación como leída para un usuario (se comparte entre equipos)
+export async function markNotificationReadInFirebase(notifId, username) {
+    if (!db || !username) return;
+    const authed = await ensureAuth();
+    if (!authed) return;
+    try {
+        await db.collection('notifications').doc(notifId).update({
+            readBy: firebase.firestore.FieldValue.arrayUnion(username)
+        });
+        markFirebaseRecovered();
+    } catch (error) {
+        markFirebaseFailure('markRead', error);
+    }
+}
+
+export async function deleteNotificationFromFirebase(notifId) {
+    const local = Storage.get('cor_notifications', []);
+    const filtered = local.filter(n => n && n.id !== notifId);
+    Storage.set('cor_notifications', filtered);
+
+    if (!db) return true;
+    const authed = await ensureAuth();
+    if (!authed) return true;
+    try {
+        await db.collection('notifications').doc(notifId).delete();
+        markFirebaseRecovered();
+        return true;
+    } catch (error) {
+        markFirebaseFailure('deleteNotification', error);
+        return false;
+    }
+}
+
+export async function deleteAllNotificationsFromFirebase(ids) {
+    const local = Storage.get('cor_notifications', []);
+    const filtered = local.filter(n => n && !ids.includes(n.id));
+    Storage.set('cor_notifications', filtered);
+
+    if (!db) return;
+    const authed = await ensureAuth();
+    if (!authed) return;
+    try {
+        const batch = db.batch();
+        ids.forEach(id => batch.delete(db.collection('notifications').doc(id)));
+        await batch.commit();
+        markFirebaseRecovered();
+    } catch (error) {
+        markFirebaseFailure('deleteAllNotifs', error);
+    }
+}
+
+// ========================================
+// ESTADO POR USUARIO (Guardia / Mail: el borrador sigue al operador)
+// ========================================
+
+export async function fetchPerUserStateFromFirebase(collection, username) {
+    if (!db || !username) return null;
+    const authed = await ensureAuth();
+    if (!authed) return null;
+    try {
+        const snap = await db.collection(collection).doc(username).get();
+        markFirebaseRecovered();
+        return snap.exists ? snap.data() : null;
+    } catch (error) {
+        markFirebaseFailure('fetchState', error);
+        return null;
+    }
+}
+
+export async function savePerUserStateToFirebase(collection, username, data) {
+    if (!db || !username) return;
+    const authed = await ensureAuth();
+    if (!authed) return;
+    try {
+        await db.collection(collection).doc(username).set(data);
+        markFirebaseRecovered();
+    } catch (error) {
+        markFirebaseFailure('saveState', error);
+    }
+}

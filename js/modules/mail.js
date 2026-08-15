@@ -6,6 +6,9 @@
 // ========================================
 
 import { Storage } from '../utils/storage.js';
+import { AppState } from '../state.js';
+import { debounce } from '../utils/debounce.js';
+import { fetchPerUserStateFromFirebase, savePerUserStateToFirebase } from './firebase.js';
 
 const STORAGE_KEY = 'cor_mail_v1';
 
@@ -224,7 +227,7 @@ function escapeOption(str) {
     return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
-export function loadMail(root) {
+export function loadMail(root, skipFetch = false) {
     const data = Storage.get(STORAGE_KEY, {});
 
     // Poblar select de proveedores
@@ -255,7 +258,25 @@ export function loadMail(root) {
             el.style.height = (el.scrollHeight + 2) + 'px';
         }
     });
+
+    // Traer el borrador del operador desde Firestore (sigue al usuario entre equipos)
+    if (!skipFetch) syncMailFromServer(root);
 }
+
+function syncMailFromServer(root) {
+    const username = AppState.get('currentUser');
+    if (!username) return;
+    fetchPerUserStateFromFirebase('mail_state', username).then((serverData) => {
+        if (serverData && typeof serverData === 'object') {
+            Storage.set(STORAGE_KEY, serverData);
+            loadMail(root, true);
+        }
+    });
+}
+
+const pushMailStateDebounced = debounce((username) => {
+    savePerUserStateToFirebase('mail_state', username, Storage.get(STORAGE_KEY, {}));
+}, 1200);
 
 export function updateMailPreview(root) {
     const template = getVal(root, 'mail-template') || getDefaultTemplate(getVal(root, 'mail-proveedor'));
@@ -316,6 +337,9 @@ export function autoSaveMail(root) {
     data.savedAt = new Date().toLocaleString('es-ES');
 
     Storage.set(STORAGE_KEY, data);
+
+    const username = AppState.get('currentUser');
+    if (username) pushMailStateDebounced(username);
 
     const indicator = $el(root, 'mail-autosave');
     if (indicator) {
