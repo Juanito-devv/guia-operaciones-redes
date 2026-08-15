@@ -487,8 +487,212 @@ function bindTicketStatusButtons(root) {
 }
 
 // ========================================
-// PÁGINA COMPLETA (#/dashboard/guardia)
+// PÁGINA COMPLETA (#/dashboard/guardia — diseño S9 "Entrega de Guardia")
 // ========================================
+
+const GUARD_SECTIONS = [
+    { num: 1, title: 'IXP Status', sub: 'Nodos de Intercambio de Tráfico' },
+    { num: 2, title: 'Intl Links', sub: 'Enlaces Internacionales y Troncales' },
+    { num: 3, title: 'OLT Network', sub: 'Terminales de Línea Óptica' },
+    { num: 4, title: 'Streaming/TV', sub: 'Nodos de Caching ABA TV' },
+    { num: 5, title: 'Tickets Report', sub: 'Incidencias de Severidad Alta/Crítica' }
+];
+
+let guardSelected = 1;
+let guardNoteLine = '';
+
+function countStatus(items, status) {
+    return Array.isArray(items) ? items.filter(i => i && i.status === status).length : 0;
+}
+
+function guardCounts(root) {
+    const ixp = countStatus(stateIXP, '✅');
+    const ixpW = countStatus(stateIXP, '⚠️');
+    const ixpD = countStatus(stateIXP, '❌');
+    const enlD = countStatus(stateEnlaces, '❌');
+    const oltD = countStatus(stateOLT, '❌');
+    const abaD = countStatus(stateABATV, '❌');
+
+    let abiertos = 0;
+    if (getValue(root, 'g-t-proceso')) abiertos++;
+    if (getValue(root, 'g-t-seguimiento')) abiertos++;
+
+    return { ixp, ixpW, ixpD, enlD, oltD, abaD, abiertos };
+}
+
+function renderGuardiaMetrics(root) {
+    const el = $el(root, 'guard-metrics');
+    if (!el) return;
+    const c = guardCounts(root);
+    const ixpTotal = stateIXP.length || 12;
+
+    el.innerHTML = `
+        <div class="guard-metric ${c.ixpD ? 'g-err' : c.ixpW ? 'g-warn' : 'g-ok'}">
+            <div class="guard-metric-head">
+                <span>IXP Operativos</span>
+                <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+            </div>
+            <div class="guard-metric-value">${c.ixp}<small>/${ixpTotal}</small></div>
+        </div>
+        <div class="guard-metric ${c.enlD ? 'g-err' : 'g-ok'}">
+            <div class="guard-metric-head">
+                <span>Enlaces Caídos</span>
+                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
+            </div>
+            <div class="guard-metric-value">${c.enlD}</div>
+        </div>
+        <div class="guard-metric ${c.oltD ? 'g-err' : 'g-ok'}">
+            <div class="guard-metric-head">
+                <span>OLTs Caídos</span>
+                <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+            </div>
+            <div class="guard-metric-value">${c.oltD}</div>
+        </div>
+        <div class="guard-metric ${c.abiertos ? 'g-warn' : 'g-ok'}">
+            <div class="guard-metric-head">
+                <span>Tickets Abiertos</span>
+                <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+            </div>
+            <div class="guard-metric-value">${c.abiertos}</div>
+        </div>`;
+}
+
+function renderGuardiaAlert(root) {
+    const el = $el(root, 'guard-alert');
+    if (!el) return;
+    const c = guardCounts(root);
+    const totalFallas = c.enlD + c.oltD + c.abaD + c.ixpD;
+
+    if (totalFallas === 0) {
+        el.hidden = true;
+        return;
+    }
+
+    el.hidden = false;
+    el.innerHTML = `
+        <span class="material-symbols-outlined" aria-hidden="true">error</span>
+        <div>
+            <h4>Hay ${totalFallas} ${totalFallas === 1 ? 'servicio con falla activa' : 'servicios con falla activa'}.</h4>
+            <p>Requiere atención del coordinador de turno.</p>
+        </div>
+        <button type="button" id="guard-alert-btn">Ver detalles</button>`;
+
+    $el(root, 'guard-alert-btn')?.addEventListener('click', () => {
+        const ed = $el(root, 'guard-editor');
+        if (ed) {
+            ed.open = true;
+            ed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+}
+
+function renderGuardiaSections(root) {
+    const list = $el(root, 'guard-sections-list');
+    if (!list) return;
+    const c = guardCounts(root);
+
+    const chips = {
+        1: `<span class="guard-chip">${c.ixp} <span class="g-ok">✅</span> · ${c.ixpW} <span class="g-warn">⚠️</span></span>`,
+        2: c.enlD ? `<span class="guard-chip g-chip-err">${c.enlD} Caídos</span>` : `<span class="guard-chip g-chip-ok">OK ✅</span>`,
+        3: c.oltD ? `<span class="guard-chip g-chip-err">${c.oltD} Caídos</span>` : `<span class="guard-chip g-chip-ok">${c.oltD} Caídos</span>`,
+        4: c.abaD ? `<span class="guard-chip g-chip-err">${c.abaD} Caídos</span>` : `<span class="guard-chip g-chip-ok">OK</span>`,
+        5: `<span class="guard-chip g-chip-warn">${c.abiertos} Abiertos</span>`
+    };
+
+    list.innerHTML = GUARD_SECTIONS.map(s => `
+        <button type="button" class="guard-section-item ${s.num === guardSelected ? 'active' : ''}" data-num="${s.num}">
+            <div>
+                <b>${s.title}</b>
+                <small>${s.sub}</small>
+            </div>
+            ${chips[s.num] || ''}
+        </button>`).join('');
+
+    list.querySelectorAll('.guard-section-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            guardSelected = parseInt(btn.dataset.num, 10);
+            renderGuardiaSections(root);
+            renderGuardiaPreview(root);
+        });
+    });
+}
+
+function renderGuardiaPreview(root) {
+    const bodyEl = $el(root, 'guard-bubble-body');
+    if (!bodyEl) return;
+
+    const s = GUARD_SECTIONS.find(x => x.num === guardSelected) || GUARD_SECTIONS[0];
+    const titleEl = $el(root, 'guard-msg-title');
+    const timeEl = $el(root, 'guard-bubble-time');
+    const noteEl = $el(root, 'guard-bubble-note');
+    const avatarEl = $el(root, 'guard-avatar');
+
+    if (titleEl) titleEl.textContent = `Mensaje: ${s.title}`;
+    if (timeEl) timeEl.textContent = getValue(root, 'g-hora');
+    if (avatarEl) {
+        const initial = (AppState.get('currentUser') || getValue(root, 'g-usuario') || 'N').trim()[0]?.toUpperCase() || 'N';
+        avatarEl.textContent = initial;
+    }
+    bodyEl.textContent = buildGuardiaMsg(root, s.num);
+
+    if (noteEl) {
+        noteEl.hidden = !guardNoteLine;
+        noteEl.textContent = guardNoteLine ? '📝 ' + guardNoteLine : '';
+    }
+}
+
+function copyGuardiaMsgWithNote(root, num) {
+    let text = buildGuardiaMsg(root, num);
+    if (guardNoteLine) text += `\n\n📝 ${guardNoteLine}`;
+    copyText(text, `📋 Mensaje ${num} copiado al portapapeles listo para enviar a Telegram.`);
+}
+
+function refreshGuardiaVisuals(root) {
+    renderGuardiaMetrics(root);
+    renderGuardiaAlert(root);
+    renderGuardiaSections(root);
+    renderGuardiaPreview(root);
+
+    const ind = $el(root, 'guard-autosave');
+    if (ind) {
+        ind.textContent = '✨ Guardado';
+        setTimeout(() => { ind.textContent = '✨ Auto-guardado'; }, 1500);
+    }
+}
+
+function bindGuardiaPageEvents(root) {
+    $el(root, 'guard-copy-msg')?.addEventListener('click', () => copyGuardiaMsgWithNote(root, guardSelected));
+    $el(root, 'guard-copy-combo')?.addEventListener('click', () => copyAllGuardiaMsgs(root));
+
+    $el(root, 'guard-restore')?.addEventListener('click', () => {
+        if (confirm('¿Restaurar la plantilla de guardia a los valores por defecto? Se perderán los cambios guardados.')) {
+            Storage.remove(STORAGE_KEY);
+            loadGuardiaTab(root);
+            refreshGuardiaVisuals(root);
+        }
+    });
+
+    const noteInput = $el(root, 'guard-note-input');
+    const sendNote = () => {
+        if (!noteInput) return;
+        guardNoteLine = noteInput.value.trim();
+        noteInput.value = '';
+        renderGuardiaPreview(root);
+    };
+    $el(root, 'guard-note-send')?.addEventListener('click', sendNote);
+    noteInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); sendNote(); }
+    });
+
+    // Refresco en vivo al editar textos o togglear estados/tickets dentro del editor
+    root.addEventListener('input', () => refreshGuardiaVisuals(root));
+    root.addEventListener('click', (e) => {
+        if (e.target.closest('.status-toggle-btn') || e.target.closest('.ticket-status-btn') || e.target.closest('.g-section-toggle')) {
+            setTimeout(() => refreshGuardiaVisuals(root), 0);
+        }
+    });
+}
+
 export function showGuardia() {
     const body = document.getElementById('content-body');
     if (!body) return;
@@ -496,20 +700,82 @@ export function showGuardia() {
 
     setTimeout(() => {
         body.innerHTML = `
-            <div class="gtool-page">
-                <header class="gtool-header">
-                    <span class="support-state-label">ENTREGA DE GUARDIA</span>
-                    <h2>Generador de 5 Mensajes para Telegram</h2>
-                    <p>Completá los estados y tickets, y copiá los mensajes listos para enviar al grupo de guardia. Todo se auto-guarda en este navegador.</p>
+            <div class="tool-page guard-page">
+                <header class="tool-page-header guard-header">
+                    <div>
+                        <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
+                        <h1 class="tool-title">Entrega de Guardia</h1>
+                        <p class="tool-sub">Resumen consolidado del estado de la red para el equipo entrante. Generado y formateado automáticamente para Telegram.</p>
+                    </div>
+                    <div class="guard-header-actions">
+                        <button type="button" class="calt-btn" id="guard-restore">
+                            <span class="material-symbols-outlined" aria-hidden="true">restore</span>
+                            <span>Restaurar Plantilla</span>
+                        </button>
+                        <button type="button" class="tool-btn-primary" id="guard-copy-combo">
+                            <span class="material-symbols-outlined" aria-hidden="true">content_copy</span> Copiar Combo (5 Mensajes)
+                        </button>
+                    </div>
                 </header>
-                <div class="gtool-body">
-                    ${guardiaTabHTML()}
+
+                <section class="guard-metrics" id="guard-metrics"></section>
+
+                <div class="guard-alert" id="guard-alert" hidden></div>
+
+                <div class="guard-bento">
+                    <aside class="guard-sections">
+                        <div class="guard-sections-head">
+                            <b>Secciones</b>
+                            <span class="guard-autosave" id="guard-autosave">✨ Auto-guardado</span>
+                        </div>
+                        <div class="guard-sections-list" id="guard-sections-list"></div>
+                    </aside>
+
+                    <section class="guard-viewer">
+                        <div class="guard-viewer-head">
+                            <div class="guard-msg-meta">
+                                <span class="guard-avatar" id="guard-avatar">N</span>
+                                <div>
+                                    <h3 id="guard-msg-title">Mensaje: IXP Status</h3>
+                                    <p>Vista previa Telegram</p>
+                                </div>
+                            </div>
+                            <button type="button" class="calt-btn" id="guard-copy-msg">
+                                <span class="material-symbols-outlined" aria-hidden="true">content_copy</span> Copiar Mensaje
+                            </button>
+                        </div>
+                        <div class="guard-chat">
+                            <div class="guard-bubble">
+                                <div class="guard-bubble-head">
+                                    <b>NOC Bot_Connect</b>
+                                    <span id="guard-bubble-time"></span>
+                                </div>
+                                <pre class="guard-bubble-body" id="guard-bubble-body"></pre>
+                                <div class="guard-bubble-note" id="guard-bubble-note" hidden></div>
+                            </div>
+                        </div>
+                        <div class="guard-note">
+                            <input type="text" id="guard-note-input" placeholder="Agregar nota adicional al mensaje..." aria-label="Agregar nota adicional">
+                            <button type="button" id="guard-note-send" aria-label="Enviar nota">
+                                <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                            </button>
+                        </div>
+                    </section>
                 </div>
+
+                <details class="guard-editor" id="guard-editor">
+                    <summary><span class="material-symbols-outlined" aria-hidden="true">tune</span> Editar estados y tickets</summary>
+                    <div class="guard-editor-inner">
+                        ${guardiaTabHTML()}
+                    </div>
+                </details>
             </div>
         `;
         body.classList.remove('loading');
         document.getElementById('main-content').scrollTop = 0;
         loadGuardiaTab(body);
         bindGuardiaTabEvents(body);
+        refreshGuardiaVisuals(body);
+        bindGuardiaPageEvents(body);
     }, 120);
 }
