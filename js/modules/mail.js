@@ -226,7 +226,6 @@ function escapeOption(str) {
 
 export function loadMail(root) {
     const data = Storage.get(STORAGE_KEY, {});
-    const now = new Date();
 
     // Poblar select de proveedores
     const providerSel = $el(root, 'mail-proveedor');
@@ -282,6 +281,25 @@ export function updateMailPreview(root) {
     Object.keys(vars).forEach(k => { preview = preview.split(k).join(vars[k]); });
 
     setVal(root, 'mail-preview', preview);
+
+    // Sincronizar la vista previa visual de la página completa (diseño S10)
+    const visual = $el(root, 'mail-preview-visual');
+    if (visual) visual.textContent = preview;
+
+    const subjectEl = $el(root, 'mail-subject');
+    if (subjectEl) {
+        const t = ticket && ticket !== 'XXXXX' ? ` [${ticket}]` : '';
+        subjectEl.textContent = `Falla circuito ${circuito}${t}`;
+    }
+
+    const nameEl = $el(root, 'mail-provider-name');
+    if (nameEl) nameEl.textContent = provider.name;
+
+    const avatarEl = $el(root, 'mail-provider-avatar');
+    if (avatarEl) {
+        const initials = provider.name.split(/\s+/).map(w => (w[0] || '')).slice(0, 2).join('').toUpperCase();
+        avatarEl.textContent = initials;
+    }
 }
 
 export function autoSaveMail(root) {
@@ -360,8 +378,65 @@ export function copyMail(root) {
 }
 
 // ========================================
-// PÁGINA COMPLETA (#/dashboard/mail)
+// PÁGINA COMPLETA (#/dashboard/mail — diseño S10 "Generador de Correo")
 // ========================================
+
+const MAIL_IMPACT_ICONS = {
+    'fuera-servicio': 'error',
+    'fuera-gestion': 'visibility_off',
+    'bgp-caido': 'route',
+    'intermitente': 'warning'
+};
+
+function renderProviderChips(root) {
+    const holder = $el(root, 'mail-provider-chips');
+    if (!holder) return;
+    const providerId = getVal(root, 'mail-proveedor');
+
+    holder.innerHTML = MAIL_PROVIDERS.map(p => `
+        <button type="button" class="mail-chip-provider ${p.id === providerId ? 'active' : ''}" data-provider="${p.id}">
+            ${p.id === providerId ? '<span class="mail-chip-dot"></span>' : ''}${escapeOption(p.name)}
+        </button>`).join('');
+
+    holder.querySelectorAll('.mail-chip-provider').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sel = $el(root, 'mail-proveedor');
+            if (sel) sel.value = btn.dataset.provider;
+            changeMailProvider(root);
+            renderProviderChips(root);
+            renderAfectacionChips(root);
+        });
+    });
+}
+
+function renderAfectacionChips(root) {
+    const holder = $el(root, 'mail-afectacion-chips');
+    if (!holder) return;
+    const current = getVal(root, 'mail-afectacion') || 'fuera-servicio';
+
+    holder.innerHTML = MAIL_IMPACTS.map(imp => `
+        <button type="button" class="mail-afectacion-chip ${imp.id === current ? 'active' : ''}" data-impact="${imp.id}">
+            <span class="material-symbols-outlined" aria-hidden="true">${MAIL_IMPACT_ICONS[imp.id] || 'info'}</span>
+            ${imp.label}
+        </button>`).join('');
+
+    holder.querySelectorAll('.mail-afectacion-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sel = $el(root, 'mail-afectacion');
+            if (sel) sel.value = btn.dataset.impact;
+            updateMailPreview(root);
+            autoSaveMail(root);
+            renderAfectacionChips(root);
+        });
+    });
+}
+
+function refreshMailVisual(root) {
+    updateMailPreview(root);
+    renderProviderChips(root);
+    renderAfectacionChips(root);
+}
+
 export function showMail() {
     const body = document.getElementById('content-body');
     if (!body) return;
@@ -369,21 +444,114 @@ export function showMail() {
 
     setTimeout(() => {
         body.innerHTML = `
-            <div class="gtool-page">
-                <header class="gtool-header">
-                    <span class="support-state-label">COMUNICADOS</span>
-                    <h2>Generador de Correos a Proveedores</h2>
-                    <p>Completá los datos del evento y copiá el correo formateado para el proveedor. Las plantillas se auto-guardan por proveedor.</p>
+            <div class="tool-page mail-page">
+                <header class="tool-page-header mail-header">
+                    <div>
+                        <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
+                        <h1 class="tool-title">Generador de Correo</h1>
+                        <p class="tool-sub">Correos formales a proveedores de enlaces internacionales. Rellene los datos del circuito y copie el texto listo para enviar.</p>
+                    </div>
+                    <div class="mail-header-actions">
+                        <button type="button" class="calt-btn" id="btn-reset-mail">
+                            <span class="material-symbols-outlined" aria-hidden="true">restore</span>
+                            <span>Restaurar Plantilla</span>
+                        </button>
+                        <button type="button" class="tool-btn-primary" id="btn-copy-mail">
+                            <span class="material-symbols-outlined" aria-hidden="true">content_copy</span> Copiar Correo
+                        </button>
+                    </div>
                 </header>
-                <div class="gtool-body">
-                    ${mailPanelHTML()}
+
+                <div class="mail-provider-block">
+                    <div class="mail-provider-row" id="mail-provider-chips"></div>
+                    <div class="mail-info">
+                        <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                        <p>El correo se redacta con la plantilla del proveedor seleccionado. Variables disponibles:
+                            <span class="mail-var-pill">{circuito}</span>
+                            <span class="mail-var-pill">{afectacion}</span>
+                            <span class="mail-var-pill">{hora}</span>
+                            <span class="mail-var-pill">{ticket}</span>
+                            <span class="mail-var-pill">{proveedor}</span>.
+                        </p>
+                    </div>
                 </div>
+
+                <div class="mail-bento">
+                    <section class="mail-card mail-form-card">
+                        <div class="mail-card-head">
+                            <span class="material-symbols-outlined" aria-hidden="true">data_object</span>
+                            <h3>Datos del Incidente</h3>
+                        </div>
+                        <div class="mail-form-body">
+                            <div class="mail-field">
+                                <label for="mail-circuito">Circuito Afectado</label>
+                                <input type="text" id="mail-circuito" class="mail-input" placeholder="ej. COLUMBUS II (I7180.CN)">
+                            </div>
+                            <div class="mail-field">
+                                <label for="mail-hora">Hora del Evento</label>
+                                <input type="time" id="mail-hora" class="mail-input">
+                            </div>
+                            <div class="mail-field">
+                                <label for="mail-ticket">Ticket (opcional)</label>
+                                <input type="text" id="mail-ticket" class="mail-input" placeholder="ej. INC483142">
+                            </div>
+                            <div class="mail-field">
+                                <label>Afectación Presentada</label>
+                                <div class="mail-afectacion-grid" id="mail-afectacion-chips"></div>
+                            </div>
+                            <div class="mail-field mail-template-field">
+                                <label for="mail-template">
+                                    <span>Plantilla Base</span>
+                                    <button type="button" id="mail-restore-template">↺ Restaurar</button>
+                                </label>
+                                <textarea id="mail-template" class="mail-textarea" spellcheck="false"></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="mail-card mail-preview-card">
+                        <div class="mail-preview-head">
+                            <div class="mail-preview-title">
+                                <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+                                <div>
+                                    <b>Vista Previa del Correo</b>
+                                    <small>texto plano listo para enviar</small>
+                                </div>
+                            </div>
+                            <span class="mail-autosave" id="mail-autosave">✨ Auto-guardado</span>
+                        </div>
+                        <div class="mail-preview-meta">
+                            <div class="mail-meta-row">
+                                <span class="mail-meta-k">Para:</span>
+                                <span class="mail-meta-v" id="mail-provider-name"></span>
+                            </div>
+                            <div class="mail-meta-row">
+                                <span class="mail-meta-k">Asunto:</span>
+                                <span class="mail-meta-v mail-meta-subject" id="mail-subject"></span>
+                            </div>
+                        </div>
+                        <pre class="mail-preview-body" id="mail-preview-visual"></pre>
+                    </section>
+                </div>
+
+                <select id="mail-proveedor" class="mail-hidden"></select>
+                <select id="mail-afectacion" class="mail-hidden">
+                    <option value="fuera-servicio">Fuera de Servicio</option>
+                    <option value="fuera-gestion">Fuera de Gestión</option>
+                    <option value="bgp-caido">BGP Caído</option>
+                    <option value="intermitente">Intermitente</option>
+                </select>
+                <textarea id="mail-preview" class="mail-hidden" readonly></textarea>
             </div>
         `;
         body.classList.remove('loading');
         document.getElementById('main-content').scrollTop = 0;
         loadMail(body);
+        renderProviderChips(body);
+        renderAfectacionChips(body);
+        refreshMailVisual(body);
         bindMailPageEvents(body);
+        $el(body, 'mail-restore-template')?.addEventListener('click', () => resetMailTemplate(body));
     }, 120);
 }
 
