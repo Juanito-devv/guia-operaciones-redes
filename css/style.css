@@ -8720,4 +8720,46 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 [data-theme="dark"] .mail-meta-subject { color: #b6c4ff; }
 [data-theme="dark"] .mail-preview-body { color: #e2e1ee; }
 
+/* ========================================
+   PÁGINA EN CONSTRUCCIÓN (placeholder)
+   ======================================== */
+.tool-construction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 72px 24px;
+    background: #ffffff;
+    border: 1px solid #e0e3e5;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0, 65, 199, 0.04);
+}
+.tool-construction .material-symbols-outlined {
+    font-size: 44px;
+    color: #0041c7;
+}
+.tool-construction h2 {
+    font-family: var(--heading);
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 600;
+    color: #131b2e;
+    margin: 0;
+}
+.tool-construction p {
+    max-width: 480px;
+    margin: 0;
+    font-size: 14px;
+    line-height: 22px;
+    color: #747686;
+}
+.tool-construction p b { color: #131b2e; }
+[data-theme="dark"] .tool-construction { background: #191b24; border-color: #434654; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+[data-theme="dark"] .tool-construction .material-symbols-outlined { color: #b6c4ff; }
+[data-theme="dark"] .tool-construction h2 { color: #e2e1ee; }
+[data-theme="dark"] .tool-construction p { color: #8e90a0; }
+[data-theme="dark"] .tool-construction p b { color: #e2e1ee; }
+
 
