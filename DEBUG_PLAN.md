@@ -91,7 +91,7 @@
 - **Fix**: persistir los IDs notificados (`cor_cdc_notified`) por
   `id+fecha+tipo` y filtrar al cargar.
 - **Verificación**: recarga ≠ aviso duplicado.
-- **Estado**: [ ] PENDING
+- **Estado**: [x] PASSED (marcadores persistidos en `cor_cdc_notified` con poda de fechas pasadas)
 
 ---
 
@@ -122,5 +122,5 @@
 | B4 | P0 | MITIGADO | `credenciales.json` → `_local_backup/`; scanner bloquea commits (rotación pendiente) |
 | B5 | P1 | PASSED | `navigation.js` sin lookbehind |
 | B6 | P1 | PASSED | `manifest.json` → `./` |
-| B7 | P1 | PENDING | `cdc.js` recordatorios idempotentes (persistir marcadores) |
+| B7 | P1 | PASSED | `cdc.js` marcadores persistidos (`cor_cdc_notified`) con poda de fechas pasadas |
 | B8–B13 | P2 | B8/B9/B11 HECHO, resto PENDING | Lint/format verdes; scanner reforzado; calendario conectado a Firestore |

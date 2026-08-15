@@ -16,8 +16,27 @@ import {
 } from './firebase.js';
 import { createNotification } from './notifications.js';
 
-let notificationShownSet = new Set();
-let finishedCDCSSet = new Set();
+const NOTIFIED_KEY = 'cor_cdc_notified';
+
+function loadNotifiedSet() {
+    const arr = Storage.get(NOTIFIED_KEY, []);
+    return new Set(Array.isArray(arr) ? arr : []);
+}
+
+// Persiste los marcadores ya notificados (uniendo ambos tipos) y descarta fechas pasadas
+function persistNotifiedSet() {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const both = new Set([...notificationShownSet, ...finishedCDCSSet]);
+    const kept = Array.from(both).filter(k => {
+        const datePart = k.split('_').pop();
+        return typeof datePart === 'string' && datePart.length === 10 && datePart >= todayStr;
+    });
+    Storage.set(NOTIFIED_KEY, kept);
+}
+
+let notificationShownSet = loadNotifiedSet();
+let finishedCDCSSet = loadNotifiedSet();
 let cdclist = [];
 let unsubscribeCDC = null;
 
@@ -84,6 +103,7 @@ export function checkCDCReminders() {
         // 1. ALERTA CUANDO FALTE 1 HORA O MENOS (entre 0 y 60 minutos)
         if (diffMinutes >= 0 && diffMinutes <= 60 && !notificationShownSet.has(notifKey1h)) {
             notificationShownSet.add(notifKey1h);
+            persistNotifiedSet();
 
             // Mostrar notificación tipo Toast en pantalla
             showToastCDCNotification(
@@ -104,6 +124,7 @@ export function checkCDCReminders() {
         // 2. ALERTA DE FINALIZACIÓN (Si la hora ya pasó por más de 2 horas se considera finalizado)
         if (diffMinutes < -120 && !finishedCDCSSet.has(notifKeyEnd) && cdcDateStr === todayStr) {
             finishedCDCSSet.add(notifKeyEnd);
+            persistNotifiedSet();
 
             showToastCDCNotification(
                 `✅ CDC Finalizado`,
