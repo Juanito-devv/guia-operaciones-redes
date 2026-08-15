@@ -104,7 +104,7 @@
   (`firebase.js:162-231`); eliminar o conectar. → **HECHO**: calendario
   conectado a Firestore (id de documento = id de evento + fusión offline).
 - **B10. Código duplicado**: `updateImpacto`/`copyImpactoReport` en
-  `panel.js:308-339` e `impacto.js:110-142` → unificar en `core/impacto`.
+  `panel.js:308-339` e `impacto.js:110-142` → unificar en `core/impacto`. → **N/A**: `impacto.js` es una página "en construcción" (sin lógica duplicada); la lógica de Impacto vive solo en el panel.
 - **B11. `check-secrets.js` insuficiente**: añadir patrones `Pass:`, `PWD:`,
   `Contraseña:`, claves JSON (`"Password"`, `"PWD"`).
 - **B12. Avatar de CR7 en `auth.js:21`**: quitar URL externa. → **HECHO**: `USERS_DB` usa avatares emoji, sin URLs externas.
