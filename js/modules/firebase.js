@@ -57,6 +57,63 @@ export function markFirebaseRecovered() {
 }
 
 // ========================================
+// AUTH ANÓNIMA (reglas con request.auth != null)
+// ========================================
+// La app conserva su login local (credenciales.json); Firebase solo autentica
+// de forma anónima para que las reglas de Firestore exijan sesión y bloqueen
+// a visitantes externos. Si el login anónimo falla (o el método no está
+// habilitado en consola), degrada a localStorage: la app nunca se rompe.
+
+let authReadyPromise = null;
+
+function ensureAuth() {
+    if (!db) return Promise.resolve(false);
+    if (!authReadyPromise) {
+        authReadyPromise = (async () => {
+            try {
+                if (firebase.auth && firebase.auth().currentUser) {
+                    markFirebaseRecovered();
+                    return true;
+                }
+                await firebase.auth().signInAnonymously();
+                markFirebaseRecovered();
+                return true;
+            } catch (error) {
+                markFirebaseFailure('auth', error);
+                authReadyPromise = null;
+                return false;
+            }
+        })();
+    }
+    return authReadyPromise;
+}
+
+// ========================================
+// FUSIÓN LOCAL (nada se pierde al volver la conexión)
+// ========================================
+// Los ítems creados estando degradado llevan id "local_*". Cuando Firestore
+// responde, se fusionan con el snapshot del servidor para que no desaparezcan.
+
+function mergeLocalList(serverList, storageKey) {
+    const localList = Storage.get(storageKey, []);
+    const serverIds = new Set(serverList.map(item => item && item.id));
+    const localOnly = localList.filter(item => item && String(item.id || '').startsWith('local_') && !serverIds.has(item.id));
+    return [...serverList, ...localOnly];
+}
+
+function mergeLocalEvents(serverEvents) {
+    const localEvents = Storage.get('cor_events', {});
+    const merged = serverEvents;
+    for (const date of Object.keys(localEvents)) {
+        const serverArr = merged[date] || [];
+        const serverIds = new Set(serverArr.map(e => e && e.id));
+        const localOnly = localEvents[date].filter(e => e && String(e.id || '').startsWith('local_') && !serverIds.has(e.id));
+        merged[date] = [...serverArr, ...localOnly];
+    }
+    return merged;
+}
+
+// ========================================
 // FUNCIONES PARA CDC CON FALLBACK A LOCALSTORAGE
 // ========================================
 
@@ -64,6 +121,13 @@ export function markFirebaseRecovered() {
 export async function saveCDCToFirebase(cdcData) {
     if (!db) {
         // Fallback a localStorage
+        const cdclist = Storage.get('cor_cdc', []);
+        cdclist.push({ id: 'local_' + Date.now(), ...cdcData });
+        Storage.set('cor_cdc', cdclist);
+        return { id: 'local_' + Date.now(), ...cdcData };
+    }
+    const authed = await ensureAuth();
+    if (!authed) {
         const cdclist = Storage.get('cor_cdc', []);
         cdclist.push({ id: 'local_' + Date.now(), ...cdcData });
         Storage.set('cor_cdc', cdclist);
@@ -85,37 +149,54 @@ export async function saveCDCToFirebase(cdcData) {
     }
 }
 
-// Obtener todos los CDC desde Firestore
+// Obtener todos los CDC desde Firestore (fusiona los pendientes locales)
 export function getCDCFromFirebase(callback) {
+    let unsubscribe = () => {};
     if (!db) {
-        const cdclist = Storage.get('cor_cdc', []);
-        callback(cdclist);
-        return () => {};
+        callback(Storage.get('cor_cdc', []));
+        return unsubscribe;
     }
-    return db.collection('cdc')
-        .onSnapshot((snapshot) => {
-            const cdclist = [];
-            snapshot.forEach((doc) => {
-                cdclist.push({ id: doc.id, ...doc.data() });
+    ensureAuth().then((authed) => {
+        if (!authed) {
+            callback(Storage.get('cor_cdc', []));
+            return;
+        }
+        unsubscribe = db.collection('cdc')
+            .onSnapshot((snapshot) => {
+                const serverList = [];
+                snapshot.forEach((doc) => {
+                    serverList.push({ id: doc.id, ...doc.data() });
+                });
+                const cdclist = mergeLocalList(serverList, 'cor_cdc');
+                // Ordenar en el cliente para evitar el índice compuesto que exige Firestore
+                cdclist.sort((a, b) => {
+                    const dateDiff = (b.date || '').localeCompare(a.date || '');
+                    if (dateDiff !== 0) return dateDiff;
+                    return (b.time || '').localeCompare(a.time || '');
+                });
+                markFirebaseRecovered();
+                callback(cdclist);
+            }, (error) => {
+                markFirebaseFailure('getCDC', error);
+                callback(Storage.get('cor_cdc', []));
             });
-            // Ordenar en el cliente para evitar el índice compuesto que exige Firestore
-            cdclist.sort((a, b) => {
-                const dateDiff = (b.date || '').localeCompare(a.date || '');
-                if (dateDiff !== 0) return dateDiff;
-                return (b.time || '').localeCompare(a.time || '');
-            });
-            markFirebaseRecovered();
-            callback(cdclist);
-        }, (error) => {
-            markFirebaseFailure('getCDC', error);
-            const cdclist = Storage.get('cor_cdc', []);
-            callback(cdclist);
-        });
+    });
+    return () => unsubscribe();
 }
 
 // Eliminar CDC de Firestore
 export async function deleteCDCFromFirebase(cdcId) {
     if (!db) {
+        const cdclist = Storage.get('cor_cdc', []);
+        const index = cdclist.findIndex(c => c.id === cdcId);
+        if (index !== -1) {
+            cdclist.splice(index, 1);
+            Storage.set('cor_cdc', cdclist);
+        }
+        return true;
+    }
+    const authed = await ensureAuth();
+    if (!authed) {
         const cdclist = Storage.get('cor_cdc', []);
         const index = cdclist.findIndex(c => c.id === cdcId);
         if (index !== -1) {
@@ -145,6 +226,16 @@ export async function updateCDCInFirebase(cdcId, cdcData) {
         }
         return true;
     }
+    const authed = await ensureAuth();
+    if (!authed) {
+        const cdclist = Storage.get('cor_cdc', []);
+        const index = cdclist.findIndex(c => c.id === cdcId);
+        if (index !== -1) {
+            cdclist[index] = { ...cdclist[index], ...cdcData };
+            Storage.set('cor_cdc', cdclist);
+        }
+        return true;
+    }
     try {
         await db.collection('cdc').doc(cdcId).update(cdcData);
         markFirebaseRecovered();
@@ -159,67 +250,102 @@ export async function updateCDCInFirebase(cdcId, cdcData) {
 // FUNCIONES PARA EVENTOS (Calendario)
 // ========================================
 
+// Guardar evento en Firestore (id de documento = id del evento, para poder
+// fusionar sin duplicar al volver la conexión). Escritura local optimista:
+// la UI responde al instante y el snapshot re-confirma.
 export async function saveEventToFirebase(eventData) {
+    const id = eventData.id || 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const date = eventData.date;
+
+    // Escritura local optimista (upsert por id): la UI responde al instante y
+    // el snapshot re-confirma sin duplicar.
+    const events = Storage.get('cor_events', {});
+    if (!events[date]) events[date] = [];
+    const idx = events[date].findIndex(e => e && e.id === id);
+    if (idx === -1) {
+        events[date].push({ ...eventData, id });
+    } else {
+        events[date][idx] = { ...events[date][idx], ...eventData, id };
+    }
+    Storage.set('cor_events', events);
+
     if (!db) {
-        const events = Storage.get('cor_events', {});
-        const date = eventData.date;
-        if (!events[date]) events[date] = [];
-        events[date].push({ id: 'local_' + Date.now(), ...eventData });
-        Storage.set('cor_events', events);
-        return true;
+        return { id, ...eventData };
+    }
+    const authed = await ensureAuth();
+    if (!authed) {
+        return { id, ...eventData };
     }
     try {
-        await db.collection('events').add({
+        await db.collection('events').doc(id).set({
             ...eventData,
+            id,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         markFirebaseRecovered();
-        return true;
+        return { id, ...eventData };
     } catch (error) {
         markFirebaseFailure('saveEvent', error);
-        return false;
+        return { id, ...eventData };
     }
 }
 
+// Obtener eventos de Firestore (fusiona los pendientes locales)
 export function getEventsFromFirebase(callback) {
+    let unsubscribe = () => {};
     if (!db) {
-        const events = Storage.get('cor_events', {});
-        callback(events);
-        return () => {};
+        callback(Storage.get('cor_events', {}));
+        return unsubscribe;
     }
-    return db.collection('events')
-        .orderBy('date', 'asc')
-        .onSnapshot((snapshot) => {
-            const events = {};
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const date = data.date;
-                if (!events[date]) events[date] = [];
-                events[date].push({ id: doc.id, ...data });
+    ensureAuth().then((authed) => {
+        if (!authed) {
+            callback(Storage.get('cor_events', {}));
+            return;
+        }
+        unsubscribe = db.collection('events')
+            .onSnapshot((snapshot) => {
+                const serverEvents = {};
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.date;
+                    if (!date) return;
+                    if (!serverEvents[date]) serverEvents[date] = [];
+                    serverEvents[date].push({ id: doc.id, ...data });
+                });
+                const events = mergeLocalEvents(serverEvents);
+                for (const date of Object.keys(events)) {
+                    events[date].sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+                }
+                markFirebaseRecovered();
+                Storage.set('cor_events', events);
+                callback(events);
+            }, (error) => {
+                markFirebaseFailure('getEvents', error);
+                callback(Storage.get('cor_events', {}));
             });
-            markFirebaseRecovered();
-            callback(events);
-        }, (error) => {
-            markFirebaseFailure('getEvents', error);
-            const events = Storage.get('cor_events', {});
-            callback(events);
-        });
+    });
+    return () => unsubscribe();
 }
 
+// Eliminar evento de Firestore (borrado local SIEMPRE + servidor si es remoto)
 export async function deleteEventFromFirebase(eventId) {
-    if (!db) {
-        const events = Storage.get('cor_events', {});
-        for (const date in events) {
-            const index = events[date].findIndex(e => e.id === eventId);
-            if (index !== -1) {
-                events[date].splice(index, 1);
-                if (events[date].length === 0) delete events[date];
-                Storage.set('cor_events', events);
-                return true;
-            }
+    const events = Storage.get('cor_events', {});
+    let removed = false;
+    for (const date in events) {
+        const index = events[date].findIndex(e => e && e.id === eventId);
+        if (index !== -1) {
+            events[date].splice(index, 1);
+            if (events[date].length === 0) delete events[date];
+            removed = true;
+            break;
         }
-        return false;
     }
+    if (removed) Storage.set('cor_events', events);
+
+    if (!db) return removed;
+    if (String(eventId).startsWith('local_')) return removed;
+    const authed = await ensureAuth();
+    if (!authed) return removed;
     try {
         await db.collection('events').doc(eventId).delete();
         markFirebaseRecovered();
@@ -242,6 +368,14 @@ export async function saveCustomProcedureToFirebase(procData) {
         Storage.set('cor_custom_procedures', local);
         return newProc;
     }
+    const authed = await ensureAuth();
+    if (!authed) {
+        const local = Storage.get('cor_custom_procedures', []);
+        const newProc = { id: 'local_' + Date.now(), ...procData };
+        local.push(newProc);
+        Storage.set('cor_custom_procedures', local);
+        return newProc;
+    }
     try {
         const docRef = await db.collection('custom_procedures').add({
             ...procData,
@@ -256,29 +390,43 @@ export async function saveCustomProcedureToFirebase(procData) {
 }
 
 export function getCustomProceduresFromFirebase(callback) {
+    let unsubscribe = () => {};
     if (!db) {
-        const local = Storage.get('cor_custom_procedures', []);
-        callback(local);
-        return () => {};
+        callback(Storage.get('cor_custom_procedures', []));
+        return unsubscribe;
     }
-    return db.collection('custom_procedures')
-        .onSnapshot((snapshot) => {
-            const list = [];
-            snapshot.forEach((doc) => {
-                list.push({ id: doc.id, ...doc.data() });
+    ensureAuth().then((authed) => {
+        if (!authed) {
+            callback(Storage.get('cor_custom_procedures', []));
+            return;
+        }
+        unsubscribe = db.collection('custom_procedures')
+            .onSnapshot((snapshot) => {
+                const serverList = [];
+                snapshot.forEach((doc) => {
+                    serverList.push({ id: doc.id, ...doc.data() });
+                });
+                const list = mergeLocalList(serverList, 'cor_custom_procedures');
+                Storage.set('cor_custom_procedures', list);
+                markFirebaseRecovered();
+                callback(list);
+            }, (error) => {
+                markFirebaseFailure('getProcedures', error);
+                callback(Storage.get('cor_custom_procedures', []));
             });
-            Storage.set('cor_custom_procedures', list);
-            markFirebaseRecovered();
-            callback(list);
-        }, (error) => {
-            markFirebaseFailure('getProcedures', error);
-            const local = Storage.get('cor_custom_procedures', []);
-            callback(local);
-        });
+    });
+    return () => unsubscribe();
 }
 
 export async function deleteCustomProcedureFromFirebase(id) {
     if (!db) {
+        const local = Storage.get('cor_custom_procedures', []);
+        const filtered = local.filter(p => p.id !== id);
+        Storage.set('cor_custom_procedures', filtered);
+        return true;
+    }
+    const authed = await ensureAuth();
+    if (!authed) {
         const local = Storage.get('cor_custom_procedures', []);
         const filtered = local.filter(p => p.id !== id);
         Storage.set('cor_custom_procedures', filtered);
@@ -304,6 +452,16 @@ export async function updateCustomProcedureInFirebase(id, procData) {
         }
         return true;
     }
+    const authed = await ensureAuth();
+    if (!authed) {
+        const local = Storage.get('cor_custom_procedures', []);
+        const idx = local.findIndex(p => p.id === id);
+        if (idx !== -1) {
+            local[idx] = { ...local[idx], ...procData };
+            Storage.set('cor_custom_procedures', local);
+        }
+        return true;
+    }
     try {
         await db.collection('custom_procedures').doc(id).update(procData);
         markFirebaseRecovered();
@@ -313,4 +471,3 @@ export async function updateCustomProcedureInFirebase(id, procData) {
         return false;
     }
 }
-

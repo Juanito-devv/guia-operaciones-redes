@@ -6,8 +6,10 @@ import { Storage } from '../utils/storage.js';
 import { getCurrentAuthor, getCurrentColor } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { showEmptyState } from './states.js';
+import { saveEventToFirebase, getEventsFromFirebase, deleteEventFromFirebase } from './firebase.js';
 
 let calendarDate = new Date();
+let unsubscribeEvents = null;
 
 export function initCalendar() {
     document.getElementById('cal-prev')?.addEventListener('click', () => {
@@ -21,6 +23,13 @@ export function initCalendar() {
     });
 
     document.getElementById('event-add')?.addEventListener('click', addEvent);
+
+    // Sincronización en vivo del calendario (Firestore + fusión local)
+    if (unsubscribeEvents) unsubscribeEvents();
+    unsubscribeEvents = getEventsFromFirebase((events) => {
+        Storage.set('cor_events', events);
+        renderCalendar();
+    });
 }
 
 export function renderCalendar() {
@@ -148,11 +157,17 @@ export function renderEvents(date) {
             const dateKey = this.dataset.date;
             const index = parseInt(this.dataset.index, 10);
             const events = Storage.get('cor_events', {});
-            if (events[dateKey]) {
-                events[dateKey].splice(index, 1);
-                if (events[dateKey].length === 0) delete events[dateKey];
-                Storage.set('cor_events', events);
-                renderCalendar();
+            const event = events[dateKey] && events[dateKey][index];
+            if (event) {
+                if (event.id) {
+                    deleteEventFromFirebase(event.id);
+                    renderCalendar();
+                } else {
+                    events[dateKey].splice(index, 1);
+                    if (events[dateKey].length === 0) delete events[dateKey];
+                    Storage.set('cor_events', events);
+                    renderCalendar();
+                }
             }
         });
     });
@@ -170,20 +185,18 @@ export function renderEvents(date) {
  * Guarda un evento en el calendario compartido (cor_events).
  * Usado por el panel rápido y por la herramienta Calendario de página completa.
  */
-export function addCalendarEvent(title, date, time = '00:00') {
-    const events = Storage.get('cor_events', {});
-    if (!events[date]) events[date] = [];
-
-    events[date].push({
+export async function addCalendarEvent(title, date, time = '00:00') {
+    const event = {
+        id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
         title: title,
         time: time || '00:00',
         author: getCurrentAuthor(),
         color: getCurrentColor(),
         desc: ''
-    });
+    };
 
-    Storage.set('cor_events', events);
-    return events;
+    await saveEventToFirebase({ date, ...event });
+    return Storage.get('cor_events', {});
 }
 
 export function addEvent() {
@@ -368,13 +381,16 @@ function deleteEventDetail() {
     if (!evdTarget) return;
     const { date, index } = evdTarget;
     const events = Storage.get('cor_events', {});
-    if (events[date]) {
+    const event = events[date] && events[date][index];
+    closeEventDetail();
+    if (event && event.id) {
+        deleteEventFromFirebase(event.id).then(() => renderCalendar());
+    } else if (event) {
         events[date].splice(index, 1);
         if (events[date].length === 0) delete events[date];
         Storage.set('cor_events', events);
+        renderCalendar();
     }
-    closeEventDetail();
-    renderCalendar();
 }
 
 function saveEventDetail() {
@@ -388,7 +404,7 @@ function saveEventDetail() {
     event.time = document.getElementById('evd-form-time').value || event.time;
     event.desc = document.getElementById('evd-form-desc').value.trim();
 
-    Storage.set('cor_events', events);
     closeEventDetail();
+    saveEventToFirebase({ date, ...event });
     renderCalendar();
 }

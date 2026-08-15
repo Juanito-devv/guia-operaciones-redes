@@ -101,7 +101,8 @@
   `.prettierrc.json`, `.stylelintrc.json`; `npm install`; hacer pasar
   `npm run lint`/`lint:css`.
 - **B9. Código muerto**: funciones de eventos Firestore sin uso
-  (`firebase.js:162-231`); eliminar o conectar.
+  (`firebase.js:162-231`); eliminar o conectar. → **HECHO**: calendario
+  conectado a Firestore (id de documento = id de evento + fusión offline).
 - **B10. Código duplicado**: `updateImpacto`/`copyImpactoReport` en
   `panel.js:308-339` e `impacto.js:110-142` → unificar en `core/impacto`.
 - **B11. `check-secrets.js` insuficiente**: añadir patrones `Pass:`, `PWD:`,
@@ -122,4 +123,4 @@
 | B5 | P1 | PASSED | `navigation.js` sin lookbehind |
 | B6 | P1 | PASSED | `manifest.json` → `./` |
 | B7 | P1 | PENDING | `cdc.js` recordatorios idempotentes (persistir marcadores) |
-| B8–B13 | P2 | B8/B11 HECHO, resto PENDING | Lint/format verdes; scanner reforzado |
+| B8–B13 | P2 | B8/B9/B11 HECHO, resto PENDING | Lint/format verdes; scanner reforzado; calendario conectado a Firestore |

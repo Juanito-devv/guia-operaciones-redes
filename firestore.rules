@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // La app usa login local (credenciales.json) + auth anónima de Firebase.
+    // Estas reglas exigen sesión de Firebase para poder leer/escribir: bloquean
+    // a visitantes externos pero permiten trabajar a cualquier usuario de la app.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // CDC compartidos (visión de todos los usuarios)
+    match /cdc/{documentId} {
+      allow read, write: if signedIn();
+    }
+
+    // Eventos del calendario compartido
+    match /events/{documentId} {
+      allow read, write: if signedIn();
+    }
+
+    // Procedimientos y subsecciones personalizadas de la guía
+    match /custom_procedures/{documentId} {
+      allow read, write: if signedIn();
+    }
+
+    // Notificaciones
+    match /notifications/{documentId} {
+      allow read, write: if signedIn();
+    }
+
+  }
+}
