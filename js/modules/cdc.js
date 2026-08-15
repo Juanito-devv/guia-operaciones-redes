@@ -1,5 +1,6 @@
 // ========================================
 // CHANGE CONTROL (CDC) MODULE (Con recordatorio 1h y notificación de finalización)
+// Página completa según diseño S8 "Controles de Cambio".
 // ========================================
 
 import { Storage } from '../utils/storage.js';
@@ -364,7 +365,7 @@ export async function addCDC() {
 }
 
 // ========================================
-// PÁGINA COMPLETA DE CDC (#/dashboard/cdc — diseño Figma)
+// PÁGINA COMPLETA DE CDC (#/dashboard/cdc — diseño S8)
 // ========================================
 
 function initialsOf(name) {
@@ -374,76 +375,173 @@ function initialsOf(name) {
     return (a + b).toUpperCase();
 }
 
-/**
- * Info de "recordatorio próximo": CDC con fecha+hora dentro de las próximas 24h
- * y estado activo (programado / en ejecución). Retorna null si no aplica.
- */
-function cdcUpcomingInfo(cdc) {
-    if (!cdc || !cdc.date) return null;
-    const status = statusOf(cdc);
-    if (status === 'completado' || status === 'cancelado') return null;
-
-    const parts = (cdc.time || '00:00').split(':');
-    const hh = String(parseInt(parts[0], 10) || 0).padStart(2, '0');
-    const mm = String(parseInt(parts[1], 10) || 0).padStart(2, '0');
-    const dt = new Date(`${cdc.date}T${hh}:${mm}:00`);
-    const diffMin = Math.floor((dt - new Date()) / 60000);
-    if (Number.isNaN(diffMin) || diffMin < 0 || diffMin > 24 * 60) return null;
-    if (diffMin <= 60) return { text: `Próximo en ${diffMin} min`, urgent: true };
-    return { text: `Próximo en ${Math.floor(diffMin / 60)}h`, urgent: false };
+function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function cdcStatusChip(cdc) {
     const st = statusOf(cdc);
     const cfg = CDC_STATUSES[st];
-    if (st === 'ejecucion') {
-        return `<span class="cdc-status ${cfg.chip}"><span class="cdc-pulse-dot"></span> ${cfg.label}</span>`;
-    }
-    return `<span class="cdc-status ${cfg.chip}"><span class="material-symbols-outlined" aria-hidden="true">${cfg.icon}</span> ${cfg.label}</span>`;
+    const dot = st === 'ejecucion' ? '<span class="cdc-dot cdc-dot-pulse"></span>' : '<span class="cdc-dot"></span>';
+    return `<span class="cdc-status ${cfg.chip}">${dot} ${cfg.label}</span>`;
 }
 
-function cdcCardHtml(cdc, index) {
-    const st = statusOf(cdc);
-    const cfg = CDC_STATUSES[st];
-    const safeId = escapeHtml(cdc.id || '');
-    const safeTitle = escapeHtml(cdc.title || 'Sin título');
-    const safeAuthor = escapeHtml(cdc.author || 'Anónimo');
-    const safeDate = escapeHtml(cdc.date || '');
-    const safeTime = escapeHtml(cdc.time || '--:--');
-    const fullDesc = escapeHtml(cdc.desc || 'Sin descripción adicional');
-    const upcoming = cdcUpcomingInfo(cdc);
-    const isLocal = cdc.id && String(cdc.id).startsWith('local_');
+function durationLabel(cdc) {
+    if (cdc == null || cdc.duration == null) return '—';
+    const h = Math.floor(cdc.duration);
+    const m = Math.round((cdc.duration - h) * 60);
+    if (h === 0) return `${m}m`;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
-    return `
-        <article class="cdc-card" data-id="${safeId}" role="button" tabindex="0" aria-label="Ver detalle de ${safeTitle}">
-            <div class="cdc-card-bar ${cfg.bar}" aria-hidden="true"></div>
-            <div class="cdc-card-top">
-                <div>
-                    <span class="cdc-card-id">CDC-${String(index + 1).padStart(4, '0')}</span>
-                    ${isLocal ? `<span class="local-badge" title="Guardado solo en este navegador (sin Firebase)">LOCAL</span>` : ''}
-                    <h3>${safeTitle}</h3>
-                </div>
-                ${cdcStatusChip(cdc)}
+function agendaLabel(cdc) {
+    if (!cdc || !cdc.date) return '—';
+    const today = todayKey();
+    if (cdc.date === today) return cdc.time || '--:--';
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    const tKey = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    if (cdc.date === tKey) return 'Mañana';
+    const d = new Date(`${cdc.date}T00:00:00`);
+    if (isNaN(d.getTime())) return cdc.date.slice(5);
+    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
+function idLabelFor(indexMap, cdc) {
+    const n = indexMap.get(String(cdc.id || ''));
+    if (n) return `CDC-${String(n).padStart(4, '0')}`;
+    return cdc.id ? `CDC-${String(cdc.id).slice(-4).toUpperCase()}` : 'CDC-—';
+}
+
+function renderSummary(indexMap) {
+    const slot = document.getElementById('cdc-summary-slot');
+    if (!slot) return;
+    const list = Array.isArray(cdclist) ? cdclist : [];
+    const ejecucion = list.filter(c => statusOf(c) === 'ejecucion').length;
+    const programado = list.filter(c => statusOf(c) === 'programado').length;
+    const today = todayKey();
+    const completadoHoy = list.filter(c => statusOf(c) === 'completado' && c.date === today).length;
+
+    const curMonth = today.slice(0, 7);
+    const monthList = list.filter(c => c.date && c.date.slice(0, 7) === curMonth);
+    const monthDone = monthList.filter(c => statusOf(c) === 'completado').length;
+    const quotaPct = monthList.length ? Math.round((monthDone / monthList.length) * 100) : 0;
+
+    const upcoming = list
+        .filter(c => ['programado', 'ejecucion'].includes(statusOf(c)) && c.date && c.date >= today)
+        .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''))
+        .slice(0, 3);
+
+    slot.innerHTML = `
+        <div class="cdc-metrics">
+            <div class="cdc-metric cdc-metric-err">
+                <span class="cdc-metric-value">${ejecucion}</span>
+                <span class="cdc-metric-label">En Ejecución</span>
             </div>
-            ${upcoming ? `<div class="cdc-upcoming${upcoming.urgent ? ' urgent' : ''}"><span class="material-symbols-outlined" aria-hidden="true">alarm</span> ${upcoming.text}</div>` : ''}
-            <p class="cdc-card-desc">${fullDesc}</p>
-            <div class="cdc-card-footer">
-                <div class="cdc-author">
-                    <span class="cdc-author-avatar" aria-hidden="true">${initialsOf(cdc.author)}</span>
-                    <div style="min-width:0;">
-                        <span class="cdc-author-name">${safeAuthor}</span>
-                        <span class="cdc-author-meta">${safeDate} · ${safeTime}</span>
-                    </div>
-                </div>
-                <button type="button" class="cdc-card-open" aria-label="Ver detalle"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+            <div class="cdc-metric">
+                <span class="cdc-metric-value">${programado}</span>
+                <span class="cdc-metric-label">Programados</span>
             </div>
-        </article>`;
+            <div class="cdc-metric cdc-metric-ok">
+                <span class="cdc-metric-value">${completadoHoy}</span>
+                <span class="cdc-metric-label">Completados Hoy</span>
+            </div>
+        </div>
+        <div class="cdc-quota">
+            <div class="cdc-quota-head">
+                <span>Cuota Mensual CDC</span>
+                <span class="cdc-quota-num">${monthDone}/${monthList.length || 0}</span>
+            </div>
+            <div class="cdc-quota-bar"><div style="width:${quotaPct}%"></div></div>
+        </div>
+        <div class="cdc-agenda">
+            <h3>Próximos en agenda</h3>
+            ${upcoming.length
+                ? upcoming.map(c => `
+                    <div class="cdc-agenda-item" data-id="${escapeHtml(c.id || '')}" role="button" tabindex="0">
+                        <span class="cdc-agenda-dot cdc-agenda-${statusOf(c)}" aria-hidden="true"></span>
+                        <div class="cdc-agenda-info">
+                            <span class="cdc-agenda-id">${idLabelFor(indexMap, c)}</span>
+                            <span class="cdc-agenda-title">${escapeHtml(c.title || '')}</span>
+                        </div>
+                        <span class="cdc-agenda-time">${escapeHtml(agendaLabel(c))}</span>
+                    </div>`).join('')
+                : '<div class="cdc-agenda-empty">Sin CDC próximos.</div>'}
+        </div>`;
+
+    slot.querySelectorAll('.cdc-agenda-item').forEach(item => {
+        const open = () => { const id = item.dataset.id; if (id) openCDCDetail(id); };
+        item.addEventListener('click', open);
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        });
+    });
+}
+
+function renderHighImpact() {
+    const textEl = document.getElementById('cdc-highimpact-text');
+    if (!textEl) return;
+    const list = Array.isArray(cdclist) ? cdclist : [];
+    const today = todayKey();
+    const w = new Date();
+    w.setDate(w.getDate() + 7);
+    const weekKey = `${w.getFullYear()}-${String(w.getMonth() + 1).padStart(2, '0')}-${String(w.getDate()).padStart(2, '0')}`;
+    const critical = list.filter(c =>
+        statusOf(c) === 'ejecucion' ||
+        (statusOf(c) === 'programado' && c.date && c.date >= today && c.date <= weekKey)
+    ).length;
+    textEl.textContent = critical > 0
+        ? `Existen ${critical} CDC críticos activos o programados para esta semana. Se requiere aprobación nivel 3 antes de ejecutar la ventana de mantenimiento.`
+        : 'No hay CDC de alto impacto esta semana. La operación continúa sin restricciones.';
+}
+
+function renderTable(indexMap) {
+    const tbody = document.getElementById('cdc-table-tbody');
+    const countEl = document.getElementById('cdc-stream-count');
+    if (!tbody) return;
+    const list = Array.isArray(cdclist) ? cdclist.slice() : [];
+    const q = cdcPageState.query;
+    let filtered = list.filter(c => {
+        if (q) {
+            const hay = `${c.title || ''} ${c.desc || ''} ${c.author || ''}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+        }
+        return true;
+    });
+    if (cdcPageState.status !== 'todos') {
+        filtered = filtered.filter(c => statusOf(c) === cdcPageState.status);
+    }
+    if (countEl) countEl.textContent = `${filtered.length} registros`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="calt-empty">${q || cdcPageState.status !== 'todos' ? 'Sin resultados para la búsqueda o el filtro.' : 'No hay Controles de Cambio registrados.'}</td></tr>`;
+        return;
+    }
+
+    filtered.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.time || '').localeCompare(a.time || ''));
+    tbody.innerHTML = filtered.map(c => {
+        const isCancel = statusOf(c) === 'cancelado';
+        return `
+            <tr class="cdc-row${isCancel ? ' cdc-row-muted' : ''}" data-id="${escapeHtml(c.id || '')}" tabindex="0">
+                <td class="calt-mono">${escapeHtml(c.time || '--:--')}</td>
+                <td class="cdc-row-id">${idLabelFor(indexMap, c)}</td>
+                <td class="cdc-row-title${isCancel ? ' cdc-row-strike' : ''}">${escapeHtml(c.title || '—')}</td>
+                <td class="calt-mono">${escapeHtml(c.author || '—')}</td>
+                <td>${cdcStatusChip(c)}</td>
+                <td class="cdc-th-right calt-mono">${durationLabel(c)}</td>
+            </tr>`;
+    }).join('');
 }
 
 function renderCDCPage() {
-    const grid = document.getElementById('cdc-page-grid');
-    if (!grid) return;
+    const indexMap = new Map((Array.isArray(cdclist) ? cdclist : []).map((c, i) => [String(c.id || ''), i + 1]));
+    renderSummary(indexMap);
+    renderHighImpact();
+    renderTable(indexMap);
+}
 
+function downloadCDCStreamCSV() {
     const list = Array.isArray(cdclist) ? cdclist.slice() : [];
     const q = cdcPageState.query;
     let filtered = list.filter(c => {
@@ -457,31 +555,29 @@ function renderCDCPage() {
         filtered = filtered.filter(c => statusOf(c) === cdcPageState.status);
     }
 
-    if (filtered.length === 0) {
-        grid.innerHTML = `
-            <div class="cdc-empty">
-                <div class="cdc-empty-icon"><span class="material-symbols-outlined" aria-hidden="true">event_note</span></div>
-                <h3>${q || cdcPageState.status !== 'todos' ? 'Sin resultados' : 'No hay Controles de Cambio'}</h3>
-                <p>${q || cdcPageState.status !== 'todos' ? 'Ningún CDC coincide con la búsqueda o el filtro seleccionado.' : 'Programá el primer cambio documentado para comenzar.'}</p>
-                ${q || cdcPageState.status !== 'todos' ? '<button type="button" id="cdc-clear-filters">Limpiar filtros</button>' : ''}
-            </div>`;
-        const clearBtn = document.getElementById('cdc-clear-filters');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                cdcPageState.query = '';
-                cdcPageState.status = 'todos';
-                const input = document.getElementById('cdc-search-input');
-                if (input) input.value = '';
-                document.querySelectorAll('#cdc-status-chips .cdc-chip').forEach(ch => {
-                    ch.classList.toggle('active', ch.dataset.status === 'todos');
-                });
-                renderCDCPage();
-            });
-        }
-        return;
-    }
+    const lines = ['Hora;ID;Título;Autor;Estado;Duración;Fecha'];
+    filtered.forEach(c => {
+        lines.push([
+            c.time || '--:--',
+            c.id || '',
+            String(c.title || '').replace(/[\r\n;]+/g, ' '),
+            String(c.author || '').replace(/[\r\n;]+/g, ' '),
+            CDC_STATUSES[statusOf(c)].label,
+            durationLabel(c),
+            c.date || ''
+        ].join(';'));
+    });
 
-    grid.innerHTML = filtered.map((c, i) => cdcCardHtml(c, i)).join('');
+    try {
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'cdc-stream.csv';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 500);
+    } catch (err) {
+        /* noop */
+    }
 }
 
 function openCDCEditModal(cdc = null) {
@@ -522,12 +618,28 @@ function openCDCDetail(id) {
     document.getElementById('cdc-detail-title').textContent = cdc.title || 'Sin título';
     const isLocal = cdc.id && String(cdc.id).startsWith('local_');
     document.getElementById('cdc-detail-id').textContent = `CDC · ${cdc.id ? String(cdc.id).slice(-6).toUpperCase() : '—'}${isLocal ? ' (LOCAL)' : ''}`;
-    document.getElementById('cdc-detail-date').textContent = cdc.date || '—';
-    document.getElementById('cdc-detail-time').textContent = cdc.time || '--:--';
+    document.getElementById('cdc-detail-datetime').textContent = `${cdc.date || '—'} · ${cdc.time || '--:--'}`;
+    document.getElementById('cdc-detail-avatar').textContent = initialsOf(cdc.author);
     document.getElementById('cdc-detail-author').textContent = cdc.author || 'Anónimo';
-    document.getElementById('cdc-detail-duration').textContent = cdc.duration != null ? `${cdc.duration} h` : '—';
-    document.getElementById('cdc-detail-status').textContent = CDC_STATUSES[statusOf(cdc)].label;
+    document.getElementById('cdc-detail-duration').textContent = durationLabel(cdc);
     document.getElementById('cdc-detail-desc').textContent = cdc.desc || 'Sin descripción adicional';
+
+    // Últimos logs del sistema (terminal) generados desde datos reales del CDC
+    const time = cdc.time || '--:--';
+    const logs = [
+        `[${time}] INFO: CDC registrado en la plataforma`,
+        `[${time}] INFO: Autor: ${cdc.author || 'Anónimo'}`,
+        `[${time}] INFO: Estado: ${CDC_STATUSES[statusOf(cdc)].label}`,
+        `[${time}] INFO: Duración estimada: ${durationLabel(cdc)}`,
+        `[${time}] WARN: Verificar ventana de mantenimiento y plan de rollback`
+    ];
+    const logEl = document.getElementById('cdc-detail-logs');
+    if (logEl) {
+        logEl.innerHTML = logs.map((l) => {
+            const cls = l.includes('WARN') ? 'cdc-log-warn' : (l.includes('CRITICAL') || l.includes('ERROR') ? 'cdc-log-err' : (l.includes('SUCCESS') ? 'cdc-log-ok' : 'cdc-log-info'));
+            return `<div class="${cls}">${escapeHtml(l)}</div>`;
+        }).join('') + '<div class="cdc-log-cursor">_</div>';
+    }
 
     const canEdit = isAdmin() || cdc.author === getCurrentAuthor();
     const editBtn = document.getElementById('cdc-detail-edit');
@@ -620,19 +732,40 @@ function bindCDCPageEvents(root) {
         });
     }
 
-    // Abrir detalle al hacer clic en una tarjeta (delegado para re-renders)
+    // Toggle del panel de filtros (botón "Filtros" del header)
+    document.getElementById('cdc-filters-toggle')?.addEventListener('click', (e) => {
+        const bar = document.getElementById('cdc-filterbar');
+        const btn = e.currentTarget;
+        const open = bar.hidden;
+        bar.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+    });
+
+    // Abrir detalle desde la tabla CDC Stream (delegado para re-renders)
     root.addEventListener('click', (e) => {
-        const card = e.target.closest('.cdc-card');
-        if (card) {
-            openCDCDetail(card.dataset.id);
-        }
+        const row = e.target.closest('.cdc-row');
+        if (row) openCDCDetail(row.dataset.id);
     });
     root.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('cdc-card')) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cdc-row')) {
             e.preventDefault();
             openCDCDetail(e.target.dataset.id);
         }
     });
+
+    // Alerta de alto impacto → filtrar la tabla y llevarla a la vista
+    document.getElementById('cdc-highimpact-link')?.addEventListener('click', () => {
+        const hasEjec = (Array.isArray(cdclist) ? cdclist : []).some(c => statusOf(c) === 'ejecucion');
+        cdcPageState.status = hasEjec ? 'ejecucion' : 'programado';
+        document.querySelectorAll('#cdc-status-chips .cdc-chip').forEach(ch => ch.classList.toggle('active', ch.dataset.status === cdcPageState.status));
+        renderCDCPage();
+        const card = document.querySelector('.cdc-table-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Toolbar de la tabla
+    document.getElementById('cdc-tbl-refresh')?.addEventListener('click', () => renderCDCPage());
+    document.getElementById('cdc-tbl-download')?.addEventListener('click', downloadCDCStreamCSV);
 
     // Botón Nuevo CDC
     document.getElementById('cdc-btn-new')?.addEventListener('click', () => openCDCEditModal());
@@ -676,8 +809,9 @@ function bindCDCPageEvents(root) {
 }
 
 /**
- * Página completa de CDC (#/dashboard/cdc): encabezado, buscador, filtros por
- * estado, rejilla de tarjetas, modal de creación/edición y modal de detalle.
+ * Página completa de CDC (#/dashboard/cdc): header con Filtros + Nuevo CDC,
+ * barra de búsqueda/filtros, bento con resumen de actividad + alerta de alto
+ * impacto (4/12) y tabla CDC Stream (8/12), más modal de detalle con terminal.
  */
 export function showCDCTool() {
     const body = document.getElementById('content-body');
@@ -688,18 +822,24 @@ export function showCDCTool() {
 
     body.innerHTML = `
         <div class="tool-page cdc-page" id="cdc-page-root">
-            <header class="tool-page-header">
+            <header class="tool-page-header cdc-page-header">
                 <div>
                     <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
                     <h1 class="tool-title">Controles de Cambio</h1>
-                    <p class="tool-sub">Documentación y seguimiento de intervenciones técnicas en la red.</p>
+                    <p class="tool-sub">Gestione, monitoree y audite todas las ventanas de mantenimiento y cambios de configuración en la infraestructura de red en tiempo real.</p>
                 </div>
-                <button type="button" class="tool-btn-primary" id="cdc-btn-new">
-                    <span class="material-symbols-outlined" aria-hidden="true">add</span> Nuevo CDC
-                </button>
+                <div class="cdc-header-actions">
+                    <button type="button" class="calt-btn" id="cdc-filters-toggle" aria-expanded="true">
+                        <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
+                        <span>Filtros</span>
+                    </button>
+                    <button type="button" class="tool-btn-primary" id="cdc-btn-new">
+                        <span class="material-symbols-outlined" aria-hidden="true">add</span> Nuevo CDC
+                    </button>
+                </div>
             </header>
 
-            <div class="cdc-filterbar">
+            <div class="cdc-filterbar" id="cdc-filterbar">
                 <div class="cdc-search">
                     <span class="material-symbols-outlined" aria-hidden="true">search</span>
                     <input type="text" id="cdc-search-input" placeholder="Buscar por ID, título o autor..." aria-label="Buscar CDC">
@@ -713,7 +853,59 @@ export function showCDCTool() {
                 </div>
             </div>
 
-            <div class="cdc-grid" id="cdc-page-grid"></div>
+            <div class="cdc-bento">
+                <div class="cdc-bento-left">
+                    <section class="cdc-card cdc-summary-card">
+                        <div class="cdc-summary-head">
+                            <h2><span class="material-symbols-outlined" aria-hidden="true">monitoring</span> Resumen de Actividad</h2>
+                        </div>
+                        <div class="cdc-summary-body" id="cdc-summary-slot"></div>
+                    </section>
+
+                    <div class="cdc-highimpact" id="cdc-highimpact">
+                        <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+                        <div>
+                            <h4>Cambios de Alto Impacto</h4>
+                            <p id="cdc-highimpact-text"></p>
+                            <button type="button" id="cdc-highimpact-link">Ver detalles <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cdc-bento-right">
+                    <section class="cdc-card cdc-table-card">
+                        <div class="cdc-table-toolbar">
+                            <div class="cdc-table-title">
+                                <span class="material-symbols-outlined" aria-hidden="true">stream</span>
+                                <div><b>CDC Stream</b><small id="cdc-stream-count"></small></div>
+                            </div>
+                            <div class="cdc-table-actions">
+                                <button type="button" class="calt-icon-btn" id="cdc-tbl-download" title="Descargar CSV" aria-label="Descargar CSV">
+                                    <span class="material-symbols-outlined" aria-hidden="true">download</span>
+                                </button>
+                                <button type="button" class="calt-icon-btn" id="cdc-tbl-refresh" title="Actualizar" aria-label="Actualizar">
+                                    <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cdc-table-wrap">
+                            <table class="cdc-table">
+                                <thead>
+                                    <tr>
+                                        <th>Hora</th>
+                                        <th>ID</th>
+                                        <th>Título</th>
+                                        <th>Autor</th>
+                                        <th>Estado</th>
+                                        <th class="cdc-th-right">Duración</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cdc-table-tbody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </div>
 
         <!-- Modal crear/editar -->
@@ -777,29 +969,56 @@ export function showCDCTool() {
 
         <!-- Modal detalle -->
         <div class="cdc-modal-backdrop" id="cdc-detail-modal" role="dialog" aria-modal="true" aria-labelledby="cdc-detail-title">
-            <div class="cdc-modal">
+            <div class="cdc-modal cdc-modal-lg">
                 <div class="cdc-modal-head cdc-detail-head">
-                    <div id="cdc-detail-chip-slot"></div>
-                    <button type="button" class="cdc-modal-close" id="cdc-detail-close" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="cdc-modal-body">
                     <div>
                         <span class="cdc-detail-id" id="cdc-detail-id"></span>
                         <h2 class="cdc-detail-title" id="cdc-detail-title"></h2>
                     </div>
-                    <dl class="cdc-detail-list">
-                        <div><dt>Fecha</dt><dd id="cdc-detail-date"></dd></div>
-                        <div><dt>Hora</dt><dd id="cdc-detail-time"></dd></div>
-                        <div><dt>Autor</dt><dd id="cdc-detail-author"></dd></div>
-                        <div><dt>Duración</dt><dd id="cdc-detail-duration"></dd></div>
-                        <div><dt>Estado</dt><dd id="cdc-detail-status"></dd></div>
-                    </dl>
-                    <p class="cdc-detail-desc" id="cdc-detail-desc"></p>
+                    <button type="button" class="cdc-modal-close" id="cdc-detail-close" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="cdc-modal-body">
+                    <div class="cdc-detail-statusrow">
+                        <div>
+                            <span class="cdc-detail-k">Estado Actual</span>
+                            <div id="cdc-detail-chip-slot"></div>
+                        </div>
+                        <div class="cdc-detail-meta-right">
+                            <span class="cdc-detail-k">Duración Estimada</span>
+                            <p class="cdc-detail-v" id="cdc-detail-duration"></p>
+                        </div>
+                    </div>
+                    <div class="cdc-detail-grid">
+                        <div>
+                            <span class="cdc-detail-k">Fecha y Hora de Inicio</span>
+                            <p class="cdc-detail-v" id="cdc-detail-datetime"></p>
+                        </div>
+                        <div>
+                            <span class="cdc-detail-k">Autor / Responsable</span>
+                            <div class="cdc-detail-author">
+                                <span class="cdc-author-avatar" id="cdc-detail-avatar"></span>
+                                <p class="cdc-detail-v" id="cdc-detail-author"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="cdc-detail-k">Descripción Técnica</span>
+                        <div class="cdc-detail-desc" id="cdc-detail-desc"></div>
+                    </div>
+                    <div>
+                        <span class="cdc-detail-k">Últimos Logs del Sistema</span>
+                        <div class="cdc-terminal">
+                            <div class="cdc-terminal-head">
+                                <span>bash - syslog</span>
+                            </div>
+                            <div class="cdc-terminal-body" id="cdc-detail-logs"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="cdc-modal-foot">
                     <button type="button" class="cdc-modal-btn cdc-modal-btn-danger" id="cdc-detail-delete">Eliminar</button>
-                    <button type="button" class="cdc-modal-btn" id="cdc-detail-edit">Editar</button>
-                    <button type="button" class="cdc-modal-btn cdc-modal-btn-primary" id="cdc-detail-close2" data-role="close">Cerrar</button>
+                    <button type="button" class="cdc-modal-btn" id="cdc-detail-edit">Editar Detalles</button>
+                    <button type="button" class="cdc-modal-btn cdc-modal-btn-primary" id="cdc-detail-close2">Cerrar</button>
                 </div>
             </div>
         </div>

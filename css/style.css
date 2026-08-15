@@ -7553,4 +7553,484 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 [data-theme="dark"] .calt-page-btn { background: #282a32; border-color: #434654; color: #e2e1ee; }
 [data-theme="dark"] .calt-page-btn:hover:not(:disabled) { border-color: #b6c4ff; color: #b6c4ff; }
 
+/* ========================================
+   CDC FULL PAGE S8 ("Controles de Cambio" — bento + CDC Stream + terminal)
+   ======================================== */
+.cdc-page-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.cdc-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.cdc-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+}
+.cdc-filterbar[hidden] { display: none; }
+.cdc-filterbar .cdc-search { flex: 1 1 240px; }
+.cdc-filterbar .cdc-chips { flex: 1 1 auto; }
+.cdc-chip.active {
+    background: var(--md-primary);
+    color: #fff;
+    border-color: var(--md-primary);
+    font-weight: 700;
+}
+
+/* Bento 4/12 + 8/12 */
+.cdc-bento {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+}
+@media (min-width: 900px) {
+    .cdc-bento {
+        grid-template-columns: minmax(280px, 4fr) minmax(0, 8fr);
+    }
+}
+.cdc-bento-left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+.cdc-bento-right { min-width: 0; display: flex; flex-direction: column; }
+
+/* Tarjetas reutilizando .cdc-card pero sin cursor/hover de tarjeta clicable */
+.cdc-summary-card,
+.cdc-table-card {
+    cursor: default;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+.cdc-summary-card:hover,
+.cdc-table-card:hover {
+    transform: none;
+    border-color: var(--md-outline-variant);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+.cdc-table-card { padding: 0; overflow: hidden; }
+
+.cdc-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.cdc-summary-head h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--heading);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    margin: 0;
+}
+.cdc-summary-head h2 .material-symbols-outlined { font-size: 20px; color: var(--md-primary); }
+
+/* Métricas */
+.cdc-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.cdc-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-variant);
+}
+.cdc-metric-value {
+    font-family: var(--heading);
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--md-on-surface);
+}
+.cdc-metric-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--md-on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.cdc-metric-err .cdc-metric-value { color: #dc2626; }
+.cdc-metric-ok .cdc-metric-value { color: #1e8a4d; }
+
+/* Cuota mensual */
+.cdc-quota { margin-bottom: 18px; }
+.cdc-quota-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--md-on-surface-variant);
+    margin-bottom: 6px;
+}
+.cdc-quota-num { color: var(--md-on-surface); font-weight: 700; }
+.cdc-quota-bar {
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-variant);
+    overflow: hidden;
+}
+.cdc-quota-bar > div {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, var(--md-primary-container), var(--md-primary));
+}
+
+/* Próximos en agenda */
+.cdc-agenda h3 {
+    font-family: var(--heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    margin: 0 0 10px 0;
+}
+.cdc-agenda-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.cdc-agenda-item:hover { background: var(--md-surface-container); }
+.cdc-agenda-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.cdc-agenda-programado { background: #f59e0b; }
+.cdc-agenda-ejecucion { background: #dc2626; animation: cdcPulse 1.2s ease-in-out infinite; }
+.cdc-agenda-completado { background: #22c55e; }
+.cdc-agenda-cancelado { background: var(--md-outline); }
+.cdc-agenda-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+.cdc-agenda-id {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--md-primary);
+    font-weight: 700;
+}
+.cdc-agenda-title {
+    font-size: 0.78rem;
+    color: var(--md-on-surface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cdc-agenda-time {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--md-on-surface-variant);
+    white-space: nowrap;
+}
+.cdc-agenda-empty {
+    padding: 12px;
+    font-size: 0.78rem;
+    color: var(--md-on-surface-variant);
+    border: 1px dashed var(--md-outline-variant);
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* Alerta de alto impacto */
+.cdc-highimpact {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-left: 4px solid #dc2626;
+}
+.cdc-highimpact .material-symbols-outlined {
+    color: #dc2626;
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.cdc-highimpact h4 {
+    font-family: var(--heading);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #b91c1c;
+    margin: 0 0 4px 0;
+}
+.cdc-highimpact p {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--md-on-surface);
+    margin: 0 0 8px 0;
+}
+.cdc-highimpact button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #dc2626;
+    font-family: var(--heading);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.cdc-highimpact button .material-symbols-outlined { font-size: 15px; color: inherit; margin-top: 0; }
+.cdc-highimpact button:hover { text-decoration: underline; }
+
+/* Tabla CDC Stream */
+.cdc-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--md-outline-variant);
+}
+.cdc-table-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.cdc-table-title .material-symbols-outlined { font-size: 20px; color: var(--md-primary); }
+.cdc-table-title b {
+    display: block;
+    font-family: var(--heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    line-height: 1.2;
+}
+.cdc-table-title small {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    color: var(--md-on-surface-variant);
+    line-height: 1.2;
+}
+.cdc-table-actions { display: flex; gap: 8px; }
+.cdc-table-wrap { overflow-x: auto; }
+.cdc-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 640px;
+}
+.cdc-table thead th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--md-on-surface-variant);
+    padding: 10px 16px;
+    background: var(--md-surface-container);
+    border-bottom: 1px solid var(--md-outline-variant);
+    white-space: nowrap;
+}
+.cdc-table tbody td {
+    padding: 11px 16px;
+    font-size: 0.78rem;
+    color: var(--md-on-surface);
+    border-bottom: 1px solid var(--md-outline-variant);
+    vertical-align: middle;
+}
+.cdc-table tbody tr:last-child td { border-bottom: none; }
+.cdc-table tbody tr:hover { background: var(--md-surface-container); }
+.cdc-th-right { text-align: right; }
+.cdc-row { cursor: pointer; }
+.cdc-row-muted { opacity: 0.55; }
+.cdc-row-strike { text-decoration: line-through; }
+.cdc-row-id {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--md-primary);
+    white-space: nowrap;
+}
+.cdc-row-title { font-weight: 600; color: var(--md-on-surface); }
+
+/* Chips de estado S8 (dot + pulso) */
+.cdc-status { gap: 7px; }
+.cdc-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.cdc-dot-pulse { animation: cdcPulse 1.2s ease-in-out infinite; }
+@keyframes cdcPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+.cdc-status-programado {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.cdc-status-ejecucion {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.cdc-status-completado {
+    background: rgba(46, 158, 79, 0.14);
+    color: #1e8a4d;
+    border: 1px solid rgba(46, 158, 79, 0.4);
+}
+.cdc-status-cancelado {
+    background: var(--md-surface-container);
+    color: var(--md-on-surface-variant);
+    border: 1px solid var(--md-outline-variant);
+}
+
+/* Modal detalle S8 */
+.cdc-modal-lg { max-width: 760px; }
+.cdc-detail-head { align-items: center; }
+.cdc-detail-statusrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+.cdc-detail-k {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--md-on-surface-variant);
+}
+.cdc-detail-v {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    margin: 4px 0 0 0;
+}
+.cdc-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 520px) {
+    .cdc-detail-grid { grid-template-columns: 1fr; }
+    .cdc-detail-statusrow { flex-direction: column; gap: 12px; }
+}
+.cdc-detail-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+.cdc-detail-author p { margin: 0; }
+.cdc-modal-row { grid-template-columns: 1fr 1fr; }
+@media (max-width: 520px) {
+    .cdc-modal-row { grid-template-columns: 1fr; }
+}
+
+/* Terminal (Últimos logs del sistema) */
+.cdc-terminal {
+    margin-top: 6px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #232a3d;
+    background: #0b1020;
+}
+.cdc-terminal-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #151b2e;
+    color: #8e90a0;
+    font-family: var(--mono);
+    font-size: 11px;
+    border-bottom: 1px solid #232a3d;
+}
+.cdc-terminal-body {
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: #c4c5d7;
+}
+.cdc-log-info { color: #9aa3c7; }
+.cdc-log-warn { color: #f59e0b; }
+.cdc-log-err { color: #ff4d4d; }
+.cdc-log-ok { color: #22c55e; }
+.cdc-log-cursor { animation: cdcBlink 1s step-end infinite; color: #b6c4ff; }
+@keyframes cdcBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* Variantes dark (paleta CONNECT) */
+[data-theme="dark"] .cdc-summary-head h2 { color: #e2e1ee; }
+[data-theme="dark"] .cdc-summary-head h2 .material-symbols-outlined { color: #b6c4ff; }
+[data-theme="dark"] .cdc-metric { background: #191b24; border-color: #434654; }
+[data-theme="dark"] .cdc-metric-value { color: #e2e1ee; }
+[data-theme="dark"] .cdc-metric-label { color: #8e90a0; }
+[data-theme="dark"] .cdc-metric-err .cdc-metric-value { color: #ff4d4d; }
+[data-theme="dark"] .cdc-metric-ok .cdc-metric-value { color: #22c55e; }
+[data-theme="dark"] .cdc-quota-head { color: #8e90a0; }
+[data-theme="dark"] .cdc-quota-num { color: #e2e1ee; }
+[data-theme="dark"] .cdc-quota-bar { background: #282a32; border-color: #434654; }
+[data-theme="dark"] .cdc-quota-bar > div { background: linear-gradient(90deg, #0041c7, #80ecff); }
+[data-theme="dark"] .cdc-agenda h3 { color: #e2e1ee; }
+[data-theme="dark"] .cdc-agenda-item:hover { background: #282a32; }
+[data-theme="dark"] .cdc-agenda-id { color: #b6c4ff; }
+[data-theme="dark"] .cdc-agenda-title { color: #e2e1ee; }
+[data-theme="dark"] .cdc-agenda-time { color: #8e90a0; }
+[data-theme="dark"] .cdc-agenda-empty { color: #8e90a0; border-color: #434654; }
+[data-theme="dark"] .cdc-highimpact { background: rgba(255, 77, 77, 0.1); border-color: rgba(255, 77, 77, 0.35); }
+[data-theme="dark"] .cdc-highimpact .material-symbols-outlined { color: #ff4d4d; }
+[data-theme="dark"] .cdc-highimpact h4 { color: #ff4d4d; }
+[data-theme="dark"] .cdc-highimpact p { color: #e2e1ee; }
+[data-theme="dark"] .cdc-highimpact button { color: #ff4d4d; }
+[data-theme="dark"] .cdc-table-toolbar { border-bottom-color: #434654; }
+[data-theme="dark"] .cdc-table-title .material-symbols-outlined { color: #b6c4ff; }
+[data-theme="dark"] .cdc-table-title b { color: #e2e1ee; }
+[data-theme="dark"] .cdc-table-title small { color: #8e90a0; }
+[data-theme="dark"] .cdc-table thead th { color: #8e90a0; background: #191b24; border-bottom-color: #434654; }
+[data-theme="dark"] .cdc-table tbody td { color: #e2e1ee; border-bottom-color: #434654; }
+[data-theme="dark"] .cdc-table tbody tr:hover { background: #282a32; }
+[data-theme="dark"] .cdc-row-id { color: #b6c4ff; }
+[data-theme="dark"] .cdc-status-programado { background: rgba(245, 158, 11, 0.16); color: #f59e0b; border-color: rgba(245, 158, 11, 0.45); }
+[data-theme="dark"] .cdc-status-ejecucion { background: rgba(255, 77, 77, 0.14); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.4); }
+[data-theme="dark"] .cdc-status-completado { background: rgba(34, 197, 94, 0.14); color: #22c55e; border-color: rgba(34, 197, 94, 0.4); }
+[data-theme="dark"] .cdc-status-cancelado { background: #282a32; color: #8e90a0; border-color: #434654; }
+[data-theme="dark"] .cdc-detail-k { color: #8e90a0; }
+[data-theme="dark"] .cdc-detail-v { color: #e2e1ee; }
+[data-theme="dark"] .cdc-detail-desc { background: #191b24; border-color: #434654; color: #e2e1ee; }
+[data-theme="dark"] .cdc-agenda-ejecucion { background: #ff4d4d; }
+
 
