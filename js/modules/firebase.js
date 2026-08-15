@@ -89,15 +89,16 @@ function ensureAuth() {
 }
 
 // ========================================
-// FUSIÓN LOCAL (nada se pierde al volver la conexión)
+// FUSIÓN LOCAL + SUBIDA AUTOMÁTICA (nada se queda solo en un equipo)
 // ========================================
-// Los ítems creados estando degradado llevan id "local_*". Cuando Firestore
-// responde, se fusionan con el snapshot del servidor para que no desaparezcan.
+// Los ítems creados estando degradado (sin conexión) quedan en localStorage.
+// Cuando Firestore responde, se fusionan con el snapshot y además se SUBEN al
+// servidor automáticamente: la data corre por todas las sesiones.
 
 function mergeLocalList(serverList, storageKey) {
     const localList = Storage.get(storageKey, []);
     const serverIds = new Set(serverList.map(item => item && item.id));
-    const localOnly = localList.filter(item => item && String(item.id || '').startsWith('local_') && !serverIds.has(item.id));
+    const localOnly = localList.filter(item => item && !serverIds.has(item.id));
     return [...serverList, ...localOnly];
 }
 
@@ -107,10 +108,31 @@ function mergeLocalEvents(serverEvents) {
     for (const date of Object.keys(localEvents)) {
         const serverArr = merged[date] || [];
         const serverIds = new Set(serverArr.map(e => e && e.id));
-        const localOnly = localEvents[date].filter(e => e && String(e.id || '').startsWith('local_') && !serverIds.has(e.id));
+        const localOnly = localEvents[date].filter(e => e && !serverIds.has(e.id));
         merged[date] = [...serverArr, ...localOnly];
     }
     return merged;
+}
+
+// Sube a Firestore un ítem que quedó solo en localStorage (usa su mismo id como
+// id del documento, así no se duplica). Guardado por id para no repetir en cola.
+const pushingLocal = new Set();
+
+async function pushLocalItem(collection, item) {
+    if (!item || !item.id || pushingLocal.has(item.id)) return;
+    pushingLocal.add(item.id);
+    try {
+        const { id, ...rest } = item;
+        await db.collection(collection).doc(id).set({
+            ...rest,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        markFirebaseRecovered();
+    } catch (error) {
+        markFirebaseFailure('push', error);
+    } finally {
+        pushingLocal.delete(item.id);
+    }
 }
 
 // ========================================
@@ -167,7 +189,12 @@ export function getCDCFromFirebase(callback) {
                 snapshot.forEach((doc) => {
                     serverList.push({ id: doc.id, ...doc.data() });
                 });
+                const serverIds = new Set(serverList.map(c => c && c.id));
                 const cdclist = mergeLocalList(serverList, 'cor_cdc');
+                // Subir automáticamente los CDC creados sin conexión
+                cdclist.forEach((c) => {
+                    if (!serverIds.has(c.id)) pushLocalItem('cdc', c);
+                });
                 // Ordenar en el cliente para evitar el índice compuesto que exige Firestore
                 cdclist.sort((a, b) => {
                     const dateDiff = (b.date || '').localeCompare(a.date || '');
@@ -305,14 +332,22 @@ export function getEventsFromFirebase(callback) {
         unsubscribe = db.collection('events')
             .onSnapshot((snapshot) => {
                 const serverEvents = {};
+                const serverIds = new Set();
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     const date = data.date;
                     if (!date) return;
+                    serverIds.add(doc.id);
                     if (!serverEvents[date]) serverEvents[date] = [];
                     serverEvents[date].push({ id: doc.id, ...data });
                 });
                 const events = mergeLocalEvents(serverEvents);
+                // Subir automáticamente los eventos creados sin conexión
+                for (const date of Object.keys(events)) {
+                    events[date].forEach((e) => {
+                        if (!serverIds.has(e.id)) pushLocalItem('events', e);
+                    });
+                }
                 for (const date of Object.keys(events)) {
                     events[date].sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
                 }
@@ -343,7 +378,6 @@ export async function deleteEventFromFirebase(eventId) {
     if (removed) Storage.set('cor_events', events);
 
     if (!db) return removed;
-    if (String(eventId).startsWith('local_')) return removed;
     const authed = await ensureAuth();
     if (!authed) return removed;
     try {
@@ -406,7 +440,12 @@ export function getCustomProceduresFromFirebase(callback) {
                 snapshot.forEach((doc) => {
                     serverList.push({ id: doc.id, ...doc.data() });
                 });
+                const serverIds = new Set(serverList.map(p => p && p.id));
                 const list = mergeLocalList(serverList, 'cor_custom_procedures');
+                // Subir automáticamente los procedimientos creados sin conexión
+                list.forEach((p) => {
+                    if (!serverIds.has(p.id)) pushLocalItem('custom_procedures', p);
+                });
                 Storage.set('cor_custom_procedures', list);
                 markFirebaseRecovered();
                 callback(list);

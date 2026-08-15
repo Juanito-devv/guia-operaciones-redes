@@ -11,7 +11,8 @@ import {
     saveCDCToFirebase,
     getCDCFromFirebase,
     deleteCDCFromFirebase,
-    updateCDCInFirebase
+    updateCDCInFirebase,
+    isFirebaseDegraded
 } from './firebase.js';
 import { createNotification } from './notifications.js';
 
@@ -616,7 +617,7 @@ function openCDCDetail(id) {
     const chipSlot = document.getElementById('cdc-detail-chip-slot');
     if (chipSlot) chipSlot.innerHTML = cdcStatusChip(cdc);
     document.getElementById('cdc-detail-title').textContent = cdc.title || 'Sin título';
-    const isLocal = cdc.id && String(cdc.id).startsWith('local_');
+    const isLocal = isFirebaseDegraded();
     document.getElementById('cdc-detail-id').textContent = `CDC · ${cdc.id ? String(cdc.id).slice(-6).toUpperCase() : '—'}${isLocal ? ' (LOCAL)' : ''}`;
     document.getElementById('cdc-detail-datetime').textContent = `${cdc.date || '—'} · ${cdc.time || '--:--'}`;
     document.getElementById('cdc-detail-avatar').textContent = initialsOf(cdc.author);

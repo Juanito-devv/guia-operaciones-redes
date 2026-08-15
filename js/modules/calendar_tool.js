@@ -6,6 +6,7 @@
 import { Storage } from '../utils/storage.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { addCalendarEvent } from './calendar.js';
+import { isFirebaseDegraded } from './firebase.js';
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const PAGE_SIZE = 6;
@@ -276,7 +277,7 @@ function tableHTML() {
             const idx = start + i + 1;
             const idLabel = r.kind === 'cdc'
                 ? (r.id ? String(r.id).slice(-6).toUpperCase() : `CDC-${idx}`)
-                : (r.id && String(r.id).startsWith('local_') ? 'LOCAL' : `EV-${idx}`);
+                : (isFirebaseDegraded() ? 'LOCAL' : `EV-${idx}`);
             const desc = String(r.desc || '—');
             return `<tr>
                 <td class="calt-mono">${escapeHtml(r.time || '--:--')}</td>

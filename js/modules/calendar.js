@@ -6,7 +6,7 @@ import { Storage } from '../utils/storage.js';
 import { getCurrentAuthor, getCurrentColor } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { showEmptyState } from './states.js';
-import { saveEventToFirebase, getEventsFromFirebase, deleteEventFromFirebase } from './firebase.js';
+import { saveEventToFirebase, getEventsFromFirebase, deleteEventFromFirebase, isFirebaseDegraded } from './firebase.js';
 
 let calendarDate = new Date();
 let unsubscribeEvents = null;
@@ -140,7 +140,7 @@ export function renderEvents(date) {
 
     dayEvents.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
     dayEvents.forEach((event, index) => {
-        const localTag = event.id && String(event.id).startsWith('local_') ? ' <span class="local-badge">LOCAL</span>' : '';
+        const localTag = isFirebaseDegraded() ? ' <span class="local-badge">LOCAL</span>' : '';
         html += `
             <div class="event-item" style="border-left-color:${escapeHtml(event.color || '#3b82f6')};" data-evdate="${escapeHtml(date)}" data-evindex="${index}">
                 <span class="event-title">${escapeHtml(event.title)}${localTag}</span>
