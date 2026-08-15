@@ -57,7 +57,8 @@ async function loadData() {
         if (hash) {
             if (hash === 'dashboard' || hash.startsWith('dashboard/')) {
                 const parts = hash.split('/');
-                showDashboard(parts.length > 1 ? parts[1] : null);
+                const toolId = parts.length > 1 ? parts[1].split('?')[0] : null;
+                showDashboard(toolId);
                 syncAppBottomNav();
                 return true;
             }
@@ -208,7 +209,7 @@ function handleHashChange() {
     const guiaData = AppState.get('guiaData');
 
     if (hash === 'dashboard' || hash.startsWith('dashboard/')) {
-        const toolId = hash === 'dashboard' ? null : hash.split('/')[1];
+        const toolId = hash === 'dashboard' ? null : hash.split('/')[1].split('?')[0];
         if (AppState.get('currentDashboardTool') === toolId) {
             syncAppBottomNav();
             return;

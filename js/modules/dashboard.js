@@ -157,31 +157,36 @@ export function showDashboard(toolId) {
                     </div>
                 </header>
 
-                <section class="db-metrics">
-                    <a class="db-metric" href="#/dashboard/cdc">
-                        <div class="db-metric-top">
+                <section class="db-bento">
+                    <a class="db-bento-card" href="#/dashboard/cdc">
+                        <div class="db-bento-topline" aria-hidden="true"></div>
+                        <div class="db-bento-head">
                             <h3>CDC Activos</h3>
-                            <span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span>
+                            <span class="material-symbols-outlined" aria-hidden="true">router</span>
                         </div>
-                        <div class="db-metric-value">${metrics.cdcActive}</div>
-                        <p>Programados o en ejecución</p>
-                        <div class="db-metric-bar"><div style="width:${metrics.cdcPct}%"></div></div>
+                        <div class="db-bento-value">${metrics.cdcPct}<span class="db-bento-suffix">%</span></div>
+                        <p class="db-bento-sub">${metrics.cdcActive} programados o en ejecución</p>
+                        <div class="db-bento-bar"><div style="width:${metrics.cdcPct}%"></div></div>
                     </a>
-                    <a class="db-metric" href="#/dashboard/calendar">
-                        <div class="db-metric-top">
-                            <h3>Eventos Hoy</h3>
-                            <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
-                        </div>
-                        <div class="db-metric-value">${metrics.eventsToday}</div>
-                        <p>En el calendario de hoy</p>
-                    </a>
-                    <a class="db-metric db-metric-alert" href="#" data-open-notifs>
-                        <div class="db-metric-top">
-                            <h3>Alertas</h3>
+                    <a class="db-bento-card db-bento-alert" href="#" data-open-notifs>
+                        <div class="db-bento-topline" aria-hidden="true"></div>
+                        <div class="db-bento-head">
+                            <h3>Alertas Activas</h3>
                             <span class="material-symbols-outlined" aria-hidden="true">warning</span>
                         </div>
-                        <div class="db-metric-value">${metrics.unread}</div>
-                        <p>Notificaciones sin leer</p>
+                        <div class="db-bento-value">${metrics.unread}</div>
+                        <p class="db-bento-sub">Notificaciones sin leer</p>
+                    </a>
+                    <a class="db-bento-card" href="#/dashboard/calendar">
+                        <div class="db-bento-topline" aria-hidden="true"></div>
+                        <div class="db-bento-head">
+                            <h3>Actividad Semanal</h3>
+                            <span class="material-symbols-outlined" aria-hidden="true">monitoring</span>
+                        </div>
+                        <div class="db-bento-traffic">
+                            ${metrics.week.map(h => `<div style="height:${h.h}%" title="${h.label}: ${h.count}"></div>`).join('')}
+                        </div>
+                        <p class="db-bento-sub">${metrics.weekTotal} eventos registrados · 7 días</p>
                     </a>
                 </section>
 
@@ -255,5 +260,19 @@ function buildMetrics() {
         unread = 0;
     }
 
-    return { cdcActive: active, cdcPct, eventsToday, unread };
+    // Tendencia semanal: eventos por día (últimos 7 días) desde cor_events
+    const week = [];
+    let weekTotal = 0;
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const count = Array.isArray(events[key]) ? events[key].length : 0;
+        weekTotal += count;
+        week.push({ label: key, count, h: 0 });
+    }
+    const maxWeek = Math.max(...week.map(w => w.count), 1);
+    week.forEach(w => { w.h = Math.max(8, Math.round((w.count / maxWeek) * 100)); });
+
+    return { cdcActive: active, cdcPct, eventsToday, unread, week, weekTotal };
 }

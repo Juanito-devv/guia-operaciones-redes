@@ -143,15 +143,44 @@ function showToastCDCNotification(title, htmlBody, borderColor = '#f59e0b') {
 }
 
 // ========================================
-// RENDER CDC
+// RENDER CDC (lista del Work Panel — diseño "Home + Work Panel")
 // ========================================
+
+// Mapa estado CDC -> severidad visual (barra lateral + badge)
+const CDC_SEVERITY = {
+    ejecucion: { label: 'Crítico', cls: 'crit' },
+    programado: { label: 'Alerta', cls: 'warn' },
+    completado: { label: 'Info', cls: 'info' },
+    cancelado: { label: 'Cancelado', cls: 'muted' }
+};
+
+function severityOf(cdc) {
+    const st = statusOf(cdc);
+    return CDC_SEVERITY[st] || CDC_SEVERITY.programado;
+}
+
+function timeAgoLabel(cdc) {
+    if (!cdc || !cdc.date) return '—';
+    const parts = (cdc.time || '00:00').split(':');
+    const hh = String(parseInt(parts[0], 10) || 0).padStart(2, '0');
+    const mm = String(parseInt(parts[1], 10) || 0).padStart(2, '0');
+    const dt = new Date(`${cdc.date}T${hh}:${mm}:00`);
+    const diffMin = Math.floor((Date.now() - dt.getTime()) / 60000);
+    if (diffMin < 1) return 'Ahora';
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    if (diffMin < 1440) return `Hace ${Math.floor(diffMin / 60)} h`;
+    const today = new Date();
+    const isYesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).toDateString() === dt.toDateString();
+    if (isYesterday) return `Ayer, ${hh}:${mm}`;
+    return `${cdc.date.slice(8, 10)}/${cdc.date.slice(5, 7)}, ${hh}:${mm}`;
+}
 
 export function renderCDC() {
     const container = document.getElementById('cdc-list');
     if (!container) return;
 
     if (!Array.isArray(cdclist) || cdclist.length === 0) {
-        container.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);padding:8px 0;">No hay Controles de Cambio documentados.</div>';
+        container.innerHTML = '<div class="wp-cdc-empty">No hay Controles de Cambio documentados.</div>';
         return;
     }
 
@@ -165,96 +194,86 @@ export function renderCDC() {
     const currentAuthor = getCurrentAuthor();
     const isUserAdmin = isAdmin();
 
-    cdclist.forEach((cdc) => {
+    cdclist.forEach((cdc, index) => {
         const isAuthor = cdc.author === currentAuthor;
         const canEdit = isAuthor || isUserAdmin;
 
         const safeId = escapeHtml(cdc.id || '');
         const safeTitle = escapeHtml(cdc.title || '');
         const safeAuthor = escapeHtml(cdc.author || 'Anónimo');
-        const safeDate = escapeHtml(cdc.date || '');
-        const safeTime = escapeHtml(cdc.time || '--:--');
-        const safeColor = escapeHtml(cdc.color || '#3b82f6');
         const fullDesc = escapeHtml(cdc.desc || '');
-        const shortDesc = fullDesc.length > 60 ? fullDesc.substring(0, 60) + '...' : fullDesc;
-        const hasLongDesc = fullDesc.length > 60;
+        const sev = severityOf(cdc);
+        const safeColor = escapeHtml(cdc.color || '#3b82f6');
+        const shortDesc = fullDesc.length > 90 ? fullDesc.substring(0, 90) + '…' : fullDesc;
+        const sevCls = `wp-cdc-${sev.cls}`;
 
         html += `
-            <div class="cdc-item" style="border-left-color:${safeColor};">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                    <span class="cdc-title" style="flex:1;word-wrap:break-word;overflow-wrap:break-word;">📋 ${safeTitle}</span>
-                    ${canEdit ? `
-                        <div style="display:flex;gap:2px;flex-shrink:0;">
-                            <button class="cdc-edit-btn" data-id="${safeId}" aria-label="Editar CDC" title="Editar">✏️</button>
-                            <button class="cdc-delete-btn" data-id="${safeId}" aria-label="Eliminar CDC" title="Eliminar">✕</button>
-                        </div>
-                    ` : ''}
+            <article class="wp-cdc-item ${sevCls}" data-id="${safeId}" role="button" tabindex="0" aria-label="Ver detalle de ${safeTitle}">
+                <div class="wp-cdc-bar" style="background:${safeColor};"></div>
+                <div class="wp-cdc-head">
+                    <span class="wp-cdc-badge"><span class="wp-cdc-dot" aria-hidden="true"></span> ${sev.label}</span>
+                    <span class="wp-cdc-id">CDC-${String(index + 1).padStart(4, '0')}</span>
+                    <span class="wp-cdc-time">${timeAgoLabel(cdc)}</span>
                 </div>
-                <span class="cdc-meta">📅 ${safeDate} 🕐 ${safeTime} · ✍️ ${safeAuthor}</span>
-                <span class="cdc-desc" id="cdc-desc-${safeId}">${shortDesc}</span>
-                ${hasLongDesc ? `<button class="cdc-toggle-desc" data-id="${safeId}" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.65rem;padding:2px 0;display:inline-block;margin-left:4px;">Ver más ▼</button>` : ''}
-                <div class="cdc-full-desc" id="cdc-full-${safeId}" style="display:none;font-size:0.75rem;color:var(--text-secondary);margin-top:4px;padding:6px 8px;background:var(--bg-primary);border-radius:4px;border:1px solid var(--border-color);line-height:1.5;white-space:pre-wrap;">${fullDesc}</div>
-            </div>
+                <h4 class="wp-cdc-title">${safeTitle}</h4>
+                <p class="wp-cdc-desc">${shortDesc}</p>
+                <div class="wp-cdc-foot">
+                    <span class="wp-cdc-node">
+                        <span class="material-symbols-outlined" aria-hidden="true">router</span>
+                        <span>${safeAuthor}</span>
+                    </span>
+                    ${canEdit ? `
+                        <span class="wp-cdc-actions">
+                            <button class="cdc-edit-btn" data-id="${safeId}" aria-label="Editar CDC" title="Editar"><span class="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                            <button class="cdc-delete-btn" data-id="${safeId}" aria-label="Eliminar CDC" title="Eliminar"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                        </span>
+                    ` : ''}
+                    <button class="wp-cdc-open" data-id="${safeId}" aria-label="Ver detalles">
+                        Ver Detalles <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                    </button>
+                </div>
+            </article>
         `;
     });
 
     container.innerHTML = html;
 
-    container.querySelectorAll('.cdc-toggle-desc').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = this.dataset.id;
-            const fullDiv = document.getElementById(`cdc-full-${id}`);
-            const descSpan = document.getElementById(`cdc-desc-${id}`);
-            if (fullDiv && descSpan) {
-                if (fullDiv.style.display === 'none') {
-                    fullDiv.style.display = 'block';
-                    this.textContent = 'Ver menos ▲';
-                    descSpan.style.display = 'none';
-                } else {
-                    fullDiv.style.display = 'none';
-                    this.textContent = 'Ver más ▼';
-                    descSpan.style.display = 'inline';
-                }
-            }
+    // Abrir detalle en la página completa de CDC (#/dashboard/cdc)
+    const openDetail = (id) => {
+        window.location.hash = `#/dashboard/cdc?cdc=${encodeURIComponent(id || '')}`;
+    };
+    container.querySelectorAll('.wp-cdc-item, .wp-cdc-open').forEach(el => {
+        el.addEventListener('click', (e) => {
+            if (e.target.closest('.cdc-edit-btn') || e.target.closest('.cdc-delete-btn')) return;
+            const item = e.target.closest('.wp-cdc-item');
+            openDetail(item ? item.dataset.id : el.dataset.id);
         });
+        if (el.classList.contains('wp-cdc-item')) {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openDetail(el.dataset.id);
+                }
+            });
+        }
     });
 
     container.querySelectorAll('.cdc-edit-btn').forEach(btn => {
-        btn.addEventListener('click', function (e) {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = this.dataset.id;
+            const id = btn.dataset.id;
             const cdc = cdclist.find(c => String(c.id) === String(id));
             if (!cdc) return;
-
-            const titleEl = document.getElementById('cdc-title');
-            const dateEl = document.getElementById('cdc-date');
-            const timeEl = document.getElementById('cdc-time');
-            const descEl = document.getElementById('cdc-desc');
-
-            if (titleEl) titleEl.value = cdc.title || '';
-            if (dateEl) dateEl.value = cdc.date || '';
-            if (timeEl) timeEl.value = cdc.time || '';
-            if (descEl) descEl.value = cdc.desc || '';
-
-            const addBtn = document.getElementById('cdc-add');
-            if (addBtn) {
-                addBtn.textContent = '💾 Actualizar CDC';
-                addBtn.dataset.editId = id;
-                addBtn.style.background = '#f59e0b';
-            }
-
-            titleEl?.focus();
-            document.getElementById('tab-cdc')?.scrollTo(0, 0);
+            window.location.hash = `#/dashboard/cdc?cdc=${encodeURIComponent(id)}&edit=1`;
         });
     });
 
     container.querySelectorAll('.cdc-delete-btn').forEach(btn => {
-        btn.addEventListener('click', async function (e) {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const id = this.dataset.id;
+            const id = btn.dataset.id;
             const cdc = cdclist.find(c => String(c.id) === String(id));
             if (!cdc) return;
-
             if (confirm(`¿Eliminar el Control de Cambio "${cdc.title}"?`)) {
                 await deleteCDCFromFirebase(id);
                 resetAddButton();
@@ -790,4 +809,16 @@ export function showCDCTool() {
 
     bindCDCPageEvents(document.getElementById('cdc-page-root'));
     renderCDCPage();
+
+    // Enlace profundo desde el Work Panel: #/dashboard/cdc?cdc=<id>[&edit=1]
+    const params = new URLSearchParams((window.location.hash.split('?')[1] || ''));
+    const deepId = params.get('cdc');
+    if (deepId) {
+        const target = (Array.isArray(cdclist) ? cdclist : []).find(c => String(c.id) === String(deepId));
+        if (params.get('edit') === '1') {
+            openCDCEditModal(target || null);
+        } else if (target) {
+            openCDCDetail(deepId);
+        }
+    }
 }

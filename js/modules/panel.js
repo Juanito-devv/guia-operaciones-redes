@@ -4,9 +4,9 @@
 
 import { AppState } from '../state.js';
 import { Storage } from '../utils/storage.js';
-import { getCurrentUser, logout, isAdmin, getCurrentAuthor } from './auth.js';
+import { getCurrentUser, logout } from './auth.js';
 import { renderCalendar, addEvent } from './calendar.js';
-import { renderCDC, addCDC } from './cdc.js';
+import { renderCDC } from './cdc.js';
 import { navigateTo } from './navigation.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { guardiaTabHTML, loadGuardiaTab, bindGuardiaTabEvents, autoGrowTextarea } from './guardia.js';
@@ -21,8 +21,8 @@ export function createQuickPanel() {
 
     panel.innerHTML = `
         <div class="quick-panel-header">
-            <h3>Herramientas</h3>
-            <button class="quick-panel-close" id="quick-panel-close" aria-label="Cerrar panel de trabajo"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+            <h3><span class="material-symbols-outlined" aria-hidden="true">dashboard_customize</span> Panel de Trabajo</h3>
+            <button class="quick-panel-close" id="quick-panel-close" aria-label="Cerrar panel de trabajo (Ctrl+.)" title="Cerrar panel (Ctrl+.)"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
         </div>
         <div class="quick-panel-tabs" role="tablist">
             <button class="active" data-tab="map" role="tab" aria-selected="true">
@@ -82,17 +82,22 @@ export function createQuickPanel() {
 
             <!-- TAB CDC -->
             <div class="tab-content" id="tab-cdc" role="tabpanel">
-                <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">
-                    📋 Controles de Cambio Documentados
-                    ${isAdmin() ? '<span style="font-size:0.65rem;color:#f59e0b;margin-left:8px;">🔑 Admin</span>' : ''}
+                <!-- Filtros/Búsqueda (diseño Home + Work Panel) -->
+                <div class="wp-cdc-filters">
+                    <div class="wp-cdc-search">
+                        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                        <input type="text" id="wp-cdc-search" placeholder="Filtrar eventos CDC..." aria-label="Filtrar eventos CDC">
+                    </div>
+                    <button type="button" class="wp-cdc-filter" id="wp-cdc-filter" aria-label="Filtros" title="Filtros"><span class="material-symbols-outlined" aria-hidden="true">filter_list</span></button>
                 </div>
-                <div id="cdc-list" style="max-height:300px;overflow-y:auto;"></div>
-                <div class="add-event-form" style="flex-wrap:wrap;margin-top:12px;border-top:1px solid var(--border-color);padding-top:12px;">
-                    <input type="text" id="cdc-title" placeholder="Título del CDC..." style="flex:1 1 100%;" aria-label="Título del CDC">
-                    <input type="date" id="cdc-date" style="flex:1;" aria-label="Fecha del CDC">
-                    <input type="time" id="cdc-time" style="flex:1;" aria-label="Hora del CDC">
-                    <textarea id="cdc-desc" placeholder="Descripción detallada del cambio..." style="flex:1 1 100%;min-height:50px;padding:8px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary);font-family:var(--font);font-size:0.8rem;word-wrap:break-word;" aria-label="Descripción del CDC"></textarea>
-                    <button id="cdc-add" style="flex:1;padding:8px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:var(--mono);font-size:0.7rem;letter-spacing:0.5px;cursor:pointer;">+ Agregar Control de Cambio</button>
+                <!-- Lista de eventos CDC -->
+                <div id="cdc-list" class="wp-cdc-list"></div>
+                <!-- Acción rápida -->
+                <div class="wp-cdc-history-wrap">
+                    <button type="button" class="wp-cdc-history" id="wp-cdc-history">
+                        <span class="material-symbols-outlined" aria-hidden="true">history</span>
+                        Ver Historial Completo
+                    </button>
                 </div>
             </div>
 
@@ -225,14 +230,28 @@ function bindPanelEvents() {
     // Eventos de Calendario
     document.getElementById('event-add')?.addEventListener('click', addEvent);
 
-    // Eventos de CDC
-    const cdcAddBtn = document.getElementById('cdc-add');
-    if (cdcAddBtn) {
-        cdcAddBtn.onclick = function (e) {
-            e.preventDefault();
-            addCDC();
-        };
+    // Eventos de CDC (Work Panel — diseño Home + Work Panel)
+    const wpSearch = document.getElementById('wp-cdc-search');
+    if (wpSearch) {
+        wpSearch.addEventListener('input', () => {
+            const q = wpSearch.value.trim().toLowerCase();
+            document.querySelectorAll('#cdc-list .wp-cdc-item').forEach(item => {
+                const hay = `${item.textContent || ''}`.toLowerCase();
+                item.style.display = hay.includes(q) ? '' : 'none';
+            });
+        });
     }
+    document.getElementById('wp-cdc-filter')?.addEventListener('click', () => {
+        document.getElementById('wp-cdc-filter')?.classList.toggle('active');
+        document.getElementById('wp-cdc-search')?.focus();
+    });
+    document.getElementById('wp-cdc-history')?.addEventListener('click', () => {
+        // Cerrar el panel sin que togglePanel() resetee el hash a #/dashboard
+        const panel = document.getElementById('quick-nav-panel');
+        if (panel) panel.classList.remove('open');
+        AppState.set('panelOpen', false);
+        window.location.hash = '#/dashboard/cdc';
+    });
 
     // Eventos de Guardia (5 Mensajes) — módulo compartido con la página completa
     bindGuardiaTabEvents(document.getElementById('tab-guardia'));
