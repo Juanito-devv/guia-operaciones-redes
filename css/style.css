@@ -1494,8 +1494,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     flex: 1;
     overflow-y: auto;
     padding: 0 40px 40px 40px;
-    background: linear-gradient(0deg, #f8f9ff, #f8f9ff), #ffffff;
-    background-color: var(--bg-primary);
+    background: linear-gradient(0deg, var(--bg-primary), var(--bg-primary)), var(--bg-primary);
     transition: background var(--transition), padding var(--transition);
 }
 

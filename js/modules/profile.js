@@ -48,38 +48,6 @@ function formatDateTime(ts) {
     });
 }
 
-function openChangePasswordModal() {
-    const old = document.getElementById('change-pass-modal');
-    if (old) old.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'change-pass-modal';
-    modal.className = 'profile-modal-backdrop open';
-    modal.innerHTML = `
-        <div class="profile-modal">
-            <div class="profile-modal-glow"></div>
-            <div class="profile-modal-icon">
-                <div class="profile-modal-pulse"></div>
-                <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
-            </div>
-            <h3 class="profile-modal-title">Gestión de Credenciales</h3>
-            <p class="profile-modal-text">El cambio de contraseña debe ser gestionado por el administrador de red. Contacte al equipo de soporte COR para proceder.</p>
-            <button type="button" class="profile-modal-btn" data-close="1">Entendido</button>
-        </div>`;
-
-    document.body.appendChild(modal);
-
-    modal.querySelectorAll('[data-close]').forEach(btn => {
-        btn.addEventListener('click', () => modal.remove());
-    });
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.remove();
-    });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.parentElement) modal.remove();
-    }, { once: true });
-}
-
 /**
  * Página completa de Perfil (#/dashboard/perfil — diseño S12):
  * tarjeta de usuario con avatar, rol, datos de sesión y acciones de acceso.
@@ -107,7 +75,6 @@ export function showProfile() {
         body.innerHTML = `
             <div class="profile-page">
                 <div class="profile-hero">
-                    <span class="profile-eyebrow">Espacio de Trabajo · Herramienta</span>
                     <h1 class="profile-title">Perfil</h1>
                     <p class="profile-sub">Datos de tu cuenta, estado de la sesión y acciones de acceso.</p>
                 </div>
@@ -153,10 +120,6 @@ export function showProfile() {
                             </div>
                         </div>
                         <div class="profile-actions">
-                            <button type="button" class="profile-btn profile-btn-primary" id="profile-change-pass">
-                                <span class="shine"></span>
-                                <span class="material-symbols-outlined" aria-hidden="true">key</span> Cambiar contraseña
-                            </button>
                             <button type="button" class="profile-btn profile-btn-danger" id="profile-logout">
                                 <span class="material-symbols-outlined" aria-hidden="true">logout</span> Cerrar sesión
                             </button>
@@ -168,6 +131,5 @@ export function showProfile() {
         body.classList.remove('loading');
         document.getElementById('main-content').scrollTop = 0;
         document.getElementById('profile-logout')?.addEventListener('click', logout);
-        document.getElementById('profile-change-pass')?.addEventListener('click', openChangePasswordModal);
     }, 120);
 }
