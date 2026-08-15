@@ -107,8 +107,8 @@
   `panel.js:308-339` e `impacto.js:110-142` → unificar en `core/impacto`.
 - **B11. `check-secrets.js` insuficiente**: añadir patrones `Pass:`, `PWD:`,
   `Contraseña:`, claves JSON (`"Password"`, `"PWD"`).
-- **B12. Avatar de CR7 en `auth.js:21`**: quitar URL externa.
-- **B13. README vacío**: documentar despliegue, secretos, lint, tests.
+- **B12. Avatar de CR7 en `auth.js:21`**: quitar URL externa. → **HECHO**: `USERS_DB` usa avatares emoji, sin URLs externas.
+- **B13. README vacío**: documentar despliegue, secretos, lint, tests. → **HECHO**: README completo (estructura, scripts, Firebase, despliegue, secretos).
 
 ---
 
@@ -123,4 +123,4 @@
 | B5 | P1 | PASSED | `navigation.js` sin lookbehind |
 | B6 | P1 | PASSED | `manifest.json` → `./` |
 | B7 | P1 | PASSED | `cdc.js` marcadores persistidos (`cor_cdc_notified`) con poda de fechas pasadas |
-| B8–B13 | P2 | B8/B9/B11 HECHO, resto PENDING | Lint/format verdes; scanner reforzado; calendario conectado a Firestore |
+| B8–B13 | P2 | B8/B9/B11/B12/B13 HECHO, B10 N/A, resto PENDING | Lint/format verdes; scanner reforzado; calendario conectado a Firestore; README y avatares saneados |
