@@ -109,18 +109,21 @@ function renderNotifBell() {
             </button>
             <div id="notif-drawer" class="notif-drawer" style="display:none;">
                 <div class="notif-drawer-header">
-                    <div class="notif-drawer-top">
-                        <h3 class="notif-drawer-title">Notificaciones</h3>
-                        <button id="notif-drawer-close" class="notif-drawer-close" aria-label="Cerrar notificaciones" title="Cerrar">
-                            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                        </button>
-                    </div>
-                    <div class="notif-drawer-actions">
-                        <button id="notif-mark-all" class="notif-action-btn" title="Marcar todas como leídas">Marcar como leídas</button>
-                        <button id="notif-delete-all" class="notif-action-btn notif-action-danger" title="Borrar todas las notificaciones">Borrar todo</button>
-                    </div>
+                    <h3 class="notif-drawer-title">Notificaciones</h3>
+                    <button id="notif-drawer-close" class="notif-drawer-close" aria-label="Cerrar notificaciones" title="Cerrar">
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="notif-drawer-actions">
+                    <button id="notif-mark-all" class="notif-action-btn notif-action-primary" title="Marcar todas como leídas">
+                        <span class="material-symbols-outlined" aria-hidden="true">done_all</span> Marcar como leídas
+                    </button>
+                    <button id="notif-delete-all" class="notif-action-btn notif-action-danger" title="Borrar todas las notificaciones">
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span> Borrar todo
+                    </button>
                 </div>
                 <div id="notif-drawer-list" class="notif-drawer-list"></div>
+                <a href="#" class="notif-drawer-footer">Ver historial completo</a>
             </div>
         </div>
     `;
@@ -130,8 +133,8 @@ function renderNotifBell() {
 
     btn?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = drawer.style.display === 'block';
-        drawer.style.display = isOpen ? 'none' : 'block';
+        const isOpen = drawer.style.display === 'flex';
+        drawer.style.display = isOpen ? 'none' : 'flex';
         btn.classList.toggle('open', !isOpen);
     });
 
