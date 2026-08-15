@@ -9,7 +9,7 @@ import { renderNav, navigateTo, initMobileMenu } from './modules/navigation.js';
 import { initSearch, hideSearchResults, initGlobalSearch, openGlobalSearch, closeGlobalSearch } from './modules/search.js';
 import { showHome, navigateToFirstSection } from './modules/home.js';
 import { createQuickPanel, togglePanel, updatePanelUserUI } from './modules/panel.js';
-import { initCalendar } from './modules/calendar.js';
+import { initCalendar, initEventDetail } from './modules/calendar.js';
 import { initCDC, checkCDCReminders } from './modules/cdc.js';
 import { initNotifications } from './modules/notifications.js';
 import { initGuideEdit } from './modules/guide_edit.js';
@@ -337,6 +337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSearch();
         initGlobalSearch();
         initCalendar();
+        initEventDetail();
         initLauncher();
         bindAppBottomNav();
         bindHeaderActions();

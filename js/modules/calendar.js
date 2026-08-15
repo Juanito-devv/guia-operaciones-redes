@@ -127,7 +127,7 @@ export function renderEvents(date) {
     dayEvents.forEach((event, index) => {
         const localTag = event.id && String(event.id).startsWith('local_') ? ' <span class="local-badge">LOCAL</span>' : '';
         html += `
-            <div class="event-item" style="border-left-color:${escapeHtml(event.color || '#3b82f6')};">
+            <div class="event-item" style="border-left-color:${escapeHtml(event.color || '#3b82f6')};" data-evdate="${escapeHtml(date)}" data-evindex="${index}">
                 <span class="event-title">${escapeHtml(event.title)}${localTag}</span>
                 <span style="font-size:0.65rem;color:var(--text-muted);display:block;">🕐 ${escapeHtml(event.time || 'Sin hora')} · ✍️ ${escapeHtml(event.author || 'Anónimo')}</span>
                 <span style="font-size:0.7rem;color:var(--text-secondary);display:block;word-wrap:break-word;">${escapeHtml(event.desc || '')}</span>
@@ -148,6 +148,14 @@ export function renderEvents(date) {
                 Storage.set('cor_events', events);
                 renderCalendar();
             }
+        });
+    });
+
+    // S16: clic en un evento abre el modal de detalle
+    container.querySelectorAll('.event-item[data-evdate]').forEach(el => {
+        el.addEventListener('click', function (e) {
+            if (e.target.closest('.event-delete')) return;
+            openEventDetail(this.dataset.evdate, parseInt(this.dataset.evindex, 10));
         });
     });
 }
@@ -190,5 +198,191 @@ export function addEvent() {
     titleInput.value = '';
     dateInput.value = '';
     if (timeInput) timeInput.value = '';
+    renderCalendar();
+}
+
+// ========================================
+// S16 — DETALLE DE EVENTO (modal con info + acciones)
+// ========================================
+
+let evdTarget = null;
+
+export function initEventDetail() {
+    if (document.getElementById('evd-backdrop')) return;
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'evd-backdrop';
+    backdrop.className = 'evd-backdrop';
+    backdrop.innerHTML = `
+        <div class="evd-modal" id="evd-modal" role="dialog" aria-modal="true" aria-labelledby="evd-title">
+            <header class="evd-header">
+                <div class="evd-header-top">
+                    <span class="evd-eyebrow">Calendario · Detalle</span>
+                    <button type="button" class="evd-close" id="evd-close" aria-label="Cerrar modal" title="Cerrar (Esc)">
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="evd-title-row">
+                    <span class="evd-colorbar" id="evd-colorbar" aria-hidden="true"></span>
+                    <h2 class="evd-title" id="evd-title"></h2>
+                </div>
+            </header>
+            <div class="evd-body">
+                <div class="evd-grid">
+                    <div class="evd-cell">
+                        <span class="material-symbols-outlined evd-cell-icon" aria-hidden="true">calendar_today</span>
+                        <div>
+                            <span class="evd-cell-label">Fecha</span>
+                            <span class="evd-cell-value" id="evd-date"></span>
+                        </div>
+                    </div>
+                    <div class="evd-cell">
+                        <span class="material-symbols-outlined evd-cell-icon" aria-hidden="true">schedule</span>
+                        <div>
+                            <span class="evd-cell-label">Hora</span>
+                            <span class="evd-cell-value" id="evd-time"></span>
+                        </div>
+                    </div>
+                    <div class="evd-cell">
+                        <span class="evd-avatar" id="evd-avatar" aria-hidden="true"></span>
+                        <div>
+                            <span class="evd-cell-label">Autor</span>
+                            <span class="evd-cell-value" id="evd-author"></span>
+                        </div>
+                    </div>
+                    <div class="evd-cell">
+                        <span class="evd-dot" id="evd-dot" aria-hidden="true"></span>
+                        <div>
+                            <span class="evd-cell-label">Tipo</span>
+                            <span class="evd-cell-value" id="evd-type"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="evd-desc">
+                    <span class="evd-desc-label">Descripción</span>
+                    <div class="evd-desc-box"><p id="evd-desc"></p></div>
+                </div>
+                <form class="evd-form" id="evd-form">
+                    <label>Título
+                        <input type="text" id="evd-form-title" placeholder="Título del evento">
+                    </label>
+                    <label>Hora
+                        <input type="time" id="evd-form-time">
+                    </label>
+                    <label>Descripción
+                        <textarea id="evd-form-desc" placeholder="Descripción técnica del evento..."></textarea>
+                    </label>
+                </form>
+            </div>
+            <footer class="evd-footer">
+                <div class="evd-footer-left">
+                    <button type="button" class="evd-btn evd-btn-danger" id="evd-delete">Eliminar</button>
+                    <button type="button" class="evd-btn evd-btn-outline" id="evd-edit">Editar</button>
+                    <button type="button" class="evd-btn evd-btn-outline" id="evd-cancel" style="display:none;">Cancelar</button>
+                </div>
+                <button type="button" class="evd-btn evd-btn-primary" id="evd-close2">Cerrar</button>
+                <button type="button" class="evd-btn evd-btn-primary" id="evd-save" style="display:none;">Guardar</button>
+            </footer>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    document.getElementById('evd-close')?.addEventListener('click', closeEventDetail);
+    document.getElementById('evd-close2')?.addEventListener('click', closeEventDetail);
+    document.getElementById('evd-delete')?.addEventListener('click', deleteEventDetail);
+    document.getElementById('evd-edit')?.addEventListener('click', () => setEventDetailEdit(true));
+    document.getElementById('evd-cancel')?.addEventListener('click', () => setEventDetailEdit(false));
+    document.getElementById('evd-save')?.addEventListener('click', saveEventDetail);
+    backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeEventDetail();
+    });
+}
+
+export function openEventDetail(date, index) {
+    const events = Storage.get('cor_events', {});
+    const event = (events[date] || [])[index];
+    if (!event) return;
+
+    evdTarget = { date, index };
+
+    const color = event.color || '#3b82f6';
+    const colorbar = document.getElementById('evd-colorbar');
+    const dot = document.getElementById('evd-dot');
+    if (colorbar) colorbar.style.background = color;
+    if (dot) {
+        dot.style.background = color;
+        dot.style.boxShadow = `0 0 5px ${color}`;
+    }
+
+    document.getElementById('evd-title').textContent = event.title || 'Sin título';
+    document.getElementById('evd-date').textContent = date;
+    document.getElementById('evd-time').textContent = event.time || '--:--';
+    document.getElementById('evd-author').textContent = event.author || 'Anónimo';
+    const initials = (event.author || '??').replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || '??';
+    document.getElementById('evd-avatar').textContent = initials;
+    document.getElementById('evd-type').textContent = 'Evento';
+    document.getElementById('evd-desc').textContent = event.desc || 'Sin descripción adicional.';
+
+    document.getElementById('evd-form-title').value = event.title || '';
+    document.getElementById('evd-form-time').value = event.time || '';
+    document.getElementById('evd-form-desc').value = event.desc || '';
+
+    setEventDetailEdit(false);
+    const backdrop = document.getElementById('evd-backdrop');
+    backdrop.classList.add('open');
+    document.addEventListener('keydown', onEvdKeydown);
+}
+
+function setEventDetailEdit(editing) {
+    const modal = document.getElementById('evd-modal');
+    if (!modal) return;
+    modal.classList.toggle('edit', editing);
+    document.getElementById('evd-edit').style.display = editing ? 'none' : '';
+    document.getElementById('evd-delete').style.display = editing ? 'none' : '';
+    document.getElementById('evd-cancel').style.display = editing ? '' : 'none';
+    document.getElementById('evd-save').style.display = editing ? '' : 'none';
+    document.getElementById('evd-close2').style.display = editing ? 'none' : '';
+    if (editing) {
+        document.getElementById('evd-form-title').focus();
+    }
+}
+
+function closeEventDetail() {
+    const backdrop = document.getElementById('evd-backdrop');
+    if (backdrop) backdrop.classList.remove('open');
+    document.removeEventListener('keydown', onEvdKeydown);
+    evdTarget = null;
+}
+
+function onEvdKeydown(e) {
+    if (e.key === 'Escape') closeEventDetail();
+}
+
+function deleteEventDetail() {
+    if (!evdTarget) return;
+    const { date, index } = evdTarget;
+    const events = Storage.get('cor_events', {});
+    if (events[date]) {
+        events[date].splice(index, 1);
+        if (events[date].length === 0) delete events[date];
+        Storage.set('cor_events', events);
+    }
+    closeEventDetail();
+    renderCalendar();
+}
+
+function saveEventDetail() {
+    if (!evdTarget) return;
+    const { date, index } = evdTarget;
+    const events = Storage.get('cor_events', {});
+    const event = (events[date] || [])[index];
+    if (!event) return;
+
+    event.title = document.getElementById('evd-form-title').value.trim() || event.title;
+    event.time = document.getElementById('evd-form-time').value || event.time;
+    event.desc = document.getElementById('evd-form-desc').value.trim();
+
+    Storage.set('cor_events', events);
+    closeEventDetail();
     renderCalendar();
 }
