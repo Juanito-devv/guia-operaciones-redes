@@ -213,6 +213,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     align-items: center;
     justify-content: center;
     padding: 20px;
+    overflow-x: hidden;
     overflow-y: auto;
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -2135,7 +2136,9 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 
 /* Responsive Rules */
 @media (max-width: 768px) {
-    .login-container { padding: 28px 24px; margin: 16px; }
+    .login-screen { padding: 16px; }
+    .login-main { gap: 20px; }
+    .login-container { padding: 20px 18px; margin: 8px 0; }
     #sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); width: 300px; min-width: 300px; box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3); }
     #sidebar.open { transform: translateX(0); }
     #sidebar-overlay.active { display: block; }
@@ -2153,6 +2156,19 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     #main-content { padding: 0 12px 16px 12px; }
     .home-page .features, .home-page .info-grid { grid-template-columns: 1fr; }
     .home-page .quick-actions { flex-direction: column; }
+}
+
+/* Login compacto en pantallas de poca altura (móvil/landscape) */
+@media (max-height: 700px) {
+    .login-screen { padding: 12px; justify-content: flex-start; }
+    .login-main { gap: 14px; }
+    .login-hero { gap: 4px; }
+    .login-logo { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 4px; }
+    .login-logo-icon { font-size: 24px; }
+    .login-brand { font-size: 24px; line-height: 30px; }
+    .login-container { padding: 16px 16px; }
+    .login-form { gap: 12px; }
+    .login-input-well { height: 44px; }
 }
 
 /* Loading state */
