@@ -394,21 +394,17 @@ export async function deleteEventFromFirebase(eventId) {
 // ========================================
 
 export async function saveCustomProcedureToFirebase(procData) {
-    if (!db) {
+    const persistLocal = () => {
         const local = Storage.get('cor_custom_procedures', []);
         const newProc = { id: 'local_' + Date.now(), ...procData };
         local.push(newProc);
         Storage.set('cor_custom_procedures', local);
         return newProc;
-    }
+    };
+
+    if (!db) return persistLocal();
     const authed = await ensureAuth();
-    if (!authed) {
-        const local = Storage.get('cor_custom_procedures', []);
-        const newProc = { id: 'local_' + Date.now(), ...procData };
-        local.push(newProc);
-        Storage.set('cor_custom_procedures', local);
-        return newProc;
-    }
+    if (!authed) return persistLocal();
     try {
         const docRef = await db.collection('custom_procedures').add({
             ...procData,
@@ -418,7 +414,8 @@ export async function saveCustomProcedureToFirebase(procData) {
         return { id: docRef.id, ...procData };
     } catch (error) {
         markFirebaseFailure('saveProcedure', error);
-        return null;
+        // Si Firestore falla (ej. cuota), se guarda localmente; se sincroniza después solo
+        return persistLocal();
     }
 }
 
@@ -506,6 +503,13 @@ export async function updateCustomProcedureInFirebase(id, procData) {
         return true;
     } catch (error) {
         markFirebaseFailure('updateProcedure', error);
+        // Mantener la edición local si Firestore falla (se sincroniza después)
+        const local = Storage.get('cor_custom_procedures', []);
+        const idx = local.findIndex(p => p.id === id);
+        if (idx !== -1) {
+            local[idx] = { ...local[idx], ...procData };
+            Storage.set('cor_custom_procedures', local);
+        }
         return false;
     }
 }

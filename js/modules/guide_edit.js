@@ -141,11 +141,22 @@ export function openProcedureModal(editProc = null) {
     form?.addEventListener('submit', async function (e) {
         e.preventDefault();
 
+        // Evitar envíos dobles (clics repetidos creaban procedimientos duplicados)
+        if (form.dataset.saving === '1') return;
+
         const sectionId = document.getElementById('proc-section').value;
         const title = document.getElementById('proc-title').value.trim();
         const content = document.getElementById('proc-content').value.trim();
 
-        if (!sectionId || !title || !content) return;
+        if (!sectionId || !title || !content) {
+            showGuideToast('⚠️ Faltan datos', 'Completa la sección, el título y el contenido.', true);
+            return;
+        }
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '⏳ Publicando…';
+        form.dataset.saving = '1';
 
         const subId = 'custom_' + Date.now();
         const author = getCurrentAuthor();
@@ -159,32 +170,64 @@ export function openProcedureModal(editProc = null) {
             updatedAt: new Date().toISOString()
         };
 
-        if (editProc && editProc.id) {
-            await updateCustomProcedureInFirebase(editProc.id, procData);
-            customProcedures = customProcedures.map(p => p.id === editProc.id ? { id: editProc.id, ...procData } : p);
-            createNotification({
-                title: '📖 Procedimiento Actualizado',
-                message: `"${title}" ha sido modificado por ${author}.`,
-                type: 'guide',
-                author: author
-            });
-        } else {
-            await saveCustomProcedureToFirebase(procData);
-            customProcedures = [...customProcedures, { id: 'pending_' + Date.now(), ...procData }];
-            createNotification({
-                title: '✨ Nuevo Procedimiento Agregado',
-                message: `${author} agregó "${title}" a la guía.`,
-                type: 'guide',
-                author: author
-            });
+        try {
+            if (editProc && editProc.id) {
+                await updateCustomProcedureInFirebase(editProc.id, procData);
+                customProcedures = customProcedures.map(p => p.id === editProc.id ? { id: editProc.id, ...procData } : p);
+                createNotification({
+                    title: '📖 Procedimiento Actualizado',
+                    message: `"${title}" ha sido modificado por ${author}.`,
+                    type: 'guide',
+                    author: author
+                });
+            } else {
+                const saved = await saveCustomProcedureToFirebase(procData);
+                const finalId = saved && saved.id ? saved.id : ('pending_' + Date.now());
+                customProcedures = [...customProcedures, { id: finalId, ...procData }];
+                createNotification({
+                    title: '✨ Nuevo Procedimiento Agregado',
+                    message: `${author} agregó "${title}" a la guía.`,
+                    type: 'guide',
+                    author: author
+                });
+            }
+        } catch (err) {
+            console.error('Error al guardar procedimiento', err);
         }
 
         // Actualizar localmente para que la navegación funcione de inmediato (sin esperar el snapshot)
         AppState.set('customProcedures', customProcedures);
         renderNav();
         closeModal();
+        showGuideToast(
+            editProc ? '✅ Procedimiento actualizado' : '✅ Procedimiento publicado',
+            `"${title}" ya está disponible en la guía.`
+        );
         navigateTo(sectionId, procData.subId);
     });
+}
+
+/**
+ * Toast de feedback pequeño para confirmar/errores del guardado.
+ */
+function showGuideToast(title, text, isError = false) {
+    const old = document.querySelector('.guide-toast');
+    if (old) old.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'guide-toast' + (isError ? ' guide-toast-error' : '');
+    toast.innerHTML = `
+        <button class="guide-toast-close" aria-label="Cerrar">✕</button>
+        <div class="guide-toast-title">${escapeHtml(title)}</div>
+        <div class="guide-toast-body">${escapeHtml(text)}</div>
+    `;
+    document.body.appendChild(toast);
+
+    toast.querySelector('.guide-toast-close')?.addEventListener('click', () => toast.remove());
+    setTimeout(() => {
+        toast.classList.add('guide-toast-hide');
+        setTimeout(() => toast.remove(), 400);
+    }, 5000);
 }
 
 /**

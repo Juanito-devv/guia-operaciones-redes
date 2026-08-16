@@ -4054,6 +4054,29 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 .cdc-notification .notif-body { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
 .cdc-notification .notif-close { background: none; border: none; color: var(--text-muted); cursor: pointer; float: right; font-size: 1.1rem; margin-top: -4px; }
 
+/* Toast de feedback para la edición de la guía (agregar/editar procedimiento) */
+.guide-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    max-width: 360px;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-left: 4px solid var(--success);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.guide-toast-error { border-left-color: var(--danger); }
+.guide-toast-hide { opacity: 0; transform: translateY(12px); }
+.guide-toast-title { font-weight: 700; font-size: 0.9rem; }
+.guide-toast-body { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; padding-right: 16px; }
+.guide-toast-close { background: none; border: none; color: var(--text-muted); cursor: pointer; float: right; font-size: 1.1rem; margin-top: -4px; }
+.guide-toast-close:hover { color: var(--text-primary); }
+
 /* Notificaciones desplegables y Campanita */
 .notif-bell-wrapper { position: relative; display: inline-block; }
 .notif-bell-btn { background: #ffffff; border: 1px solid #dfe3e7; font-size: 1.2rem; cursor: pointer; padding: 8px 12px; border-radius: 12px; position: relative; color: var(--text-primary); transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; line-height: 1; display: flex; align-items: center; justify-content: center; }
