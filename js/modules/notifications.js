@@ -44,7 +44,7 @@ function notifVisual(type) {
 /**
  * Crea y envía una nueva notificación a todos los usuarios
  */
-export async function createNotification({ title, message, type = 'system', author = 'Sistema' }) {
+export async function createNotification({ title, message, type = 'system', author = 'Sistema', dedupeKey = null }) {
     const newNotif = {
         title: title,
         message: message,
@@ -53,7 +53,7 @@ export async function createNotification({ title, message, type = 'system', auth
         readBy: []
     };
 
-    await createNotificationInFirebase(newNotif);
+    await createNotificationInFirebase(newNotif, dedupeKey ? { dedupeKey } : {});
     notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();
 }
@@ -125,6 +125,24 @@ function renderNotifBell() {
 }
 
 /**
+ * Ids que el usuario actual ocultó (persistidos localmente para que no reaparezcan
+ * aunque Firestore falle o aún no propague el cambio).
+ */
+function getHiddenIds() {
+    const currentUser = AppState.get('currentUser') || 'invitado';
+    return Storage.get(`cor_hidden_notifs_${currentUser}`, []);
+}
+
+function addHiddenId(id) {
+    const currentUser = AppState.get('currentUser') || 'invitado';
+    const hidden = Storage.get(`cor_hidden_notifs_${currentUser}`, []);
+    if (!hidden.includes(id)) {
+        hidden.push(id);
+        Storage.set(`cor_hidden_notifs_${currentUser}`, hidden);
+    }
+}
+
+/**
  * Actualiza la interfaz del badge contador y lista desplegable
  */
 export function updateNotifUI() {
@@ -132,8 +150,13 @@ export function updateNotifUI() {
     const badge = document.getElementById('notif-badge');
     const listContainer = document.getElementById('notif-drawer-list');
 
-    // Ocultar las que el usuario ocultó para sí (el feed sigue compartido para los demás)
-    const visibleList = notificationsList.filter(n => !(n.hiddenBy && n.hiddenBy.includes(currentUser)));
+    // Ocultar las que el usuario ocultó para sí (local + Firestore; el feed sigue compartido)
+    const hiddenIds = getHiddenIds();
+    const visibleList = notificationsList.filter(n => {
+        if (!n || !n.id) return false;
+        if (hiddenIds.includes(n.id)) return false;
+        return !(n.hiddenBy && n.hiddenBy.includes(currentUser));
+    });
 
     // Filtrar no leídas para el usuario actual
     const readIds = Storage.get(`cor_read_notifs_${currentUser}`, []);
@@ -230,6 +253,7 @@ export function markAllAsRead() {
 export async function deleteNotification(notifId) {
     const currentUser = AppState.get('currentUser') || 'invitado';
     markAsRead(notifId);
+    addHiddenId(notifId);
     await hideNotificationFromFirebase(notifId, currentUser);
     notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();
@@ -242,6 +266,7 @@ export async function deleteAllNotifications() {
 
     const ids = notificationsList.map(n => n.id);
     markAllAsRead();
+    ids.forEach(addHiddenId);
     await hideAllNotificationsFromFirebase(ids, currentUser);
     notificationsList = Storage.get('cor_notifications', []);
     updateNotifUI();

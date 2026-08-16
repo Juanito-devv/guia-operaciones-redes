@@ -471,7 +471,7 @@ export function showMail() {
             <div class="tool-page mail-page">
                 <header class="tool-page-header mail-header">
                     <div>
-                        <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
+                        <p class="tool-eyebrow">Mail</p>
                         <h1 class="tool-title">Generador de Correo</h1>
                         <p class="tool-sub">Correos formales a proveedores de enlaces internacionales. Rellene los datos del circuito y copie el texto listo para enviar.</p>
                     </div>

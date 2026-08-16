@@ -14,17 +14,17 @@ export const HOME_PAGE_HTML = `
             <div>
                 <div class="hp-version-badge">
                     <span class="hp-version-dot" aria-hidden="true"></span>
-                    Versión 1.0.0 · Actualizado 24 Oct
+                    Versión 1.0.0
                 </div>
                 <h1>Guía de Operaciones</h1>
                 <p>Para Redes IP (COR). Todo lo que necesitas para operar, solucionar e implementar.</p>
             </div>
             <div class="hp-hero-actions">
-                <button class="hp-btn hp-btn-secondary" id="btn-go-dashboard" type="button">
-                    <span class="material-symbols-outlined" aria-hidden="true">work</span> Espacio
-                </button>
                 <button class="hp-btn hp-btn-primary" id="btn-go-first-section" type="button">
                     Ir a la guía <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                </button>
+                <button class="hp-btn hp-btn-secondary" id="btn-go-dashboard" type="button">
+                    <span class="material-symbols-outlined" aria-hidden="true">work</span> Espacio de Trabajo
                 </button>
             </div>
         </div>
@@ -74,16 +74,13 @@ export const HOME_PAGE_HTML = `
                 <div class="hp-subgrid">
                     <div class="hp-subitem">
                         <div class="hp-subitem-label">Arquitectura</div>
-                        <div class="hp-subitem-value">Topología Spine-Leaf</div>
+                        <div class="hp-subitem-value">Topología Jerárquica (Core · Agregación · Distribución)</div>
                     </div>
                     <div class="hp-subitem">
                         <div class="hp-subitem-label">Protocolos</div>
                         <div class="hp-subitem-value">OSPF &amp; IS-IS</div>
                     </div>
                 </div>
-            </div>
-            <div class="hp-schema" aria-hidden="true">
-                <span class="material-symbols-outlined">schema</span>
             </div>
         </div>
 
@@ -113,12 +110,12 @@ export const HOME_PAGE_HTML = `
     <div class="hp-footer">
         <div class="hp-footer-left">
             <span class="material-symbols-outlined" aria-hidden="true">info</span>
-            <span>Esta guía es mantenida por el equipo de Core Engineering.</span>
+            <span>Juan Irazabal · Software Development Engineer</span>
         </div>
         <div class="hp-footer-right">
-            <a href="#" id="hp-request-access">Solicitar Acceso</a>
-            <a href="#" id="hp-report-error">Reportar Error</a>
-            <span>Último commit: 4h ago</span>
+            <a href="https://wa.me/584129706050" target="_blank" rel="noopener" id="hp-report-error">
+                <span class="material-symbols-outlined" aria-hidden="true">forum</span> Reportar Error
+            </a>
         </div>
     </div>
 </div>
@@ -161,10 +158,6 @@ export function showHome() {
                 }
             });
         });
-
-        // Enlaces decorativos del pie (sin navegación real todavía)
-        document.getElementById('hp-request-access')?.addEventListener('click', e => e.preventDefault());
-        document.getElementById('hp-report-error')?.addEventListener('click', e => e.preventDefault());
 
         // Estado activo de la navegación
         document.querySelectorAll('.nav-subsection-link, .nav-home-link, .nav-dash-link').forEach(el => {

@@ -725,7 +725,6 @@ export function showGuardia() {
             <div class="tool-page guard-page">
                 <header class="tool-page-header guard-header">
                     <div>
-                        <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
                         <h1 class="tool-title">Entrega de Guardia</h1>
                         <p class="tool-sub">Resumen consolidado del estado de la red para el equipo entrante. Generado y formateado automáticamente para Telegram.</p>
                     </div>

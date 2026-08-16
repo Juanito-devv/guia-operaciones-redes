@@ -97,12 +97,15 @@ export function checkCDCReminders() {
         const diffMs = cdcDateTime - now;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
-        const notifKey1h = `1h_${cdc.id || cdc.title}_${cdc.date}`;
+        const notifKey15m = `15m_${cdc.id || cdc.title}_${cdc.date}`;
         const notifKeyEnd = `end_${cdc.id || cdc.title}_${cdc.date}`;
+        // Id fijo del documento en Firestore: garantiza que el recordatorio se cree UNA sola vez en el grupo
+        const dedupe15m = `cdc_15m_${cdc.id || cdc.title}_${cdc.date}`;
+        const dedupeEnd = `cdc_end_${cdc.id || cdc.title}_${cdc.date}`;
 
-        // 1. ALERTA CUANDO FALTE 1 HORA O MENOS (entre 0 y 60 minutos)
-        if (diffMinutes >= 0 && diffMinutes <= 60 && !notificationShownSet.has(notifKey1h)) {
-            notificationShownSet.add(notifKey1h);
+        // 1. ALERTA CUANDO FALTEN 15 MINUTOS O MENOS (entre 0 y 15 minutos)
+        if (diffMinutes >= 0 && diffMinutes <= 15 && !notificationShownSet.has(notifKey15m)) {
+            notificationShownSet.add(notifKey15m);
             persistNotifiedSet();
 
             // Mostrar notificación tipo Toast en pantalla
@@ -112,12 +115,13 @@ export function checkCDCReminders() {
                 '#f59e0b'
             );
 
-            // Registrar en el panel de notificaciones estilo WhatsApp
+            // Registrar en el panel de notificaciones estilo WhatsApp (una sola vez en el grupo)
             createNotification({
                 title: `⏰ CDC Próximo (en ${diffMinutes} min)`,
                 message: `El CDC "${cdc.title}" inicia a las ${cdc.time}.`,
                 type: 'cdc',
-                author: cdc.author || 'Sistema'
+                author: cdc.author || 'Sistema',
+                dedupeKey: dedupe15m
             });
         }
 
@@ -136,7 +140,8 @@ export function checkCDCReminders() {
                 title: `✅ CDC Finalizado`,
                 message: `El Control de Cambio "${cdc.title}" ha finalizado exitosamente.`,
                 type: 'cdc',
-                author: cdc.author || 'Sistema'
+                author: cdc.author || 'Sistema',
+                dedupeKey: dedupeEnd
             });
         }
     });
@@ -846,7 +851,6 @@ export function showCDCTool() {
         <div class="tool-page cdc-page" id="cdc-page-root">
             <header class="tool-page-header cdc-page-header">
                 <div>
-                    <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
                     <h1 class="tool-title">Controles de Cambio</h1>
                     <p class="tool-sub">Gestione, monitoree y audite todas las ventanas de mantenimiento y cambios de configuración en la infraestructura de red en tiempo real.</p>
                 </div>

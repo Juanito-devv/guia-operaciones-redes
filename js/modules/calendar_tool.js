@@ -91,7 +91,7 @@ function renderHTML() {
     <div class="calt-page tool-page">
         <header class="tool-page-header calt-header">
             <div>
-                <p class="tool-eyebrow">Espacio de Trabajo · Herramienta</p>
+                <p class="tool-eyebrow">Calendario</p>
                 <h1 class="tool-title">Registros de Mantenimiento CDC</h1>
                 <p class="tool-sub">Calendario de mantenimiento y captura de datos de Controles de Cambio en tiempo real.</p>
             </div>

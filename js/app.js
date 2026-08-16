@@ -49,7 +49,6 @@ async function loadData() {
         // Sin esto, el botón de cerrar sesión quedaba sin handler en URLs con hash.
         document.querySelector('.sidebar-brand')?.addEventListener('click', showHome);
         document.getElementById('logout-btn')?.addEventListener('click', logout);
-        document.getElementById('header-logout-btn')?.addEventListener('click', logout);
 
         // Manejar hash inicial de la URL
         // Nota: se normaliza el slash inicial para aceptar #/dashboard/<id> y #/seccion/sub

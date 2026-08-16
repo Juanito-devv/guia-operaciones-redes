@@ -561,22 +561,32 @@ export function getNotificationsFromFirebase(callback) {
 }
 
 // Crea una notificación compartida (id de documento = id del evento, sin duplicar)
-export async function createNotificationInFirebase(notif) {
-    const id = 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+// Si se pasa `dedupeKey`, el id del documento es fijo: solo se crea una vez en el grupo
+// (los demás dispositivos/usuarios detectan que ya existe y no la duplican).
+export async function createNotificationInFirebase(notif, { dedupeKey } = {}) {
+    const id = dedupeKey || ('n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
     const localNotif = { ...notif, id, createdAt: new Date().toISOString() };
 
-    // Escritura local optimista
+    // Escritura local optimista (sin duplicar si el id ya está)
     const local = Storage.get('cor_notifications', []);
-    if (!local.some(n => n && n.id === id)) {
-        local.unshift(localNotif);
-        if (local.length > 30) local.pop();
-        Storage.set('cor_notifications', local);
-    }
+    if (local.some(n => n && n.id === id)) return localNotif;
+    local.unshift(localNotif);
+    if (local.length > 30) local.pop();
+    Storage.set('cor_notifications', local);
 
     if (!db) return localNotif;
     const authed = await ensureAuth();
     if (!authed) return localNotif;
     try {
+        if (dedupeKey) {
+            const snap = await db.collection('notifications').doc(id).get();
+            if (snap.exists) {
+                // Ya existe (la creó otro dispositivo/usuario): descartar la copia local
+                const pruned = Storage.get('cor_notifications', []).filter(n => n && n.id !== id);
+                Storage.set('cor_notifications', pruned);
+                return { id, ...snap.data() };
+            }
+        }
         await db.collection('notifications').doc(id).set({
             ...notif,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
