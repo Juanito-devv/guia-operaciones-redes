@@ -213,8 +213,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     align-items: center;
     justify-content: center;
     padding: 20px;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
     background: var(--bg-primary);
     color: var(--text-primary);
     animation: fadeIn 0.4s ease-out;
@@ -606,7 +605,21 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     color: var(--text-primary);
     margin: 0 0 8px 0;
 }
-.launcher-hello .launcher-name { color: var(--accent); }
+.launcher-hello .launcher-name {
+    background: linear-gradient(90deg, #0041c7, #00d4ec, #0041c7);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: launcherNameShine 3s linear infinite;
+}
+.launcher-hello .launcher-name.typing {
+    border-right: 2px solid var(--accent);
+    animation: none;
+}
+@keyframes launcherNameShine {
+    to { background-position: 200% center; }
+}
 .launcher-subtitle {
     font-family: 'Hanken Grotesk', sans-serif;
     font-size: 16px;
@@ -723,36 +736,12 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     opacity: 0.9;
 }
 
-/* Side Nav (solo escritorio, oculto en móvil) */
+/* Side Nav (solo móvil; en escritorio se oculta para no robar espacio al contenido) */
 .launcher-side-nav { display: none; }
 
 @media (min-width: 768px) {
     .launcher-bottom-nav { display: none; }
-    .launcher-side-nav {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        position: fixed;
-        top: 0;
-        right: 0;
-        height: 100%;
-        width: 250px;
-        background: var(--bg-primary);
-        border-left: 1px solid var(--border-color);
-        padding: 80px 24px 24px 24px;
-        z-index: 30;
-    }
-    .launcher-side-nav .launcher-nav-btn {
-        width: 100%;
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 16px;
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 16px;
-        line-height: 24px;
-    }
+    .launcher-main { padding-bottom: 48px; }
 }
 
 /* ============ LAUNCHER DARK MODE (diseño Figma CONNECT — S2) ============ */
@@ -761,7 +750,13 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
     color: #f8f9ff;
 }
 [data-theme="dark"] .launcher-hello { color: #f8f9ff; }
-[data-theme="dark"] .launcher-hello .launcher-name { color: #b6c4ff; }
+[data-theme="dark"] .launcher-hello .launcher-name {
+    background: linear-gradient(90deg, #b6c4ff, #80ecff, #b6c4ff);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
 [data-theme="dark"] .launcher-subtitle { color: #c4c5d7; }
 
 [data-theme="dark"] .launcher-card {
@@ -2160,7 +2155,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .quick-panel-header h3, .calendar-
 
 /* Login compacto en pantallas de poca altura (móvil/landscape) */
 @media (max-height: 700px) {
-    .login-screen { padding: 12px; justify-content: flex-start; }
+    .login-screen { padding: 12px; }
     .login-main { gap: 14px; }
     .login-hero { gap: 4px; }
     .login-logo { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 4px; }

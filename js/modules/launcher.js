@@ -6,6 +6,23 @@ import { getCurrentUser } from './auth.js';
 import { showHome } from './home.js';
 
 /**
+ * Efecto máquina de escribir para el nombre del analista.
+ */
+function typeWriterName(el, text, speed = 60) {
+    el.textContent = '';
+    let i = 0;
+    el.classList.add('typing');
+    const timer = setInterval(() => {
+        i += 1;
+        el.textContent = text.slice(0, i);
+        if (i >= text.length) {
+            clearInterval(timer);
+            el.classList.remove('typing');
+        }
+    }, speed);
+}
+
+/**
  * Muestra la pantalla de bienvenida post-login (launcher) y oculta login/app.
  * El analista decide dónde entrar: GUÍA o ESPACIO DE TRABAJO.
  */
@@ -15,11 +32,11 @@ export function showLauncher() {
     const app = document.getElementById('app');
     if (!launcher) return;
 
-    // Nombre del analista (primer nombre del usuario logueado)
+    // Nombre del analista (primer nombre del usuario logueado) con animación
     const user = getCurrentUser();
     const nameEl = document.getElementById('launcher-user-name');
     if (nameEl && user) {
-        nameEl.textContent = (user.name || '').split(' ')[0] || 'Analista';
+        typeWriterName(nameEl, (user.name || '').split(' ')[0] || 'Analista');
     }
 
     if (loginScreen) loginScreen.style.display = 'none';
