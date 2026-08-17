@@ -38,7 +38,6 @@ const urlsToCache = [
     './js/modules/guardia.js',
     './js/modules/mail.js',
     './js/modules/notifications.js',
-    './js/modules/guide_edit.js',
     './js/modules/profile.js',
     './js/modules/settings.js',
     './js/modules/impacto.js',

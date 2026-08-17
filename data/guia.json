@@ -165,7 +165,7 @@
         {
           "id": "cisco",
           "title": "6.4 Cisco",
-          "content": "<pre><code>show interface &lt;interface&gt;\nshow ip bgp &lt;IP&gt;\nshow l2vpn brief\nshow l2vpn instance-name &lt;ID&gt;</code></pre>"
+          "content": "<pre><code>show interface &lt;interface&gt;\nshow ip bgp &lt;IP&gt;\nshow bgp summary\nshow l2vpn brief\nshow l2vpn instance-name &lt;ID&gt;</code></pre>"
         },
         {
           "id": "juniper",

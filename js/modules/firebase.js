@@ -182,6 +182,27 @@ async function pushLocalItem(collection, item) {
 }
 
 // ========================================
+// GATE DE SINCRONIZACIÓN (cuota gratuita Spark)
+// ========================================
+// En el plan gratis de Firestore cada snapshot inicial cuesta 1 lectura por
+// documento. Si la app se recarga seguido (o se abre en varias pestañas), cada
+// carga vuelve a suscribir los listeners y vuelve a leer toda la colección,
+// quemando la cuota. Este gate omite la re-suscripción si ya sincronizamos hace
+// poco: dentro de la ventana (SYNC_COOLDOWN) se sirve la caché local que cada
+// snapshot ya persistió y se ahorra la re-lectura.
+
+const SYNC_COOLDOWN_MS = 60 * 1000;
+const lastCollectionRead = new Map();
+
+function shouldSyncNow(collection) {
+    const now = Date.now();
+    const last = lastCollectionRead.get(collection) || 0;
+    if (now - last < SYNC_COOLDOWN_MS) return false;
+    lastCollectionRead.set(collection, now);
+    return true;
+}
+
+// ========================================
 // FUNCIONES PARA CDC CON FALLBACK A LOCALSTORAGE
 // ========================================
 
@@ -221,6 +242,10 @@ export async function saveCDCToFirebase(cdcData) {
 export function getCDCFromFirebase(callback) {
     let unsubscribe = () => {};
     if (!db) {
+        callback(Storage.get('cor_cdc', []));
+        return unsubscribe;
+    }
+    if (!shouldSyncNow('cdc')) {
         callback(Storage.get('cor_cdc', []));
         return unsubscribe;
     }
@@ -370,6 +395,10 @@ export function getEventsFromFirebase(callback) {
         callback(Storage.get('cor_events', {}));
         return unsubscribe;
     }
+    if (!shouldSyncNow('events')) {
+        callback(Storage.get('cor_events', {}));
+        return unsubscribe;
+    }
     ensureAuth().then((authed) => {
         if (!authed) {
             callback(Storage.get('cor_events', {}));
@@ -437,142 +466,6 @@ export async function deleteEventFromFirebase(eventId) {
 }
 
 // ========================================
-// FUNCIONES PARA PROCEDIMIENTOS Y SUBSECCIONES PERSONALIZADAS (CRUD GUÍA)
-// ========================================
-
-export async function saveCustomProcedureToFirebase(procData, customId = null) {
-    const persistLocal = () => {
-        const local = Storage.get('cor_custom_procedures', []);
-        const newProc = customId ? { id: customId, ...procData, _pending: true } : { id: 'local_' + Date.now(), ...procData, _pending: true };
-        const idx = local.findIndex(p => p && p.id === newProc.id);
-        if (idx !== -1) local[idx] = newProc;
-        else local.push(newProc);
-        Storage.set('cor_custom_procedures', local);
-        return newProc;
-    };
-
-    if (!db) return persistLocal();
-    const authed = await ensureAuth();
-    if (!authed) return persistLocal();
-    try {
-        const payload = { ...procData, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-        if (customId) {
-            await db.collection('custom_procedures').doc(customId).set(payload);
-            markFirebaseRecovered();
-            return { id: customId, ...procData };
-        }
-        const docRef = await db.collection('custom_procedures').add(payload);
-        markFirebaseRecovered();
-        return { id: docRef.id, ...procData };
-    } catch (error) {
-        markFirebaseFailure('saveProcedure', error);
-        // Si Firestore falla (ej. cuota), se guarda localmente; se sincroniza después solo
-        return persistLocal();
-    }
-}
-
-export function getCustomProceduresFromFirebase(callback) {
-    let unsubscribe = () => {};
-    if (!db) {
-        callback(Storage.get('cor_custom_procedures', []));
-        return unsubscribe;
-    }
-    ensureAuth().then((authed) => {
-        if (!authed) {
-            callback(Storage.get('cor_custom_procedures', []));
-            return;
-        }
-        unsubscribe = db.collection('custom_procedures')
-            .onSnapshot((snapshot) => {
-                const serverList = [];
-                snapshot.forEach((doc) => {
-                    serverList.push({ id: doc.id, ...doc.data() });
-                });
-                const serverIds = new Set(serverList.map(p => p && p.id));
-                const local = Storage.get('cor_custom_procedures', []);
-                const localOnly = local.filter(p => p && !serverIds.has(p.id));
-                // Solo re-subir los pendientes (creados/guardados sin conexión o con
-                // Firestore caído). Los que no están pendientes ni en el servidor
-                // fueron borrados en otro lado (consola/admin): se descartan para
-                // que no reaparezcan tras refrescar.
-                const keepLocalOnly = localOnly.filter(p => p._pending);
-                keepLocalOnly.forEach(p => pushLocalItem('custom_procedures', p));
-                const list = [...serverList, ...keepLocalOnly];
-                Storage.set('cor_custom_procedures', list);
-                markFirebaseRecovered();
-                callback(list);
-            }, (error) => {
-                markFirebaseFailure('getProcedures', error);
-                callback(Storage.get('cor_custom_procedures', []));
-            });
-    });
-    return () => unsubscribe();
-}
-
-export async function deleteCustomProcedureFromFirebase(id) {
-    if (!db) {
-        const local = Storage.get('cor_custom_procedures', []);
-        const filtered = local.filter(p => p.id !== id);
-        Storage.set('cor_custom_procedures', filtered);
-        return true;
-    }
-    const authed = await ensureAuth();
-    if (!authed) {
-        const local = Storage.get('cor_custom_procedures', []);
-        const filtered = local.filter(p => p.id !== id);
-        Storage.set('cor_custom_procedures', filtered);
-        return true;
-    }
-    try {
-        await db.collection('custom_procedures').doc(id).delete();
-        markFirebaseRecovered();
-        return true;
-    } catch (error) {
-        markFirebaseFailure('deleteProcedure', error);
-        const local = Storage.get('cor_custom_procedures', []);
-        Storage.set('cor_custom_procedures', local.filter(p => p && p.id !== id));
-        return false;
-    }
-}
-
-export async function updateCustomProcedureInFirebase(id, procData) {
-    if (!db) {
-        const local = Storage.get('cor_custom_procedures', []);
-        const idx = local.findIndex(p => p.id === id);
-        if (idx !== -1) {
-            local[idx] = { ...local[idx], ...procData };
-            Storage.set('cor_custom_procedures', local);
-        }
-        return true;
-    }
-    const authed = await ensureAuth();
-    if (!authed) {
-        const local = Storage.get('cor_custom_procedures', []);
-        const idx = local.findIndex(p => p.id === id);
-        if (idx !== -1) {
-            local[idx] = { ...local[idx], ...procData };
-            Storage.set('cor_custom_procedures', local);
-        }
-        return true;
-    }
-    try {
-        await db.collection('custom_procedures').doc(id).update(procData);
-        markFirebaseRecovered();
-        return true;
-    } catch (error) {
-        markFirebaseFailure('updateProcedure', error);
-        // Mantener la edición local si Firestore falla (se sincroniza después)
-        const local = Storage.get('cor_custom_procedures', []);
-        const idx = local.findIndex(p => p.id === id);
-        if (idx !== -1) {
-            local[idx] = { ...local[idx], ...procData };
-            Storage.set('cor_custom_procedures', local);
-        }
-        return false;
-    }
-}
-
-// ========================================
 // FUNCIONES PARA NOTIFICACIONES (compartidas entre todos los usuarios)
 // ========================================
 
@@ -588,6 +481,10 @@ function notifTs(n) {
 export function getNotificationsFromFirebase(callback) {
     let unsubscribe = () => {};
     if (!db) {
+        callback(Storage.get('cor_notifications', []));
+        return unsubscribe;
+    }
+    if (!shouldSyncNow('notifications')) {
         callback(Storage.get('cor_notifications', []));
         return unsubscribe;
     }

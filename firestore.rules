@@ -19,11 +19,6 @@ service cloud.firestore {
       allow read, write: if signedIn();
     }
 
-    // Procedimientos y subsecciones personalizadas de la guía
-    match /custom_procedures/{documentId} {
-      allow read, write: if signedIn();
-    }
-
     // Notificaciones
     match /notifications/{documentId} {
       allow read, write: if signedIn();

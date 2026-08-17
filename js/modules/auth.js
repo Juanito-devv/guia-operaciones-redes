@@ -11,7 +11,7 @@ export const USERS_DB = {
     'jiraza01': { name: 'Juan Irazabal', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png', color: '#8b5cf6', role: 'user' },
     'aponce01': { name: 'Alejandro Ponce', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png', color: '#ec4899', role: 'user' },
     'ytovar01': { name: 'Yeifer Tovar', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png', color: '#f59e0b', role: 'user' },
-    'cmoral08': { name: 'Carlos Morales', avatar: 'https://upload.wikimedia.org/wikipedia/en/2/2f/Kratos_PS4.png', avatarPos: '50% 12%', color: '#10b981', role: 'user' },
+    'cmoral08': { name: 'Carlos Morales', avatar: 'https://upload.wikimedia.org/wikipedia/en/2/2f/Kratos_PS4.png', avatarPos: '50% 8%', avatarZoom: 2.5, color: '#10b981', role: 'user' },
     'festev02': { name: 'Francis Esteves', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png', color: '#06b6d4', role: 'user' },
     'horteg01': { name: 'Hernando Ortegano', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png', color: '#8b5cf6', role: 'user' },
     'jfigue10': { name: 'Jessica Figuera', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png', color: '#ec4899', role: 'user' },

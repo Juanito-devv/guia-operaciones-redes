@@ -13,7 +13,6 @@ import { updatePanelUserUI } from './modules/panel.js';
 import { initCalendar, initEventDetail } from './modules/calendar.js';
 import { initCDC, checkCDCReminders } from './modules/cdc.js';
 import { initNotifications } from './modules/notifications.js';
-import { initGuideEdit } from './modules/guide_edit.js';
 import { showDashboard } from './modules/dashboard.js';
 import { showLauncher, initLauncher } from './modules/launcher.js';
 import { initErrorMonitor, refreshErrorFab } from './modules/error_monitor.js';
@@ -39,7 +38,6 @@ async function loadData() {
         renderNav();
         updatePanelUserUI();
         initNotifications();
-        initGuideEdit();
 
         // 🔥 INICIALIZAR CDC (con Firebase)
         initCDC();

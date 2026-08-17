@@ -6,9 +6,15 @@ import { AppState } from '../state.js';
 import { getCurrentUser, logout, getSessionData } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
-function avatarMarkup(avatar, pos) {
+function avatarMarkup(avatar, pos, zoom) {
     if (avatar && /^https?:\/\//.test(avatar)) {
-        const style = pos ? ` style="object-position:${pos}"` : '';
+        const styles = [];
+        if (pos) styles.push(`object-position:${pos}`);
+        if (zoom && zoom > 1) {
+            styles.push(`transform:scale(${zoom})`);
+            styles.push(`transform-origin:${pos || 'center center'}`);
+        }
+        const style = styles.length ? ` style="${styles.join(';')}"` : '';
         return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario"${style} onerror="this.outerHTML='\u{1F464}'">`;
     }
     return `<span aria-hidden="true">${escapeHtml(avatar || '👤')}</span>`;
@@ -85,7 +91,7 @@ export function showProfile() {
                         <div class="profile-avatar-head">
                             <div class="profile-avatar-wrap">
                                 <div class="profile-avatar-ring">
-                                    <div class="profile-avatar">${avatarMarkup(avatar, userData && userData.avatarPos)}</div>
+                                    <div class="profile-avatar">${avatarMarkup(avatar, userData && userData.avatarPos, userData && userData.avatarZoom)}</div>
                                 </div>
                                 <span class="profile-role">
                                     <span class="material-symbols-outlined fill" aria-hidden="true">${roleIcon}</span>

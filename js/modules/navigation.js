@@ -1,66 +1,15 @@
 // ========================================
-// NAVIGATION MODULE (Con fusión de procedimientos colaborativos)
+// NAVIGATION MODULE
 // ========================================
 
 import { AppState } from '../state.js';
 import { Storage } from '../utils/storage.js';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize.js';
 import { hideSearchResults } from './search.js';
-import { openProcedureModal, deleteCustomProcedure } from './guide_edit.js';
-import { isAdmin } from './auth.js';
 import { showLoading, hideLoading } from './states.js';
 
 export function getMergedGuiaData() {
-    const rawData = AppState.get('guiaData');
-    if (!rawData) return null;
-
-    const customProcs = AppState.get('customProcedures') || [];
-    if (customProcs.length === 0) return rawData;
-
-    // Clonar para no mutar el JSON base. Cada subsección real puede acumular
-    // bloques de procedimientos colaborativos (el botón Editar/Eliminar de cada
-    // bloque se re-vincula en navigateTo con data-proc-id).
-    const mergedSections = rawData.sections.map(sec => {
-        const secCustoms = customProcs.filter(cp => cp.sectionId === sec.id);
-        const existingSubs = sec.subsections.map(sub => ({ ...sub, customBlocks: [] }));
-
-        secCustoms.forEach(cp => {
-            // 1) SI la subId apunta a una subsección REAL de la guía (1.1–7.3):
-            //    se adjunta el bloque al final del contenido de esa subsección.
-            const existingIdx = existingSubs.findIndex(s => s.id === cp.subId);
-            if (existingIdx !== -1) {
-                existingSubs[existingIdx].customBlocks.push({
-                    id: cp.id,
-                    title: cp.title,
-                    content: cp.content,
-                    author: cp.author,
-                    updatedAt: cp.updatedAt
-                });
-                return;
-            }
-
-            // 2) Legado: procedimientos guardados con subId custom_… (antes se
-            //    creaban como subsección propia). Se conservan como subsección
-            //    para no perder datos en Firestore.
-            existingSubs.push({
-                id: cp.subId,
-                title: cp.title,
-                content: `${cp.content}`,
-                isCustom: true,
-                rawCustom: cp
-            });
-        });
-
-        return {
-            ...sec,
-            subsections: existingSubs
-        };
-    });
-
-    return {
-        ...rawData,
-        sections: mergedSections
-    };
+    return AppState.get('guiaData');
 }
 
 export function renderNav() {
@@ -234,49 +183,6 @@ export function navigateTo(sectionId, subsectionId) {
         enhanceCodeBlocks(body);
         bindArticleNavigation(body);
 
-        // Botón Editar (solo rol admin): abre el modal de procedimiento con la sección preseleccionada
-        const editBtn = body.querySelector('#article-edit-btn');
-        if (editBtn) {
-            editBtn.addEventListener('click', () => {
-                openProcedureModal();
-                const select = document.getElementById('proc-section');
-                if (select) select.value = sectionId;
-                // Refrescar el select de subsección según la sección elegida
-                const subSelect = document.getElementById('proc-subsection');
-                if (subSelect && typeof subSelect.dispatchEvent === 'function') {
-                    subSelect.dispatchEvent(new Event('change'));
-                }
-            });
-        }
-
-        // Vincular botones de editar/eliminar de los bloques de procedimientos
-        // colaborativos (cada bloque vive dentro de una subsección real).
-        // Se buscan por data-proc-id para no depender de subsection.isCustom.
-        const customProcs = AppState.get('customProcedures') || [];
-        body.querySelectorAll('.article-block-btn[data-proc-id]').forEach(btn => {
-            const procId = btn.dataset.procId;
-            const raw = customProcs.find(p => String(p.id) === String(procId));
-            if (!raw) return;
-            btn.addEventListener('click', () => {
-                if (btn.dataset.action === 'delete') {
-                    deleteCustomProcedure(raw.id, sectionId, subsectionId);
-                } else {
-                    openProcedureModal(raw);
-                }
-            });
-        });
-
-        // Legado: subsecciones propias custom_… (no pierden su edición)
-        if (subsection.isCustom && subsection.rawCustom) {
-            const raw = subsection.rawCustom;
-            document.getElementById(`btn-edit-proc-${raw.id}`)?.addEventListener('click', () => {
-                openProcedureModal(raw);
-            });
-            document.getElementById(`btn-delete-proc-${raw.id}`)?.addEventListener('click', () => {
-                deleteCustomProcedure(raw.id, sectionId, subsectionId);
-            });
-        }
-
         document.dispatchEvent(new CustomEvent('navigate', { detail: { sectionId, subsectionId } }));
     }, 120);
 }
@@ -300,12 +206,6 @@ function buildArticleView(section, subsection, guiaData) {
             ${s.id === subsection.id ? '<span class="material-symbols-outlined article-toc-check" aria-hidden="true">check</span>' : ''}
         </a>`).join('');
 
-    const editBtn = isAdmin()
-        ? `<button type="button" class="article-btn article-btn-edit" id="article-edit-btn" title="Agregar o editar procedimientos de esta sección">
-                <span class="material-symbols-outlined" aria-hidden="true">edit</span> Editar
-           </button>`
-        : '';
-
     const prevNext = `
         <nav class="article-prevnext" aria-label="Navegación entre subsecciones">
             ${prev
@@ -322,24 +222,6 @@ function buildArticleView(section, subsection, guiaData) {
                 : '<span class="article-pn article-pn-empty"></span>'}
         </nav>`;
 
-    // Bloques de procedimientos colaborativos adjuntos a esta subsección real.
-    // Se renderizan FUERA de sanitizeHtml (los botones se pierden si pasan por
-    // él); se re-vinculan en navigateTo con data-proc-id.
-    const customBlocks = (subsection.customBlocks || []).map(block => `
-        <section class="article-custom-block" data-proc-id="${escapeHtml(block.id)}">
-            ${block.title ? `<h2 class="article-custom-block-title">${escapeHtml(block.title)}</h2>` : ''}
-            <div class="article-content article-custom-block-content">${sanitizeHtml(block.content)}</div>
-            ${isAdmin() ? `
-            <div class="article-custom-block-actions">
-                <button type="button" class="article-block-btn" data-action="edit" data-proc-id="${escapeHtml(block.id)}">
-                    <span class="material-symbols-outlined" aria-hidden="true">edit</span> Editar
-                </button>
-                <button type="button" class="article-block-btn article-block-btn-danger" data-action="delete" data-proc-id="${escapeHtml(block.id)}">
-                    <span class="material-symbols-outlined" aria-hidden="true">delete</span> Eliminar
-                </button>
-            </div>` : ''}
-        </section>`).join('');
-
     return `
         <article class="article-view">
             <header class="article-header">
@@ -353,13 +235,11 @@ function buildArticleView(section, subsection, guiaData) {
                         <span class="article-version-dot" aria-hidden="true"></span>
                         v${escapeHtml(version)}
                     </span>
-                    ${editBtn}
                 </div>
             </header>
             <div class="article-layout">
                 <div class="article-content-wrap">
                     <div class="article-content">${sanitizeHtml(subsection.content)}</div>
-                    ${customBlocks}
                     ${prevNext}
                 </div>
                 <aside class="article-rail">

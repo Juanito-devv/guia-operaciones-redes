@@ -17,11 +17,19 @@ import { escapeHtml } from '../utils/sanitize.js';
 /** Markup de avatar (compartido: img para URLs, emoji para texto).
  *  `pos` permite ajustar la zona visible de la foto (object-position),
  *  ej. "50% 12%" para centrar el recorte en la cara de un render de cuerpo completo.
+ *  `zoom` (opcional) acerca la foto (transform: scale) manteniendo el punto de
+ *  anclaje en `pos`: útil para ver solo la cara de imágenes de cuerpo completo.
  */
-export function avatarHtml(avatar, pos) {
+export function avatarHtml(avatar, pos, zoom) {
     if (!avatar) return '👤';
     if (/^https?:\/\//i.test(avatar)) {
-        const style = pos ? ` style="object-position:${pos}"` : '';
+        const styles = [];
+        if (pos) styles.push(`object-position:${pos}`);
+        if (zoom && zoom > 1) {
+            styles.push(`transform:scale(${zoom})`);
+            styles.push(`transform-origin:${pos || 'center center'}`);
+        }
+        const style = styles.length ? ` style="${styles.join(';')}"` : '';
         return `<img class="avatar-photo" src="${escapeHtml(avatar)}" alt="avatar" loading="lazy"${style} onerror="this.outerHTML='\u{1F464}'">`;
     }
     return escapeHtml(avatar);
@@ -88,7 +96,7 @@ export function updatePanelUserUI() {
     const name = userData ? escapeHtml(userData.name) : 'Anónimo';
 
     document.querySelectorAll('.user-name-display').forEach(el => el.textContent = name);
-    document.querySelectorAll('.user-avatar-display').forEach(el => el.innerHTML = avatarHtml(avatar, userData && userData.avatarPos));
+    document.querySelectorAll('.user-avatar-display').forEach(el => el.innerHTML = avatarHtml(avatar, userData && userData.avatarPos, userData && userData.avatarZoom));
     document.querySelectorAll('.user-role-display').forEach(el => el.textContent = `@${username || 'usuario'}`);
 
     const roleLabel = userData && userData.role === 'admin' ? 'Admin' : 'Operador';
