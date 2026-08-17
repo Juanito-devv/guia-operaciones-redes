@@ -194,4 +194,22 @@ function bindAyudaLinks(root) {
             if (sec && sub) navigateTo(sec, sub);
         });
     });
+
+    // Tarjetas del índice (href="#ayuda-..."). NO deben cambiar el hash de la URL:
+    // eso dispara el router y nos saca de la página. Scroll interno dentro de
+    // #main-content, respetando el scroll-margin-top de cada sección.
+    root.querySelectorAll('.ayuda-index-card[href^="#"]').forEach(card => {
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = root.querySelector(card.getAttribute('href'));
+            if (!target) return;
+            const container = document.getElementById('main-content');
+            if (container) {
+                const targetTop = target.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+                container.scrollTo({ top: targetTop - 16, behavior: 'smooth' });
+            } else {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
 }
