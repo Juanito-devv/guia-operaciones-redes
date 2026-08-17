@@ -100,7 +100,7 @@ export function renderCalendar() {
 
     const cdcDates = new Set();
     cdclist.forEach(cdc => {
-        if (cdc.date) cdcDates.add(cdc.date);
+        if (cdc.date && cdc.date >= todayStr) cdcDates.add(cdc.date);
     });
 
     for (let i = 0; i < totalCells; i++) {
@@ -155,8 +155,11 @@ export function renderEvents(date) {
     const events = Storage.get('cor_events', {});
     const cdclist = Storage.get('cor_cdc', []);
 
+    const nowToday = new Date();
+    const todayStr = `${nowToday.getFullYear()}-${String(nowToday.getMonth() + 1).padStart(2, '0')}-${String(nowToday.getDate()).padStart(2, '0')}`;
+
     const dayEvents = events[date] || [];
-    const dayCDC = cdclist.filter(cdc => cdc.date === date);
+    const dayCDC = cdclist.filter(cdc => cdc.date === date && cdc.date >= todayStr);
 
     if (dayEvents.length === 0 && dayCDC.length === 0) {
         showEmptyState({

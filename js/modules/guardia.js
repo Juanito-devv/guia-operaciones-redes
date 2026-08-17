@@ -212,7 +212,7 @@ export function loadGuardiaTab(root, skipFetch = false) {
     const defaultHora = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     setValue(root, 'g-usuario', AppState.get('currentUser') || data.usuario || 'Ytovar01');
-    setValue(root, 'g-hora', data.hora || defaultHora);
+    setValue(root, 'g-hora', defaultHora);
 
     setValue(root, 'g-ixp-alerta', data.ixpAlerta || '⚠️ INC483142 PATRIACELL');
     setValue(root, 'g-enlaces-variaciones', data.enlacesVariaciones || '⚠️INC482654 - COLUMBUS X-XI-XIII-XIV.\n⚠️INC483280-TGC I-II-III-IV\n❌ INC483322-Columbus XXI-XXII');

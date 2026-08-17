@@ -974,8 +974,8 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 
 /* Avatar con foto (URL) */
 .avatar-photo {
-    width: 1.3rem;
-    height: 1.3rem;
+    width: 1.5rem;
+    height: 1.5rem;
     border-radius: 50%;
     object-fit: cover;
     vertical-align: middle;
@@ -983,8 +983,8 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     box-shadow: 0 0 0 2px var(--bg-secondary);
 }
 .user-avatar-display .avatar-photo {
-    width: 2.2rem;
-    height: 2.2rem;
+    width: 2.6rem;
+    height: 2.6rem;
     border-width: 3px;
 }
 
@@ -7088,8 +7088,8 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     width: 100%;
 }
 .sidebar-profile-avatar {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--md-primary-container, #0055fe), var(--md-primary, #0041c7));
     color: #fff;
@@ -8684,7 +8684,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 }
 @media (min-width: 900px) {
     .cdc-bento {
-        grid-template-columns: minmax(280px, 4fr) minmax(0, 8fr);
+        grid-template-columns: minmax(300px, 4fr) minmax(0, 8fr);
     }
 }
 .cdc-bento-left {
@@ -8700,6 +8700,9 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 .cdc-table-card {
     cursor: default;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+.cdc-summary-card {
+    padding: 20px;
 }
 .cdc-summary-card:hover,
 .cdc-table-card:hover {
@@ -8736,7 +8739,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 /* Métricas */
 .cdc-metrics {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
     gap: 10px;
     margin-bottom: 18px;
 }
@@ -8744,6 +8747,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
     padding: 12px 14px;
     border-radius: 10px;
     background: var(--md-surface-container);

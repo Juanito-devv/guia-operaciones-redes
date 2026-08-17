@@ -68,12 +68,12 @@ export function markFirebaseFailure(op, error) {
         console.error(`Error en Firebase (${op}):`, error);
     }
 
-    if (!firebaseDegraded) {
+    if (!silent && !firebaseDegraded) {
         firebaseDegraded = true;
         window.dispatchEvent(new CustomEvent('firebase:degraded', {
             detail: {
                 op,
-                message: !silent && error && error.message ? error.message : String(error)
+                message: error && error.message ? error.message : String(error)
             }
         }));
     }
