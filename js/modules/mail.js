@@ -163,7 +163,7 @@ export function mailPanelHTML() {
 
         <div style="margin-bottom:8px;">
             <label style="font-size:0.65rem;font-weight:600;color:var(--text-secondary);">Circuito Afectado</label>
-            <input type="text" id="mail-circuito" placeholder="ej. COLUMBUS II (I7180.CN)" style="width:100%;padding:5px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary);font-size:0.75rem;">
+            <input type="text" id="mail-circuito" placeholder="ej. circuito + enlace internacional" style="width:100%;padding:5px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary);font-size:0.75rem;">
         </div>
 
         <div style="margin-bottom:8px;">
@@ -380,6 +380,11 @@ export function changeMailProvider(root) {
 export function resetMailTemplate(root) {
     const provider = getVal(root, 'mail-proveedor') || MAIL_PROVIDERS[0].id;
     setVal(root, 'mail-template', getDefaultTemplate(provider));
+    // Limpiar también los datos del incidente para empezar un correo desde cero
+    setVal(root, 'mail-circuito', '');
+    setVal(root, 'mail-ticket', '');
+    setVal(root, 'mail-hora', currentTime());
+    setVal(root, 'mail-afectacion', 'fuera-servicio');
     updateMailPreview(root);
     autoSaveMail(root);
 }
@@ -509,7 +514,7 @@ export function showMail() {
                         <div class="mail-form-body">
                             <div class="mail-field">
                                 <label for="mail-circuito">Circuito Afectado</label>
-                                <input type="text" id="mail-circuito" class="mail-input" placeholder="ej. COLUMBUS II (I7180.CN)">
+                                <input type="text" id="mail-circuito" class="mail-input" placeholder="ej. circuito + enlace internacional">
                             </div>
                             <div class="mail-field">
                                 <label for="mail-hora">Hora del Evento</label>

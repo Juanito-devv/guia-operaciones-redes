@@ -8,7 +8,7 @@ import { escapeHtml } from '../utils/sanitize.js';
 
 function avatarMarkup(avatar) {
     if (avatar && /^https?:\/\//.test(avatar)) {
-        return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario">`;
+        return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario" onerror="this.outerHTML='\u{1F464}'">`;
     }
     return `<span aria-hidden="true">${escapeHtml(avatar || '👤')}</span>`;
 }

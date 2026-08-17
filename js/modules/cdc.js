@@ -54,7 +54,51 @@ const cdcPageState = { query: '', status: 'todos' };
 let cdcEscapeBound = false;
 
 function statusOf(cdc) {
-    return cdc && CDC_STATUSES[cdc.status] ? cdc.status : 'programado';
+    if (!cdc) return 'programado';
+    // 'cancelado' es el único estado manual de override: nunca se re-deriva.
+    if (cdc.status === 'cancelado') return 'cancelado';
+    if (!cdc.date) return cdc.status && CDC_STATUSES[cdc.status] ? cdc.status : 'programado';
+
+    // Estados automáticos derivados del cronograma:
+    //   now < inicio            → programado
+    //   inicio <= now <= fin    → ejecucion
+    //   now > fin               → completado
+    const time = cdc.time || '00:00';
+    const start = new Date(`${cdc.date}T${time}:00`);
+    if (Number.isNaN(start.getTime())) {
+        return cdc.status && CDC_STATUSES[cdc.status] ? cdc.status : 'programado';
+    }
+    const durH = cdc.duration != null && !Number.isNaN(parseFloat(cdc.duration)) ? parseFloat(cdc.duration) : 2;
+    const end = new Date(start.getTime() + durH * 3600 * 1000);
+    const now = new Date();
+
+    if (now < start) return 'programado';
+    if (now >= start && now <= end) return 'ejecucion';
+    return 'completado';
+}
+
+// Purga mensual: el CDC Stream es la base del mes en curso. Al iniciar, si el
+// mes local cambió, se eliminan los CDCs con fecha anterior al primer día del
+// mes (Firestore + localStorage) y se actualiza el marcador para no repetir.
+function monthKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function purgeOldCDCs() {
+    const curMonth = monthKey();
+    if (Storage.get('cor_cdc_purge_month') === curMonth) return;
+    Storage.set('cor_cdc_purge_month', curMonth);
+
+    const firstOfMonth = curMonth + '-01';
+    const stale = (Array.isArray(cdclist) ? cdclist : []).filter(c => c.date && c.date < firstOfMonth);
+    if (stale.length === 0) return;
+
+    stale.forEach(c => {
+        if (c.id) deleteCDCFromFirebase(c.id).catch(() => { /* noop */ });
+    });
+    cdclist = cdclist.filter(c => !(c.date && c.date < firstOfMonth));
+    Storage.set('cor_cdc', cdclist);
 }
 
 // ========================================
@@ -67,6 +111,7 @@ export function initCDC() {
     }
     unsubscribeCDC = getCDCFromFirebase((data) => {
         cdclist = data;
+        purgeOldCDCs();
         Storage.set('cor_cdc', cdclist);
         renderCDC();
         renderCDCPage();
@@ -528,8 +573,11 @@ function renderTable(indexMap) {
     const countEl = document.getElementById('cdc-stream-count');
     if (!tbody) return;
     const list = Array.isArray(cdclist) ? cdclist.slice() : [];
+    const curMonth = monthKey();
+    // CDC Stream = base del mes en curso (el resto se descarta al cambiar de mes)
+    let filtered = list.filter(c => c.date && c.date.slice(0, 7) === curMonth);
     const q = cdcPageState.query;
-    let filtered = list.filter(c => {
+    filtered = filtered.filter(c => {
         if (q) {
             const hay = `${c.title || ''} ${c.desc || ''} ${c.author || ''}`.toLowerCase();
             if (!hay.includes(q)) return false;
@@ -542,7 +590,7 @@ function renderTable(indexMap) {
     if (countEl) countEl.textContent = `${filtered.length} registros`;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="calt-empty">${q || cdcPageState.status !== 'todos' ? 'Sin resultados para la búsqueda o el filtro.' : 'No hay Controles de Cambio registrados.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="calt-empty">${q || cdcPageState.status !== 'todos' ? 'Sin resultados para la búsqueda o el filtro.' : 'No hay Controles de Cambio registrados este mes.'}</td></tr>`;
         return;
     }
 
@@ -570,8 +618,10 @@ function renderCDCPage() {
 
 function downloadCDCStreamCSV() {
     const list = Array.isArray(cdclist) ? cdclist.slice() : [];
+    const curMonth = monthKey();
+    let filtered = list.filter(c => c.date && c.date.slice(0, 7) === curMonth);
     const q = cdcPageState.query;
-    let filtered = list.filter(c => {
+    filtered = filtered.filter(c => {
         if (q) {
             const hay = `${c.title || ''} ${c.desc || ''} ${c.author || ''}`.toLowerCase();
             if (!hay.includes(q)) return false;
@@ -671,10 +721,16 @@ function openCDCDetail(id) {
     const canEdit = isAdmin() || cdc.author === getCurrentAuthor();
     const editBtn = document.getElementById('cdc-detail-edit');
     const deleteBtn = document.getElementById('cdc-detail-delete');
+    const cancelBtn = document.getElementById('cdc-detail-cancel');
     if (editBtn) editBtn.style.display = canEdit ? '' : 'none';
     if (deleteBtn) deleteBtn.style.display = canEdit ? '' : 'none';
     if (editBtn) editBtn.dataset.id = cdc.id || '';
     if (deleteBtn) deleteBtn.dataset.id = cdc.id || '';
+    if (cancelBtn) {
+        const isCancel = statusOf(cdc) === 'cancelado';
+        cancelBtn.style.display = canEdit && !isCancel ? '' : 'none';
+        cancelBtn.dataset.id = cdc.id || '';
+    }
 
     modal.classList.add('open');
 }
@@ -736,6 +792,20 @@ async function deleteCDCPage(id, title) {
     if (!id) return;
     if (!confirm(`¿Eliminar el Control de Cambio "${title}"?`)) return;
     await deleteCDCFromFirebase(id);
+    closeCDCModal('cdc-detail-modal');
+    renderCDCPage();
+}
+
+async function cancelCDCPage(id, title) {
+    if (!id) return;
+    if (!confirm(`¿Cancelar el Control de Cambio "${title}"? Esta acción fija el estado en Cancelado.`)) return;
+    await updateCDCInFirebase(id, { status: 'cancelado' });
+    createNotification({
+        title: '🚫 CDC Cancelado',
+        message: `El Control de Cambio "${title}" fue cancelado.`,
+        type: 'cdc',
+        author: getCurrentAuthor()
+    });
     closeCDCModal('cdc-detail-modal');
     renderCDCPage();
 }
@@ -814,6 +884,11 @@ function bindCDCPageEvents(root) {
         const id = e.currentTarget.dataset.id;
         const cdc = (Array.isArray(cdclist) ? cdclist : []).find(c => String(c.id) === String(id));
         deleteCDCPage(id, cdc ? cdc.title : '');
+    });
+    document.getElementById('cdc-detail-cancel')?.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const cdc = (Array.isArray(cdclist) ? cdclist : []).find(c => String(c.id) === String(id));
+        cancelCDCPage(id, cdc ? cdc.title : '');
     });
 
     // Cerrar modales al hacer clic fuera
@@ -1043,6 +1118,7 @@ export function showCDCTool() {
                 </div>
                 <div class="cdc-modal-foot">
                     <button type="button" class="cdc-modal-btn cdc-modal-btn-danger" id="cdc-detail-delete">Eliminar</button>
+                    <button type="button" class="cdc-modal-btn cdc-modal-btn-warn" id="cdc-detail-cancel" style="display:none;">Cancelar CDC</button>
                     <button type="button" class="cdc-modal-btn" id="cdc-detail-edit">Editar Detalles</button>
                     <button type="button" class="cdc-modal-btn cdc-modal-btn-primary" id="cdc-detail-close2">Cerrar</button>
                 </div>

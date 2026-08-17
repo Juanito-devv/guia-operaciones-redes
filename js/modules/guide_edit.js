@@ -68,7 +68,9 @@ function bindAddButton() {
 }
 
 /**
- * Abre el modal para agregar o editar un procedimiento
+ * Abre el modal para agregar o editar un procedimiento.
+ * El procedimiento se agrega como BLOQUE dentro de una subsección real
+ * (Sección + Subsección), nunca como una subsección nueva con prefijo ✨.
  */
 export function openProcedureModal(editProc = null) {
     const oldModal = document.getElementById('proc-modal-overlay');
@@ -83,7 +85,7 @@ export function openProcedureModal(editProc = null) {
     overlay.style.zIndex = '99999';
 
     overlay.innerHTML = `
-        <div class="login-container" style="max-width:560px;width:92%;max-height:90vh;overflow-y:auto;padding:28px 32px;">
+        <div class="login-container" style="max-width:600px;width:94%;max-height:90vh;overflow-y:auto;padding:28px 32px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid var(--border-color);padding-bottom:12px;">
                 <h3 style="margin:0;font-size:1.1rem;">${editProc ? '✏️ Editar Procedimiento' : '📖 Agregar Procedimiento / Comando a la Guía'}</h3>
                 <button id="proc-modal-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">✕</button>
@@ -94,6 +96,13 @@ export function openProcedureModal(editProc = null) {
                     <select id="proc-section" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;" required>
                         ${sections.map(s => `<option value="${escapeHtml(s.id)}" ${editProc && editProc.sectionId === s.id ? 'selected' : ''}>${escapeHtml(s.title)}</option>`).join('')}
                     </select>
+                </div>
+                <div class="login-field">
+                    <label for="proc-subsection">Subsección donde se mostrará</label>
+                    <select id="proc-subsection" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;" required>
+                        <option value="">— Elige una sección primero —</option>
+                    </select>
+                    <div style="font-size:0.66rem;color:var(--text-muted);margin-top:3px;">El procedimiento se agrega como bloque al final de esta subsección.</div>
                 </div>
                 <div class="login-field">
                     <label for="proc-title">Título del Procedimiento o Comando</label>
@@ -122,10 +131,27 @@ export function openProcedureModal(editProc = null) {
     const cancelBtn = document.getElementById('proc-modal-cancel');
     const deleteBtn = document.getElementById('proc-modal-delete');
     const form = document.getElementById('proc-form');
+    const sectionSel = document.getElementById('proc-section');
+    const subSel = document.getElementById('proc-subsection');
 
     const closeModal = () => overlay.remove();
     closeBtn?.addEventListener('click', closeModal);
     cancelBtn?.addEventListener('click', closeModal);
+
+    // Poblar el select de subsecciones según la sección elegida (dependiente)
+    const populateSubsections = () => {
+        const sectionId = sectionSel.value;
+        const section = sections.find(s => s.id === sectionId);
+        if (!section) {
+            subSel.innerHTML = '<option value="">— Elige una sección primero —</option>';
+            return;
+        }
+        subSel.innerHTML = (section.subsections || []).map(sub =>
+            `<option value="${escapeHtml(sub.id)}" ${editProc && editProc.sectionId === sectionId && editProc.subId === sub.id ? 'selected' : ''}>${escapeHtml(sub.title)}</option>`
+        ).join('');
+    };
+    sectionSel?.addEventListener('change', populateSubsections);
+    populateSubsections();
 
     if (deleteBtn) {
         deleteBtn.addEventListener('click', async () => {
@@ -144,12 +170,13 @@ export function openProcedureModal(editProc = null) {
         // Evitar envíos dobles (clics repetidos creaban procedimientos duplicados)
         if (form.dataset.saving === '1') return;
 
-        const sectionId = document.getElementById('proc-section').value;
+        const sectionId = sectionSel.value;
+        const subId = subSel.value;
         const title = document.getElementById('proc-title').value.trim();
         const content = document.getElementById('proc-content').value.trim();
 
-        if (!sectionId || !title || !content) {
-            showGuideToast('⚠️ Faltan datos', 'Completa la sección, el título y el contenido.', true);
+        if (!sectionId || !subId || !title || !content) {
+            showGuideToast('⚠️ Faltan datos', 'Completa la sección, la subsección, el título y el contenido.', true);
             return;
         }
 
@@ -158,7 +185,6 @@ export function openProcedureModal(editProc = null) {
         submitBtn.innerHTML = '⏳ Publicando…';
         form.dataset.saving = '1';
 
-        const subId = 'custom_' + Date.now();
         const author = getCurrentAuthor();
 
         const procData = {
@@ -201,8 +227,13 @@ export function openProcedureModal(editProc = null) {
         closeModal();
         showGuideToast(
             editProc ? '✅ Procedimiento actualizado' : '✅ Procedimiento publicado',
-            `"${title}" ya está disponible en la guía.`
+            `"${title}" se muestra en la subsección seleccionada de la guía.`
         );
+        // Si ya estábamos viendo esa misma subsección, el guard de navigateTo
+        // (misma sección/subsección => return) impediría re-renderizar el bloque.
+        // Se resetea el estado actual para forzar el re-render con el bloque nuevo.
+        AppState.set('currentSectionId', null);
+        AppState.set('currentSubsectionId', null);
         navigateTo(sectionId, procData.subId);
     });
 }

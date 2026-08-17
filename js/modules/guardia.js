@@ -124,7 +124,7 @@ export function guardiaTabHTML() {
             <summary style="font-size:0.75rem;font-weight:600;cursor:pointer;color:var(--accent);">🟡 Msg 1: Servicios IXP (Haz clic en el estado para cambiar)</summary>
             <div style="margin-top:6px;">
                 <label style="font-size:0.65rem;color:var(--text-muted);">Alerta IXP / Nota Especial</label>
-                <input type="text" id="g-ixp-alerta" placeholder="ej. ⚠️ INC483142 PATRIACELL" style="width:100%;padding:4px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.75rem;margin-bottom:8px;">
+                <textarea id="g-ixp-alerta" placeholder="ej. ⚠️ INC483142 PATRIACELL" style="width:100%;min-height:38px;padding:4px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.75rem;margin-bottom:8px;white-space:pre-wrap;"></textarea>
                 <div id="g-ixp-items" style="display:flex;flex-direction:column;gap:3px;max-height:160px;overflow-y:auto;padding-right:4px;"></div>
             </div>
         </details>
@@ -163,31 +163,16 @@ export function guardiaTabHTML() {
             <summary style="font-size:0.75rem;font-weight:600;cursor:pointer;color:var(--accent);">📋 Msg 5: Informe General de Tickets</summary>
             <div style="margin-top:6px;">
                 <label style="font-size:0.65rem;color:var(--text-muted);font-weight:600;display:block;margin-bottom:2px;">Ticket en Proceso</label>
-                <div style="display:flex;gap:4px;margin-bottom:4px;">
-                    ${statusBtn('g-t-proceso', '✅')}
-                    ${statusBtn('g-t-proceso', '⚠️')}
-                    ${statusBtn('g-t-proceso', '❌')}
-                </div>
                 <textarea id="g-t-proceso" style="width:100%;min-height:50px;padding:4px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.7rem;margin-bottom:8px;"></textarea>
 
                 <button type="button" id="g-toggle-seguimiento" class="g-section-toggle" data-active="1" data-name="Ticket en seguimiento" title="Habilitar o deshabilitar esta sección del mensaje" style="width:100%;padding:5px 8px;background:rgba(16,185,129,0.18);border:1px solid #10b981;border-radius:var(--radius);cursor:pointer;font-family:var(--font);font-size:0.68rem;font-weight:600;color:#10b981;margin-bottom:4px;text-align:left;display:flex;align-items:center;gap:6px;">
                     <span class="g-toggle-state">✔️</span><span class="g-toggle-text">Incluir sección "Ticket en seguimiento"</span>
                 </button>
-                <div style="display:flex;gap:4px;margin-bottom:4px;">
-                    ${statusBtn('g-t-seguimiento', '✅')}
-                    ${statusBtn('g-t-seguimiento', '⚠️')}
-                    ${statusBtn('g-t-seguimiento', '❌')}
-                </div>
                 <textarea id="g-t-seguimiento" style="width:100%;min-height:50px;padding:4px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.7rem;margin-bottom:8px;"></textarea>
 
                 <button type="button" id="g-toggle-resueltos" class="g-section-toggle" data-active="1" data-name="Resueltos" title="Habilitar o deshabilitar esta sección del mensaje" style="width:100%;padding:5px 8px;background:rgba(16,185,129,0.18);border:1px solid #10b981;border-radius:var(--radius);cursor:pointer;font-family:var(--font);font-size:0.68rem;font-weight:600;color:#10b981;margin-bottom:4px;text-align:left;display:flex;align-items:center;gap:6px;">
                     <span class="g-toggle-state">✔️</span><span class="g-toggle-text">Incluir sección "Resueltos"</span>
                 </button>
-                <div style="display:flex;gap:4px;margin-bottom:4px;">
-                    ${statusBtn('g-t-resueltos', '✅')}
-                    ${statusBtn('g-t-resueltos', '⚠️')}
-                    ${statusBtn('g-t-resueltos', '❌')}
-                </div>
                 <textarea id="g-t-resueltos" style="width:100%;min-height:40px;padding:4px 6px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.7rem;"></textarea>
             </div>
         </details>
@@ -321,7 +306,7 @@ function refreshTicketStatusUI(root, textareaId) {
 }
 
 function refreshAllTicketStatusUI(root) {
-    ['g-olt-tickets', 'g-t-proceso', 'g-t-seguimiento', 'g-t-resueltos'].forEach(id => refreshTicketStatusUI(root, id));
+    ['g-olt-tickets'].forEach(id => refreshTicketStatusUI(root, id));
 }
 
 function setSectionToggle(root, id, active) {
@@ -485,7 +470,7 @@ export function bindGuardiaTabEvents(root) {
     $el(root, 'g-toggle-seguimiento')?.addEventListener('click', () => toggleSection(root, 'g-toggle-seguimiento'));
     $el(root, 'g-toggle-resueltos')?.addEventListener('click', () => toggleSection(root, 'g-toggle-resueltos'));
 
-    ['g-olt-tickets', 'g-t-proceso', 'g-t-seguimiento', 'g-t-resueltos'].forEach(id => {
+    ['g-olt-tickets'].forEach(id => {
         $el(root, id)?.addEventListener('input', () => refreshTicketStatusUI(root, id));
     });
     bindTicketStatusButtons(root);

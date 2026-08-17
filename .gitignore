@@ -10,6 +10,9 @@ Thumbs.db
 _cdp_test*.mjs
 _refactor*.mjs
 
+# Capturas de revisión visual (workflow local)
+capturas/
+
 # Secretos y respaldos locales — NUNCA subir a GitHub
 _local_backup/
 data/credenciales.json

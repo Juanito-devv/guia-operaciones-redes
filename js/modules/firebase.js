@@ -30,6 +30,23 @@ const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.fi
 
 let firebaseDegraded = false;
 
+// Throttle de logs de errores: sin esto, una falla de red/permisos (que las
+// reglas piden en cada operación) inundaba la consola con cientos de errores.
+// Se registra el PRIMER error por operación y luego, como máximo, uno cada 30s.
+const failedOps = new Map();
+const FAIL_LOG_INTERVAL = 30 * 1000;
+const PERMISSION_MESSAGES = [
+    'missing or insufficient permissions',
+    'permission-denied',
+    'permission denied',
+    'request.auth'
+];
+
+function isPermissionError(error) {
+    const msg = String((error && error.message) || error || '').toLowerCase();
+    return PERMISSION_MESSAGES.some(needle => msg.includes(needle));
+}
+
 export function isFirebaseDegraded() {
     return firebaseDegraded;
 }
@@ -37,13 +54,27 @@ export function isFirebaseDegraded() {
 /**
  * Marca que Firebase falló (red, permisos o reglas) y lo comunica a la UI.
  * Las operaciones siguen degradando a localStorage, pero el usuario se entera.
+ * El log en consola está limitado para no inundar (ver throttle arriba), y los
+ * errores de permisos se degradan en silencio (la app funciona 100% local).
  */
 export function markFirebaseFailure(op, error) {
-    console.error(`Error en Firebase (${op}):`, error);
+    const silent = isPermissionError(error);
+
+    const now = Date.now();
+    const last = failedOps.get(op) || 0;
+    const shouldLog = !silent && (now - last >= FAIL_LOG_INTERVAL);
+    if (shouldLog) {
+        failedOps.set(op, now);
+        console.error(`Error en Firebase (${op}):`, error);
+    }
+
     if (!firebaseDegraded) {
         firebaseDegraded = true;
         window.dispatchEvent(new CustomEvent('firebase:degraded', {
-            detail: { op, message: error && error.message ? error.message : String(error) }
+            detail: {
+                op,
+                message: !silent && error && error.message ? error.message : String(error)
+            }
         }));
     }
 }
@@ -65,14 +96,25 @@ export function markFirebaseRecovered() {
 // habilitado en consola), degrada a localStorage: la app nunca se rompe.
 
 let authReadyPromise = null;
+let authRetryAt = 0;
+const AUTH_RETRY_COOLDOWN = 30 * 1000;
 
 function ensureAuth() {
     if (!db) return Promise.resolve(false);
+
+    // Backoff: si el login anónimo acaba de fallar, no lanzar un intento nuevo
+    // por cada operación (eso multiplicaba los errores en consola). Se devuelve
+    // true igual y las operaciones degradan solas a localStorage.
+    if (authRetryAt && Date.now() < authRetryAt) {
+        return Promise.resolve(true);
+    }
+
     if (!authReadyPromise) {
         authReadyPromise = (async () => {
             try {
                 if (firebase.auth && firebase.auth().currentUser) return true;
                 await firebase.auth().signInAnonymously();
+                authRetryAt = 0;
                 return true;
             } catch (error) {
                 // El método anónimo puede estar deshabilitado en consola o caer
@@ -80,6 +122,7 @@ function ensureAuth() {
                 // reglas permiten acceso (modo abierto) sincronizan, y si
                 // rechazan, degradan a localStorage con el aviso visible.
                 authReadyPromise = null;
+                authRetryAt = Date.now() + AUTH_RETRY_COOLDOWN;
                 return true;
             }
         })();

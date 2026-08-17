@@ -4,7 +4,7 @@
 
 import { AppState } from '../state.js';
 import { Storage } from '../utils/storage.js';
-import { openPanelTab } from './panel.js';
+import { showMapTool } from './panel.js';
 import { showGuardia } from './guardia.js';
 import { showMail } from './mail.js';
 import { showCalendarTool } from './calendar_tool.js';
@@ -26,8 +26,6 @@ const TOOLS = [
     { id: 'settings', icon: 'palette', title: 'Estilo', desc: 'Configuración de interfaz, temas y apariencia del sistema.', short: 'Temas y apariencia', tone: 'primary' }
 ];
 
-const TOOL_TITLES = Object.fromEntries(TOOLS.map(t => [t.id, t.title]));
-
 /**
  * Muestra el dashboard (#/dashboard) o expande una herramienta (#/dashboard/<id>).
  * @param {string|null} toolId - id de la herramienta o null para el dashboard general
@@ -46,6 +44,15 @@ export function showDashboard(toolId) {
     const body = document.getElementById('content-body');
     const titleEl = document.getElementById('content-title');
     const breadcrumb = document.getElementById('breadcrumb');
+
+    if (toolId === 'map') {
+        // Herramienta Mapa: página completa (índice jerárquico de la guía)
+        titleEl.textContent = 'Mapa';
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Mapa</span>`;
+        body.innerHTML = '';
+        showMapTool();
+        return;
+    }
 
     if (toolId === 'guardia') {
         // Herramienta Guardia: página completa (5 mensajes para Telegram)
@@ -113,25 +120,6 @@ export function showDashboard(toolId) {
         breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Registro de errores</span>`;
         body.innerHTML = '';
         showErrorLogPage();
-        return;
-    }
-
-    if (toolId && TOOL_TITLES[toolId]) {
-        // Expandir la herramienta en el panel
-        titleEl.textContent = TOOL_TITLES[toolId];
-        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>${TOOL_TITLES[toolId]}</span>`;
-        body.innerHTML = `
-            <div class="dashboard-tool-panel">
-                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
-                    Herramienta abierta desde el dashboard. Cierra el panel (✕ o Ctrl+.) para volver.
-                </p>
-                <button id="btn-open-tool" class="btn" style="background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:var(--mono);font-size:0.78rem;letter-spacing:0.6px;padding:10px 20px;cursor:pointer;">
-                    ⚡ Abrir ${TOOL_TITLES[toolId]}
-                </button>
-            </div>
-        `;
-        document.getElementById('btn-open-tool')?.addEventListener('click', () => openPanelTab(toolId));
-        openPanelTab(toolId);
         return;
     }
 

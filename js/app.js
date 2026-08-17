@@ -3,12 +3,13 @@
 // ========================================
 
 import { AppState } from './state.js';
+import { Storage } from './utils/storage.js';
 import { initTheme, applyDensity } from './modules/theme.js';
 import { validateSession, initLogin, logout } from './modules/auth.js';
 import { renderNav, navigateTo, initMobileMenu } from './modules/navigation.js';
 import { initSearch, hideSearchResults, initGlobalSearch, openGlobalSearch, closeGlobalSearch } from './modules/search.js';
 import { showHome, navigateToFirstSection } from './modules/home.js';
-import { createQuickPanel, togglePanel, updatePanelUserUI } from './modules/panel.js';
+import { updatePanelUserUI } from './modules/panel.js';
 import { initCalendar, initEventDetail } from './modules/calendar.js';
 import { initCDC, checkCDCReminders } from './modules/cdc.js';
 import { initNotifications } from './modules/notifications.js';
@@ -36,7 +37,6 @@ async function loadData() {
         AppState.set('guiaData', data);
 
         renderNav();
-        createQuickPanel();
         updatePanelUserUI();
         initNotifications();
         initGuideEdit();
@@ -116,13 +116,24 @@ function registerServiceWorker() {
 /**
  * Aviso visible cuando Firebase se degrada (falla de red/permisos):
  * los cambios se guardan solo en localStorage y no se sincronizan.
+ * El banner puede descartarse (✕) y queda oculto en ese navegador hasta
+ * que Firebase se recupere, sin volver a aparecer en cada error.
  */
 function initFirebaseStatusBanner() {
     const banner = document.getElementById('fb-status-banner');
     if (!banner) return;
 
+    const DISMISS_KEY = 'cor_fb_banner_dismissed';
     const msgEl = banner.querySelector('.fb-status-msg');
+
+    const closeBtn = document.getElementById('fb-status-close');
+    closeBtn?.addEventListener('click', () => {
+        Storage.set(DISMISS_KEY, '1');
+        banner.hidden = true;
+    });
+
     window.addEventListener('firebase:degraded', (e) => {
+        if (Storage.get(DISMISS_KEY) === '1') return;
         const detail = e.detail || {};
         if (msgEl) msgEl.textContent = 'Sin conexión con Firebase — los cambios se guardan solo en este navegador (no se sincronizan). ' + (detail.message ? `(${detail.message})` : '');
         banner.hidden = false;
@@ -193,11 +204,6 @@ function handleGlobalKeys(e) {
         document.getElementById('search-input')?.blur();
         document.getElementById('sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('active');
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === '.') {
-        e.preventDefault();
-        togglePanel();
     }
 }
 

@@ -11,6 +11,45 @@ import { saveEventToFirebase, getEventsFromFirebase, deleteEventFromFirebase, is
 let calendarDate = new Date();
 let unsubscribeEvents = null;
 
+const PURGE_MARKER_KEY = 'cor_events_purge_day';
+
+/**
+ * Limpia automáticamente las actividades pasadas (fecha < hoy) del calendario:
+ * se borran de localStorage y de Firestore (deleteEventFromFirebase por id).
+ * Solo se ejecuta una vez por día (marcador), para no repetir borrados ni
+ * llamadas al servidor en cada recarga.
+ */
+function purgePastEvents() {
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const lastPurge = Storage.get(PURGE_MARKER_KEY);
+    if (lastPurge === todayKey) return;
+    Storage.set(PURGE_MARKER_KEY, todayKey);
+
+    const events = Storage.get('cor_events', {});
+    let changed = false;
+
+    Object.keys(events).forEach(dateKey => {
+        if (dateKey < todayKey) {
+            (events[dateKey] || []).forEach(ev => {
+                if (ev && ev.id) {
+                    // Eliminar también del servidor; el fallo de red se degrada
+                    // solo y la purga local ya está hecha.
+                    deleteEventFromFirebase(ev.id).catch(() => { /* noop */ });
+                }
+            });
+            delete events[dateKey];
+            changed = true;
+        }
+    });
+
+    if (changed) {
+        Storage.set('cor_events', events);
+        renderCalendar();
+    }
+}
+
 export function initCalendar() {
     document.getElementById('cal-prev')?.addEventListener('click', () => {
         calendarDate.setMonth(calendarDate.getMonth() - 1);
@@ -23,6 +62,9 @@ export function initCalendar() {
     });
 
     document.getElementById('event-add')?.addEventListener('click', addEvent);
+
+    // Limpieza automática de actividades pasadas (una vez por día)
+    purgePastEvents();
 
     // Sincronización en vivo del calendario (Firestore + fusión local)
     if (unsubscribeEvents) unsubscribeEvents();
