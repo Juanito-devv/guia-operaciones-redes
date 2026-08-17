@@ -14,6 +14,7 @@ import { initCalendar } from './modules/calendar.js';
 import { initCDC, checkCDCReminders } from './modules/cdc.js';
 import { initNotifications } from './modules/notifications.js';
 import { showDashboard } from './modules/dashboard.js';
+import { showAyuda } from './modules/ayuda.js';
 import { showLauncher, initLauncher } from './modules/launcher.js';
 import { initErrorMonitor, refreshErrorFab } from './modules/error_monitor.js';
 import { showLoadError } from './modules/states.js';
@@ -46,6 +47,11 @@ async function loadData() {
         // Nota: se normaliza el slash inicial para aceptar #/dashboard/<id> y #/seccion/sub
         const hash = window.location.hash.replace('#', '').replace(/^\//, '');
         if (hash) {
+            if (hash === 'ayuda') {
+                showAyuda();
+                syncAppBottomNav();
+                return true;
+            }
             if (hash === 'dashboard' || hash.startsWith('dashboard/')) {
                 const parts = hash.split('/');
                 const toolId = parts.length > 1 ? parts[1].split('?')[0] : null;
@@ -205,6 +211,16 @@ function handleHashChange() {
     // Datos fusionados: incluye las subsecciones/ bloques colaborativos
     // (custom_…) guardados en localStorage/Firestore, no solo el JSON base.
     const guiaData = getMergedGuiaData();
+
+    if (hash === 'ayuda') {
+        if (AppState.get('currentView') === 'ayuda') {
+            syncAppBottomNav();
+            return;
+        }
+        showAyuda();
+        syncAppBottomNav();
+        return;
+    }
 
     if (hash === 'dashboard' || hash.startsWith('dashboard/')) {
         const toolId = hash === 'dashboard' ? null : hash.split('/')[1].split('?')[0];

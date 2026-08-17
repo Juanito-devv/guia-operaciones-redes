@@ -173,6 +173,7 @@ export function hideSearchResults() {
 
 const MODULE_ITEMS = [
     { title: 'Inicio', keywords: 'home inicio bienvenida', icon: 'home', dest: '#' },
+    { title: 'Ayuda', keywords: 'ayuda como usar manual documentacion ayuda', icon: 'help', dest: '#/ayuda' },
     { title: 'Espacio de Trabajo', keywords: 'dashboard trabajo workspace hub modulos', icon: 'workspaces', dest: '#/dashboard' },
     { title: 'Calendario', keywords: 'eventos agenda planificacion cronograma', icon: 'calendar_month', dest: '#/dashboard/calendar' },
     { title: 'CDC', keywords: 'controles de cambio cambio cr intervenciones', icon: 'space_dashboard', dest: '#/dashboard/cdc' },

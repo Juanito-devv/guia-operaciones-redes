@@ -26,6 +26,9 @@ export const HOME_PAGE_HTML = `
                 <button class="hp-btn hp-btn-secondary" id="btn-go-dashboard" type="button">
                     <span class="material-symbols-outlined" aria-hidden="true">work</span> Espacio de Trabajo
                 </button>
+                <button class="hp-btn hp-btn-tertiary" id="btn-go-ayuda" type="button">
+                    <span class="material-symbols-outlined" aria-hidden="true">help</span> Cómo usar
+                </button>
             </div>
         </div>
     </section>
@@ -144,6 +147,9 @@ export function showHome() {
         // Botones del hero
         document.getElementById('btn-go-dashboard')?.addEventListener('click', () => {
             window.location.hash = '#/dashboard';
+        });
+        document.getElementById('btn-go-ayuda')?.addEventListener('click', () => {
+            window.location.hash = '#/ayuda';
         });
         document.getElementById('btn-go-first-section')?.addEventListener('click', navigateToFirstSection);
 

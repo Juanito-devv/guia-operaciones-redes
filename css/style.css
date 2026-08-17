@@ -9831,4 +9831,258 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 [data-theme="dark"] .tool-construction p { color: #8e90a0; }
 [data-theme="dark"] .tool-construction p b { color: #e2e1ee; }
 
+/* ========================================
+   AYUDA — Launcher Card 3 (variante terciaria)
+   ======================================== */
+.launcher-card-help {
+    background: linear-gradient(180deg, #f0f5ff 0%, #ffffff 100%);
+    border-color: #c7d6f5;
+}
+.launcher-card-help:hover { box-shadow: 0 12px 32px rgba(0, 65, 199, 0.12); }
+.launcher-card-help .launcher-card-icon {
+    background: #e5eeff;
+    color: #0041c7;
+}
+[data-theme="dark"] .launcher-card-help {
+    background: linear-gradient(180deg, #1e293b 0%, #1e293b 100%);
+    border-color: #3b4a63;
+}
+[data-theme="dark"] .launcher-card-help:hover { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
+[data-theme="dark"] .launcher-card-help .launcher-card-icon {
+    background: #282a32;
+    color: #b6c4ff;
+}
+
+/* ========================================
+   HOME — Botón terciario "Cómo usar"
+   ======================================== */
+.hp-btn-tertiary {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+.hp-btn-tertiary .material-symbols-outlined { color: var(--accent); }
+.hp-btn-tertiary:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+.hp-btn-tertiary:active { transform: translateY(0); }
+[data-theme="dark"] .hp-btn-tertiary { color: #c4c5d7; }
+[data-theme="dark"] .hp-btn-tertiary:hover { background: #334155; color: #f8f9ff; }
+
+/* ========================================
+   AYUDA — Página #/ayuda
+   ======================================== */
+.ayuda-page { max-width: 1000px; margin: 0 auto; }
+
+.ayuda-index {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 36px;
+}
+.ayuda-index-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e0e3e5;
+    box-shadow: 0 4px 12px rgba(0, 65, 199, 0.04);
+    text-decoration: none;
+    color: #131b2e;
+    transition: all 0.2s ease-out;
+}
+.ayuda-index-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 65, 199, 0.12);
+    border-color: #b6c4ff;
+}
+.ayuda-index-card .material-symbols-outlined {
+    font-size: 28px;
+    color: #0041c7;
+}
+.ayuda-index-card strong { font-size: 16px; line-height: 22px; color: #131b2e; }
+.ayuda-index-card small { font-size: 13px; line-height: 20px; color: #747686; }
+[data-theme="dark"] .ayuda-index-card { background: #191b24; border-color: #434654; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+[data-theme="dark"] .ayuda-index-card:hover { border-color: #b6c4ff; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5); }
+[data-theme="dark"] .ayuda-index-card .material-symbols-outlined { color: #b6c4ff; }
+[data-theme="dark"] .ayuda-index-card strong { color: #e2e1ee; }
+[data-theme="dark"] .ayuda-index-card small { color: #8e90a0; }
+
+.ayuda-section {
+    padding: 24px;
+    margin-bottom: 24px;
+    background: #ffffff;
+    border: 1px solid #e0e3e5;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0, 65, 199, 0.04);
+    scroll-margin-top: 24px;
+}
+.ayuda-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--heading);
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+    color: #131b2e;
+    margin: 0 0 12px 0;
+}
+.ayuda-section h3 .material-symbols-outlined { color: #0041c7; }
+.ayuda-section h4 {
+    font-family: var(--heading);
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+    color: #131b2e;
+    margin: 18px 0 8px 0;
+}
+.ayuda-section p {
+    font-size: 15px;
+    line-height: 24px;
+    color: #4b4d5c;
+    margin: 0 0 10px 0;
+}
+.ayuda-section ul {
+    margin: 0 0 10px 0;
+    padding-left: 22px;
+    font-size: 15px;
+    line-height: 24px;
+    color: #4b4d5c;
+}
+.ayuda-section li { margin-bottom: 4px; }
+[data-theme="dark"] .ayuda-section { background: #191b24; border-color: #434654; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+[data-theme="dark"] .ayuda-section h3 { color: #e2e1ee; }
+[data-theme="dark"] .ayuda-section h3 .material-symbols-outlined { color: #b6c4ff; }
+[data-theme="dark"] .ayuda-section h4 { color: #e2e1ee; }
+[data-theme="dark"] .ayuda-section p { color: #c4c5d7; }
+[data-theme="dark"] .ayuda-section ul { color: #c4c5d7; }
+
+.ayuda-guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin: 14px 0 4px 0;
+}
+.ayuda-seg {
+    padding: 14px 16px;
+    background: #f7f9fc;
+    border: 1px solid #e4e7ec;
+    border-radius: 10px;
+}
+.ayuda-seg h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 0;
+    font-family: var(--heading);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: #131b2e;
+}
+.ayuda-seg-icon { font-size: 16px; }
+.ayuda-sub-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.ayuda-sub-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #4b4d5c;
+    text-decoration: none;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.15s ease-out;
+}
+.ayuda-sub-link:hover {
+    color: #0041c7;
+    background: #eef2ff;
+}
+.ayuda-sub-link .material-symbols-outlined { font-size: 15px; color: #8e90a0; }
+[data-theme="dark"] .ayuda-seg { background: #11131b; border-color: #434654; }
+[data-theme="dark"] .ayuda-seg h4 { color: #e2e1ee; }
+[data-theme="dark"] .ayuda-sub-link { color: #c4c5d7; }
+[data-theme="dark"] .ayuda-sub-link:hover { color: #b6c4ff; background: #282a32; }
+[data-theme="dark"] .ayuda-sub-link .material-symbols-outlined { color: #8e90a0; }
+
+.ayuda-empty { color: #747686; font-size: 14px; }
+
+.ayuda-tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+    margin: 12px 0 14px 0;
+}
+.ayuda-tool {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f7f9fc;
+    border: 1px solid #e4e7ec;
+    border-radius: 10px;
+}
+.ayuda-tool .material-symbols-outlined { color: #0041c7; font-size: 22px; }
+.ayuda-tool strong { font-size: 14px; line-height: 20px; color: #131b2e; display: block; }
+.ayuda-tool p { font-size: 12px; line-height: 18px; color: #747686; margin: 2px 0 0 0; }
+[data-theme="dark"] .ayuda-tool { background: #11131b; border-color: #434654; }
+[data-theme="dark"] .ayuda-tool .material-symbols-outlined { color: #b6c4ff; }
+[data-theme="dark"] .ayuda-tool strong { color: #e2e1ee; }
+[data-theme="dark"] .ayuda-tool p { color: #8e90a0; }
+
+.ayuda-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+    margin: 10px 0 0 0;
+    border-radius: 10px;
+    background: #fff7e6;
+    border: 1px solid #f5d9a0;
+}
+.ayuda-note .material-symbols-outlined { color: #b45309; font-size: 24px; flex-shrink: 0; }
+.ayuda-note p { font-size: 14px; line-height: 22px; color: #7c5315; margin: 0 0 6px 0; }
+.ayuda-note p:last-child { margin-bottom: 0; }
+.ayuda-note code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: rgba(180, 83, 9, 0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: #7c5315;
+}
+[data-theme="dark"] .ayuda-note { background: #2a2110; border-color: #5a4a20; }
+[data-theme="dark"] .ayuda-note .material-symbols-outlined { color: #fbbf24; }
+[data-theme="dark"] .ayuda-note p { color: #f2d9a0; }
+[data-theme="dark"] .ayuda-note code { color: #f2d9a0; background: rgba(251, 191, 36, 0.12); }
+
+.ayuda-kbd {
+    display: inline-block;
+    min-width: 24px;
+    padding: 2px 8px;
+    border: 1px solid #d4d7de;
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    background: #f7f9fc;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+    color: #4b4d5c;
+}
+[data-theme="dark"] .ayuda-kbd { background: #11131b; border-color: #434654; color: #c4c5d7; }
+
 

@@ -60,6 +60,7 @@ export function hideLauncher() {
 export function initLauncher() {
     document.getElementById('launcher-go-guide')?.addEventListener('click', enterGuide);
     document.getElementById('launcher-go-workspace')?.addEventListener('click', enterWorkspace);
+    document.getElementById('launcher-go-ayuda')?.addEventListener('click', enterAyuda);
 
     document.querySelectorAll('.launcher-nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -101,4 +102,9 @@ function enterGuide() {
 function enterWorkspace() {
     hideLauncher();
     window.location.hash = '#/dashboard';
+}
+
+function enterAyuda() {
+    hideLauncher();
+    window.location.hash = '#/ayuda';
 }

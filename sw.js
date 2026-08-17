@@ -33,6 +33,7 @@ const urlsToCache = [
     './js/modules/search.js',
     './js/modules/home.js',
     './js/modules/dashboard.js',
+    './js/modules/ayuda.js',
     './js/modules/calendar.js',
     './js/modules/calendar_tool.js',
     './js/modules/cdc.js',
