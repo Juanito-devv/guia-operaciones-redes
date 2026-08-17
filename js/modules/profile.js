@@ -6,9 +6,10 @@ import { AppState } from '../state.js';
 import { getCurrentUser, logout, getSessionData } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
-function avatarMarkup(avatar) {
+function avatarMarkup(avatar, pos) {
     if (avatar && /^https?:\/\//.test(avatar)) {
-        return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario" onerror="this.outerHTML='\u{1F464}'">`;
+        const style = pos ? ` style="object-position:${pos}"` : '';
+        return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario"${style} onerror="this.outerHTML='\u{1F464}'">`;
     }
     return `<span aria-hidden="true">${escapeHtml(avatar || '👤')}</span>`;
 }
@@ -84,7 +85,7 @@ export function showProfile() {
                         <div class="profile-avatar-head">
                             <div class="profile-avatar-wrap">
                                 <div class="profile-avatar-ring">
-                                    <div class="profile-avatar">${avatarMarkup(avatar)}</div>
+                                    <div class="profile-avatar">${avatarMarkup(avatar, userData && userData.avatarPos)}</div>
                                 </div>
                                 <span class="profile-role">
                                     <span class="material-symbols-outlined fill" aria-hidden="true">${roleIcon}</span>

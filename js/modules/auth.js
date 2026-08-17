@@ -11,14 +11,14 @@ export const USERS_DB = {
     'jiraza01': { name: 'Juan Irazabal', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png', color: '#8b5cf6', role: 'user' },
     'aponce01': { name: 'Alejandro Ponce', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png', color: '#ec4899', role: 'user' },
     'ytovar01': { name: 'Yeifer Tovar', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png', color: '#f59e0b', role: 'user' },
-    'cmoral08': { name: 'Carlos Morales', avatar: 'https://upload.wikimedia.org/wikipedia/en/2/2f/Kratos_PS4.png', color: '#10b981', role: 'user' },
+    'cmoral08': { name: 'Carlos Morales', avatar: 'https://upload.wikimedia.org/wikipedia/en/2/2f/Kratos_PS4.png', avatarPos: '50% 12%', color: '#10b981', role: 'user' },
     'festev02': { name: 'Francis Esteves', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png', color: '#06b6d4', role: 'user' },
     'horteg01': { name: 'Hernando Ortegano', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png', color: '#8b5cf6', role: 'user' },
     'jfigue10': { name: 'Jessica Figuera', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png', color: '#ec4899', role: 'user' },
     'jquint24': { name: 'Julietta Quintero', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png', color: '#f59e0b', role: 'user' },
     'rmonto01': { name: 'Rafael Montoya', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/68.png', color: '#3b82f6', role: 'user' },
     'ycorre02': { name: 'Yhonny Correia', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png', color: '#10b981', role: 'user' },
-    'ccordo01': { name: 'Carlos Cordova', avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_%28cropped%29.jpg/400px-Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_%28cropped%29.jpg', color: '#06b6d4', role: 'user' },
+    'ccordo01': { name: 'Carlos Cordova', avatar: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Cristiano_Ronaldo_2018_%284x5_cropped%29.jpg', color: '#06b6d4', role: 'user' },
     'acontr20': { name: 'Adaney Contreras', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/37.png', color: '#8b5cf6', role: 'user' }
 };
 
