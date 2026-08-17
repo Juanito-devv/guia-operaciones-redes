@@ -24,11 +24,6 @@ export async function hashPassword(text) {
     }
 }
 
-export async function verifyPassword(plainText, expectedHash) {
-    const computedHash = await hashPassword(plainText);
-    return computedHash === expectedHash;
-}
-
 export async function generateSessionToken(payload) {
     return 'token_' + btoa(payload + '_' + Date.now()).replace(/=/g, '');
 }

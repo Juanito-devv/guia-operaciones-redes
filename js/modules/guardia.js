@@ -601,7 +601,7 @@ function renderGuardiaSections(root) {
     const chips = {
         1: `<span class="guard-chip">${c.ixp} <span class="g-ok">✅</span> · ${c.ixpW} <span class="g-warn">⚠️</span></span>`,
         2: c.enlD ? `<span class="guard-chip g-chip-err">${c.enlD} Caídos</span>` : `<span class="guard-chip g-chip-ok">OK ✅</span>`,
-        3: c.oltD ? `<span class="guard-chip g-chip-err">${c.oltD} Caídos</span>` : `<span class="guard-chip g-chip-ok">${c.oltD} Caídos</span>`,
+        3: c.oltD ? `<span class="guard-chip g-chip-err">${c.oltD} Caídos</span>` : `<span class="guard-chip g-chip-ok">OK ✅</span>`,
         4: c.abaD ? `<span class="guard-chip g-chip-err">${c.abaD} Caídos</span>` : `<span class="guard-chip g-chip-ok">OK</span>`,
         5: `<span class="guard-chip g-chip-warn">${c.abiertos} Abiertos</span>`
     };

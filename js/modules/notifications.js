@@ -9,18 +9,26 @@ import {
     getNotificationsFromFirebase,
     createNotificationInFirebase,
     markNotificationReadInFirebase,
+    markNotificationsReadInFirebase,
     hideNotificationFromFirebase,
-    hideAllNotificationsFromFirebase
+    hideAllNotificationsFromFirebase,
+    purgeOldNotificationsFromFirebase
 } from './firebase.js';
 
 let notificationsList = [];
 let unsubscribeNotifs = null;
+
+// El listener de "clic fuera del drawer" se registra una sola vez: cada login
+// re-renderiza la campana y antes se acumulaban handlers que además seguían
+// apuntando a nodos viejos del DOM.
+let outsideClickBound = false;
 
 /**
  * Inicializa la suscripción a notificaciones en tiempo real desde Firestore
  */
 export function initNotifications() {
     renderNotifBell();
+    purgeOldNotificationsFromFirebase().catch(() => { /* noop */ });
 
     if (unsubscribeNotifs) unsubscribeNotifs();
 
@@ -87,7 +95,6 @@ function renderNotifBell() {
                     </button>
                 </div>
                 <div id="notif-drawer-list" class="notif-drawer-list"></div>
-                <a href="#" class="notif-drawer-footer">Ver historial completo</a>
             </div>
         </div>
     `;
@@ -116,12 +123,17 @@ function renderNotifBell() {
         deleteAllNotifications();
     });
 
-    document.addEventListener('click', (e) => {
-        if (drawer && !drawer.contains(e.target) && e.target !== btn) {
-            drawer.style.display = 'none';
-            btn.classList.remove('open');
-        }
-    });
+    if (!outsideClickBound) {
+        outsideClickBound = true;
+        document.addEventListener('click', (e) => {
+            const drawer = document.getElementById('notif-drawer');
+            const btn = document.getElementById('notif-bell-btn');
+            if (drawer && btn && !drawer.contains(e.target) && e.target !== btn) {
+                drawer.style.display = 'none';
+                btn.classList.remove('open');
+            }
+        });
+    }
 }
 
 /**
@@ -138,6 +150,8 @@ function addHiddenId(id) {
     const hidden = Storage.get(`cor_hidden_notifs_${currentUser}`, []);
     if (!hidden.includes(id)) {
         hidden.push(id);
+        // Poda: no crecer sin límite
+        if (hidden.length > 200) hidden.splice(0, hidden.length - 200);
         Storage.set(`cor_hidden_notifs_${currentUser}`, hidden);
     }
 }
@@ -197,7 +211,7 @@ export function updateNotifUI() {
         const timeAgo = n.createdAt ? formatTimeAgo(n.createdAt) : 'hace un momento';
 
         html += `
-            <div class="notif-item ${isUnread ? 'unread' : ''}" data-id="${escapeHtml(n.id)}">
+            <div class="notif-item ${isUnread ? 'unread' : ''}" data-id="${escapeHtml(n.id)}" role="button" tabindex="0" aria-label="${escapeHtml(n.title)}">
                 <div class="notif-avatar ${visual.bg}"><span class="material-symbols-outlined" aria-hidden="true">${visual.icon}</span></div>
                 <div class="notif-item-main">
                     <div class="notif-item-head">
@@ -220,6 +234,12 @@ export function updateNotifUI() {
             const notifId = this.dataset.id;
             markAsRead(notifId);
         });
+        item.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                markAsRead(this.dataset.id);
+            }
+        });
     });
 
     listContainer.querySelectorAll('.notif-delete-btn').forEach(btn => {
@@ -236,6 +256,8 @@ export function markAsRead(notifId) {
     const readIds = Storage.get(`cor_read_notifs_${currentUser}`, []);
     if (!readIds.includes(notifId)) {
         readIds.push(notifId);
+        // Poda: no crecer sin límite (cada reload hace .includes() lineal)
+        if (readIds.length > 200) readIds.splice(0, readIds.length - 200);
         Storage.set(`cor_read_notifs_${currentUser}`, readIds);
     }
     markNotificationReadInFirebase(notifId, currentUser);
@@ -246,7 +268,8 @@ export function markAllAsRead() {
     const currentUser = AppState.get('currentUser') || 'invitado';
     const readIds = notificationsList.map(n => n.id);
     Storage.set(`cor_read_notifs_${currentUser}`, readIds);
-    notificationsList.forEach(n => markNotificationReadInFirebase(n.id, currentUser));
+    // Una sola escritura por lotes en Firestore (en vez de un update por notif)
+    markNotificationsReadInFirebase(readIds, currentUser);
     updateNotifUI();
 }
 

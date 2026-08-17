@@ -1,17 +1,18 @@
 // ========================================
-// SERVICE WORKER — GUÍA COR v6
+// SERVICE WORKER — GUÍA COR v7
 // Estrategias:
 //  - Navegación (documento): NETWORK FIRST (cambios en producción se ven sin limpiar caché)
 //  - data/* (guia.json):     NETWORK FIRST con respaldo a caché
 //  - Estáticos (css/js):     STALE-WHILE-REVALIDATE (respuesta inmediata + actualiza en segundo plano)
 //
-// v6: bump forzado para que los dispositivos con la caché v5 (mezcla de
-// archivos de deploys anteriores que dejaba el login colgado) descarguen
-// todo de nuevo con skipWaiting + claim.
+// v7: caches.match con ignoreSearch (index.html pide js/app.js?v=6 y el
+// precache guarda la URL sin query) + re-precache forzado para que todos los
+// dispositivos descarguen la versión nueva (se eliminaron guide_edit.js y los
+// widgets viejos del calendario).
 // ========================================
 
-const STATIC_CACHE = 'guia-cor-static-v6';
-const DATA_CACHE = 'guia-cor-data-v6';
+const STATIC_CACHE = 'guia-cor-static-v7';
+const DATA_CACHE = 'guia-cor-data-v7';
 
 const urlsToCache = [
     './',
@@ -118,8 +119,11 @@ self.addEventListener('fetch', event => {
     }
 
     // Estáticos (css/js/imágenes): stale-while-revalidate
+    // ignoreSearch: index.html carga js/app.js con ?v=6 (bump de versión);
+    // el precache guarda la URL sin query. Con ignoreSearch el match del caché
+    // ignora la query string y el módulo boot-crítico sí se sirve offline.
     event.respondWith(
-        caches.match(event.request).then(cached => {
+        caches.match(event.request, { ignoreSearch: true }).then(cached => {
             const networkFetch = fetch(event.request).then(response => {
                 if (response && response.status === 200) {
                     const copy = response.clone();

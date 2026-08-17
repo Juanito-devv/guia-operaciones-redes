@@ -15,7 +15,7 @@ function avatarMarkup(avatar, pos, zoom) {
             styles.push(`transform-origin:${pos || 'center center'}`);
         }
         const style = styles.length ? ` style="${styles.join(';')}"` : '';
-        return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario"${style} onerror="this.outerHTML='\u{1F464}'">`;
+        return `<img src="${escapeHtml(avatar)}" alt="Avatar del usuario" loading="lazy"${style} onerror="this.outerHTML='\u{1F464}'">`;
     }
     return `<span aria-hidden="true">${escapeHtml(avatar || '👤')}</span>`;
 }

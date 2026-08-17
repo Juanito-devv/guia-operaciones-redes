@@ -1,5 +1,5 @@
 // ========================================
-// DEBOUNCE & THROTTLE UTILS
+// DEBOUNCE UTILS
 // ========================================
 
 /**
@@ -15,24 +15,5 @@ export function debounce(func, delay = 180) {
         timeoutId = setTimeout(() => {
             func.apply(this, args);
         }, delay);
-    };
-}
-
-/**
- * Asegura que una función no se llame más de una vez por cada período de `limit` ms
- * @param {Function} func 
- * @param {number} limit 
- * @returns {Function}
- */
-export function throttle(func, limit = 100) {
-    let inThrottle = false;
-    return function (...args) {
-        if (!inThrottle) {
-            func.apply(this, args);
-            inThrottle = true;
-            setTimeout(() => {
-                inThrottle = false;
-            }, limit);
-        }
     };
 }

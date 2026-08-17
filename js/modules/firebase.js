@@ -194,12 +194,21 @@ async function pushLocalItem(collection, item) {
 const SYNC_COOLDOWN_MS = 60 * 1000;
 const lastCollectionRead = new Map();
 
-function shouldSyncNow(collection) {
+function canSyncNow(collection) {
     const now = Date.now();
     const last = lastCollectionRead.get(collection) || 0;
-    if (now - last < SYNC_COOLDOWN_MS) return false;
-    lastCollectionRead.set(collection, now);
-    return true;
+    return now - last >= SYNC_COOLDOWN_MS;
+}
+
+// Se marca SOLO cuando el listener se adjunta de verdad (después de autenticar).
+// Si auth falla o no adjuntamos, no se registra: la próxima llamada puede reintentar.
+function markSyncedNow(collection) {
+    lastCollectionRead.set(collection, Date.now());
+}
+
+function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // ========================================
@@ -245,7 +254,7 @@ export function getCDCFromFirebase(callback) {
         callback(Storage.get('cor_cdc', []));
         return unsubscribe;
     }
-    if (!shouldSyncNow('cdc')) {
+    if (!canSyncNow('cdc')) {
         callback(Storage.get('cor_cdc', []));
         return unsubscribe;
     }
@@ -254,7 +263,12 @@ export function getCDCFromFirebase(callback) {
             callback(Storage.get('cor_cdc', []));
             return;
         }
-        unsubscribe = db.collection('cdc')
+        // Filtro por mes en curso: coincide con la política de purgeOldCDCs()
+        // (cdc.js borra los de meses pasados) y evita releer toda la colección
+        // en cada sesión. Índice simple de campo único, sin índice compuesto.
+        markSyncedNow('cdc');
+        const firstOfMonth = todayISO().slice(0, 7) + '-01';
+        unsubscribe = db.collection('cdc').where('date', '>=', firstOfMonth)
             .onSnapshot((snapshot) => {
                 const serverList = [];
                 snapshot.forEach((doc) => {
@@ -395,7 +409,7 @@ export function getEventsFromFirebase(callback) {
         callback(Storage.get('cor_events', {}));
         return unsubscribe;
     }
-    if (!shouldSyncNow('events')) {
+    if (!canSyncNow('events')) {
         callback(Storage.get('cor_events', {}));
         return unsubscribe;
     }
@@ -404,7 +418,10 @@ export function getEventsFromFirebase(callback) {
             callback(Storage.get('cor_events', {}));
             return;
         }
-        unsubscribe = db.collection('events')
+        // Filtro por fecha >= hoy: coincide con purgePastEvents() (calendar.js
+        // borra los pasados) y evita releer toda la colección en cada sesión.
+        markSyncedNow('events');
+        unsubscribe = db.collection('events').where('date', '>=', todayISO())
             .onSnapshot((snapshot) => {
                 const serverEvents = {};
                 const serverIds = new Set();
@@ -484,7 +501,7 @@ export function getNotificationsFromFirebase(callback) {
         callback(Storage.get('cor_notifications', []));
         return unsubscribe;
     }
-    if (!shouldSyncNow('notifications')) {
+    if (!canSyncNow('notifications')) {
         callback(Storage.get('cor_notifications', []));
         return unsubscribe;
     }
@@ -493,6 +510,7 @@ export function getNotificationsFromFirebase(callback) {
             callback(Storage.get('cor_notifications', []));
             return;
         }
+        markSyncedNow('notifications');
         unsubscribe = db.collection('notifications')
             .orderBy('createdAt', 'desc')
             .limit(30)
@@ -576,6 +594,26 @@ export async function markNotificationReadInFirebase(notifId, username) {
     }
 }
 
+// Marca varias notificaciones como leídas en UNA escritura por lotes (en vez
+// de un update por notif). La UI sigue siendo optimista: el snapshot re-confirma.
+export async function markNotificationsReadInFirebase(ids, username) {
+    if (!db || !username || !Array.isArray(ids) || ids.length === 0) return;
+    const authed = await ensureAuth();
+    if (!authed) return;
+    try {
+        const batch = db.batch();
+        ids.slice(0, 400).forEach(id => {
+            batch.update(db.collection('notifications').doc(id), {
+                readBy: firebase.firestore.FieldValue.arrayUnion(username)
+            });
+        });
+        await batch.commit();
+        markFirebaseRecovered();
+    } catch (error) {
+        markFirebaseFailure('markReadBatch', error);
+    }
+}
+
 // Oculta una notificación para un usuario (el feed es compartido; cada uno oculta solo para sí)
 export async function hideNotificationFromFirebase(notifId, username) {
     if (!username) return true;
@@ -624,14 +662,56 @@ export async function hideAllNotificationsFromFirebase(ids, username) {
     const authed = await ensureAuth();
     if (!authed) return;
     try {
-        await Promise.allSettled(ids.map(id =>
-            db.collection('notifications').doc(id).update({
+        const batch = db.batch();
+        ids.slice(0, 400).forEach(id => {
+            batch.update(db.collection('notifications').doc(id), {
                 hiddenBy: firebase.firestore.FieldValue.arrayUnion(username)
-            })
-        ));
+            });
+        });
+        await batch.commit();
         markFirebaseRecovered();
     } catch (error) {
         markFirebaseFailure('hideAllNotifs', error);
+    }
+}
+
+// ========================================
+// PURGA DE NOTIFICACIONES ANTIGUAS (cuota Spark)
+// ========================================
+// El feed está acotado a 30 en pantalla, pero los docs en Firestore crecen sin
+// límite y cada escritura genera eco de snapshot a todos los clientes. Se borran
+// las notificaciones con más de 7 días de antigüedad, una vez por semana por
+// dispositivo (marcador), con un límite por pasada para no hacer ráfagas.
+
+const NOTIF_PURGE_KEY = 'cor_notif_purge_ts';
+const NOTIF_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+export async function purgeOldNotificationsFromFirebase() {
+    if (!db) return;
+    const last = Storage.get(NOTIF_PURGE_KEY, 0);
+    const now = Date.now();
+    if (now - last < NOTIF_RETENTION_MS) return;
+    Storage.set(NOTIF_PURGE_KEY, now);
+
+    const authed = await ensureAuth();
+    if (!authed) return;
+
+    const cutoff = new Date(now - NOTIF_RETENTION_MS);
+    try {
+        const snap = await db.collection('notifications')
+            .where('createdAt', '<', cutoff)
+            .limit(50)
+            .get();
+        if (snap.empty) {
+            markFirebaseRecovered();
+            return;
+        }
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        markFirebaseRecovered();
+    } catch (error) {
+        markFirebaseFailure('purgeNotifications', error);
     }
 }
 

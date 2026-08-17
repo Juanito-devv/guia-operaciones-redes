@@ -10,7 +10,7 @@ import { renderNav, navigateTo, initMobileMenu, getMergedGuiaData } from './modu
 import { initSearch, hideSearchResults, initGlobalSearch, openGlobalSearch, closeGlobalSearch } from './modules/search.js';
 import { showHome, navigateToFirstSection } from './modules/home.js';
 import { updatePanelUserUI } from './modules/panel.js';
-import { initCalendar, initEventDetail } from './modules/calendar.js';
+import { initCalendar } from './modules/calendar.js';
 import { initCDC, checkCDCReminders } from './modules/cdc.js';
 import { initNotifications } from './modules/notifications.js';
 import { showDashboard } from './modules/dashboard.js';
@@ -41,12 +41,6 @@ async function loadData() {
 
         // 🔥 INICIALIZAR CDC (con Firebase)
         initCDC();
-
-        // Vincular acciones globales SIEMPRE (incluso cuando el hash inicial
-        // navega directo a una sección y hace return antes de showHome()).
-        // Sin esto, el botón de cerrar sesión quedaba sin handler en URLs con hash.
-        document.querySelector('.sidebar-brand')?.addEventListener('click', showHome);
-        document.getElementById('logout-btn')?.addEventListener('click', logout);
 
         // Manejar hash inicial de la URL
         // Nota: se normaliza el slash inicial para aceptar #/dashboard/<id> y #/seccion/sub
@@ -343,11 +337,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSearch();
         initGlobalSearch();
         initCalendar();
-        initEventDetail();
         initLauncher();
         bindAppBottomNav();
         bindHeaderActions();
         initErrorMonitor();
+
+        // Acciones globales del shell: se enlazan UNA sola vez (no por login).
+        // El hash inicial puede navegar directo a una sección sin pasar por
+        // showHome(), así que el cierre de sesión y el logo del sidebar deben
+        // responder siempre.
+        document.querySelector('.sidebar-brand')?.addEventListener('click', showHome);
+        document.getElementById('logout-btn')?.addEventListener('click', logout);
         initFirebaseStatusBanner();
         registerServiceWorker();
 

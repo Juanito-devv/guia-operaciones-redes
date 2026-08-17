@@ -33,11 +33,6 @@ export function getCurrentAuthor() {
     return user ? user.name : 'Anónimo';
 }
 
-export function getCurrentAvatar() {
-    const user = getCurrentUser();
-    return user ? user.avatar : '👤';
-}
-
 export function getCurrentColor() {
     const user = getCurrentUser();
     return user ? user.color : '#3b82f6';

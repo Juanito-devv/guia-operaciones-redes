@@ -8,7 +8,7 @@ import { showMapTool } from './panel.js';
 import { showGuardia } from './guardia.js';
 import { showMail } from './mail.js';
 import { showCalendarTool } from './calendar_tool.js';
-import { showCDCTool } from './cdc.js';
+import { showCDCTool, statusOf } from './cdc.js';
 import { showProfile } from './profile.js';
 import { showSettings } from './settings.js';
 import { showImpacto } from './impacto.js';
@@ -231,7 +231,10 @@ export function showDashboard(toolId) {
 function buildMetrics() {
     const cdcList = Storage.get('cor_cdc', []);
     const list = Array.isArray(cdcList) ? cdcList : [];
-    const active = list.filter(c => ['programado', 'ejecucion'].includes(c.status)).length;
+    // Estado derivado (igual que la página CDC: statusOf re-deriva programado →
+    // completado cuando la ventana ya pasó). Así el dashboard no cuenta CDCs de
+    // días pasados como activos solo porque Firestore aún diga 'programado'.
+    const active = list.filter(c => ['programado', 'ejecucion'].includes(statusOf(c))).length;
     const cdcPct = list.length > 0 ? Math.round((active / list.length) * 100) : 0;
 
     const events = Storage.get('cor_events', {}) || {};
