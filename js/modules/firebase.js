@@ -22,7 +22,49 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 // Si Firebase está disponible, obtener Firestore
-const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+let db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+
+// ========================================
+// ESCUDO ANTI-TORMENTA DE ERRORES
+// ========================================
+// El SDK de Firestore (10.7.1) puede quedar en un estado interno inválido
+// (INTERNAL ASSERTION FAILED: Unexpected state) tras caídas de red o el cierre
+// del WebChannel a mitad de stream. Una vez envenenado, CADA mensaje entrante
+// lanza la excepción en bucle (miles de errores de consola). Este watchdog
+// detecta el patrón repetido, termina Firestore y degrada a localStorage, que
+// es el modo que ya usa la app cuando Firebase falla. La página sigue
+// funcionando y el usuario solo ve el banner de degradación.
+
+let assertionCount = 0;
+let assertionWindowStart = 0;
+let firestoreShieldTripped = false;
+
+function tripFirestoreShield() {
+    if (firestoreShieldTripped) return;
+    firestoreShieldTripped = true;
+    try {
+        if (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore()) {
+            firebase.firestore().terminate().catch(() => { /* noop */ });
+        }
+    } catch (e) { /* noop */ }
+    db = null;
+    markFirebaseFailure('shield', new Error('Firestore quedó en estado inválido; se usó solo localStorage.'));
+    console.warn('[Firebase] Escudo anti-tormenta activado: Firestore terminado, la app sigue con localStorage.');
+}
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('error', (event) => {
+        const msg = event && event.message ? String(event.message) : '';
+        if (msg.indexOf('INTERNAL ASSERTION FAILED') === -1) return;
+        const now = Date.now();
+        if (now - assertionWindowStart > 5000) {
+            assertionCount = 0;
+            assertionWindowStart = now;
+        }
+        assertionCount++;
+        if (assertionCount >= 20) tripFirestoreShield();
+    });
+}
 
 // ========================================
 // ESTADO DE CONEXIÓN (para avisar degradación en la UI)

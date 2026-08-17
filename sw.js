@@ -1,18 +1,19 @@
 // ========================================
-// SERVICE WORKER — GUÍA COR v7
+// SERVICE WORKER — GUÍA COR v8
 // Estrategias:
 //  - Navegación (documento): NETWORK FIRST (cambios en producción se ven sin limpiar caché)
 //  - data/* (guia.json):     NETWORK FIRST con respaldo a caché
 //  - Estáticos (css/js):     STALE-WHILE-REVALIDATE (respuesta inmediata + actualiza en segundo plano)
 //
-// v7: caches.match con ignoreSearch (index.html pide js/app.js?v=6 y el
-// precache guarda la URL sin query) + re-precache forzado para que todos los
-// dispositivos descarguen la versión nueva (se eliminaron guide_edit.js y los
-// widgets viejos del calendario).
+// v8: el SW ya NO fuerza recargar las pestañas abiertas al activarse
+// (clientes.navigate mataba el WebChannel de Firestore a mitad de conexión y
+// dejaba al SDK en estado inválido: "INTERNAL ASSERTION FAILED: Unexpected
+// state" en bucle). Tampoco intercepta el tráfico de las APIs de Google
+// (conexiones streaming que no deben cachearse ni clonarse).
 // ========================================
 
-const STATIC_CACHE = 'guia-cor-static-v7';
-const DATA_CACHE = 'guia-cor-data-v7';
+const STATIC_CACHE = 'guia-cor-static-v8';
+const DATA_CACHE = 'guia-cor-data-v8';
 
 const urlsToCache = [
     './',
@@ -70,9 +71,9 @@ self.addEventListener('message', event => {
     }
 });
 
-// Activación: limpia caches de versiones anteriores, toma control y recarga
-// las páginas abiertas para que tomen la versión nueva YA (no depende del JS
-// de la página: cura el login colgado por mezcla de archivos de deploys viejos).
+// Activación: limpia caches de versiones anteriores y toma control de las
+// páginas. NO recarga las pestañas abiertas: forzar clients.navigate() mataba
+// la conexión WebChannel de Firestore a mitad de stream y envenenaba el SDK.
 self.addEventListener('activate', event => {
     const whitelist = [STATIC_CACHE, DATA_CACHE];
     event.waitUntil(
@@ -80,8 +81,6 @@ self.addEventListener('activate', event => {
             keys.filter(k => !whitelist.includes(k)).map(k => caches.delete(k))
         ))
             .then(() => self.clients.claim())
-            .then(() => self.clients.matchAll({ type: 'window' }))
-            .then(clients => Promise.all(clients.map(c => c.navigate(c.url).catch(() => {}))))
     );
 });
 
@@ -89,6 +88,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
     if (event.request.method !== 'GET') return;
+
+    // NUNCA interceptar el tráfico de las APIs de Google (Firestore/Auth/
+    // WebChannel). Son conexiones largas/streaming: cachearlas o clonarlas las
+    // rompe y deja al SDK de Firestore en estado inválido (INTERNAL ASSERTION
+    // FAILED: Unexpected state en bucle). Se dejan pasar directo a la red.
+    if (/\.googleapis\.com$/.test(url.hostname) || /\.gstatic\.com$/.test(url.hostname)) return;
 
     // Navegación (documento HTML): red primero, caché como respaldo
     if (event.request.mode === 'navigate') {
