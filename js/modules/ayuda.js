@@ -71,7 +71,7 @@ export function showAyuda() {
                     <div>
                         <p class="tool-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">help</span> Ayuda</p>
                         <h1 class="tool-title">¿Cómo funciona esta página?</h1>
-                        <p class="tool-sub">Guía de uso de la aplicación COR: cómo navegar la guía de operaciones, qué encontrarás en el Espacio de Trabajo, cómo buscar, recibir notificaciones y quién actualiza los contenidos.</p>
+                        <p class="tool-sub">Guía de uso de la aplicación COR: cómo navegar la guía de operaciones, qué encontrarás en el Espacio de Trabajo, cómo buscar y recibir notificaciones.</p>
                     </div>
                 </header>
 
@@ -100,11 +100,6 @@ export function showAyuda() {
                         <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
                         <strong>Notificaciones</strong>
                         <small>Campana, alertas sin leer y mensajes de guardia</small>
-                    </a>
-                    <a href="#ayuda-edicion" class="ayuda-index-card">
-                        <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
-                        <strong>¿Quién edita la guía?</strong>
-                        <small>El admin actualiza data/guia.json manualmente</small>
                     </a>
                 </nav>
 
@@ -160,17 +155,6 @@ export function showAyuda() {
                 <section class="ayuda-section" id="ayuda-notificaciones">
                     <h3><span class="material-symbols-outlined" aria-hidden="true">notifications</span> Notificaciones</h3>
                     <p>La campana del encabezado muestra las alertas y avisos del sistema (por ejemplo, recordatorios de CDC). Las notificaciones sin leer aparecen con un contador. También se pueden marcar como leídas u ocultar desde el panel de notificaciones.</p>
-                </section>
-
-                <section class="ayuda-section" id="ayuda-edicion">
-                    <h3><span class="material-symbols-outlined" aria-hidden="true">edit_note</span> ¿Quién edita la guía?</h3>
-                    <div class="ayuda-note">
-                        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
-                        <div>
-                            <p><strong>Los contenidos de la guía los actualiza el administrador manualmente.</strong> No se editan desde esta página: el admin modifica el archivo <code>data/guia.json</code> directamente (con la ayuda del agente de desarrollo) y los cambios se publican con la próxima actualización de la aplicación.</p>
-                            <p>Los datos operativos generados por las herramientas (CDC, eventos, notificaciones, lecturas) sí se guardan en tu dispositivo y se sincronizan con Firebase cuando hay conexión.</p>
-                        </div>
-                    </div>
                 </section>
             </div>
         `;
