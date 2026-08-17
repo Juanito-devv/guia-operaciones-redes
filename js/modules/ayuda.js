@@ -101,6 +101,11 @@ export function showAyuda() {
                         <strong>Notificaciones</strong>
                         <small>Campana, alertas sin leer y mensajes de guardia</small>
                     </a>
+                    <a href="#ayuda-edicion" class="ayuda-index-card">
+                        <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
+                        <strong>¿Quién edita la guía?</strong>
+                        <small>El admin actualiza data/guia.json manualmente</small>
+                    </a>
                 </nav>
 
                 <section class="ayuda-section" id="ayuda-acceso">
@@ -155,6 +160,17 @@ export function showAyuda() {
                 <section class="ayuda-section" id="ayuda-notificaciones">
                     <h3><span class="material-symbols-outlined" aria-hidden="true">notifications</span> Notificaciones</h3>
                     <p>La campana del encabezado muestra las alertas y avisos del sistema (por ejemplo, recordatorios de CDC). Las notificaciones sin leer aparecen con un contador. También se pueden marcar como leídas u ocultar desde el panel de notificaciones.</p>
+                </section>
+
+                <section class="ayuda-section" id="ayuda-edicion">
+                    <h3><span class="material-symbols-outlined" aria-hidden="true">edit_note</span> ¿Quién edita la guía?</h3>
+                    <div class="ayuda-note">
+                        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
+                        <div>
+                            <p><strong>Los contenidos de la guía los actualiza el administrador manualmente.</strong> No se editan desde esta página: el admin modifica el archivo <code>data/guia.json</code> directamente y los cambios se publican con la próxima actualización de la aplicación.</p>
+                            <p>Los datos operativos generados por las herramientas (CDC, eventos, notificaciones, lecturas) sí se guardan en tu dispositivo y se sincronizan con Firebase cuando hay conexión.</p>
+                        </div>
+                    </div>
                 </section>
             </div>
         `;
