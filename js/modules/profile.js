@@ -7,7 +7,8 @@ import { getCurrentUser, logout, getSessionData } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
 function avatarMarkup(avatar, pos, zoom) {
-    if (avatar && /^https?:\/\//.test(avatar)) {
+    // URL remota o ruta local con extensión de imagen (ej. images/avatargow.png)
+    if (avatar && (/^https?:\/\//.test(avatar) || /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/.test(avatar))) {
         const styles = [];
         if (pos) styles.push(`object-position:${pos}`);
         if (zoom && zoom > 1) {

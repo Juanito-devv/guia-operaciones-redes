@@ -22,7 +22,8 @@ import { escapeHtml } from '../utils/sanitize.js';
  */
 export function avatarHtml(avatar, pos, zoom) {
     if (!avatar) return '👤';
-    if (/^https?:\/\//i.test(avatar)) {
+    // URL remota o ruta local con extensión de imagen (ej. images/avatargow.png)
+    if (/^https?:\/\//i.test(avatar) || /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(avatar)) {
         const styles = [];
         if (pos) styles.push(`object-position:${pos}`);
         if (zoom && zoom > 1) {
