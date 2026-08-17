@@ -9,7 +9,7 @@ import { hashPassword, generateSessionToken } from '../utils/crypto.js';
 export const USERS_DB = {
     'admin': { name: 'Administrador', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png', color: '#3b82f6', role: 'admin' },
     'jiraza01': { name: 'Juan Irazabal', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png', color: '#8b5cf6', role: 'user' },
-    'aponce01': { name: 'Alejandro Ponce', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png', color: '#ec4899', role: 'user' },
+    'aponce01': { name: 'Alejandro Ponce', avatar: 'images/avatarponce.png', color: '#ec4899', role: 'user' },
     'ytovar01': { name: 'Yeifer Tovar', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png', color: '#f59e0b', role: 'user' },
     'cmoral08': { name: 'Carlos Morales', avatar: 'images/avatargow.png', color: '#10b981', role: 'user' },
     'festev02': { name: 'Francis Esteves', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png', color: '#06b6d4', role: 'user' },

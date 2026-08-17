@@ -48,6 +48,7 @@ const urlsToCache = [
     './js/modules/launcher.js',
     './data/guia.json',
     './images/avatargow.png',
+    './images/avatarponce.png',
     './icons/icon-192.png',
     './icons/icon-512.png'
 ];
