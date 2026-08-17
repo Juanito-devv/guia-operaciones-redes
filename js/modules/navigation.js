@@ -45,12 +45,7 @@ export function getMergedGuiaData() {
             existingSubs.push({
                 id: cp.subId,
                 title: cp.title,
-                content: `
-                    <div style="background:rgba(59,130,246,0.08);border-left:4px solid var(--accent);padding:10px 14px;border-radius:4px;margin-bottom:14px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;">
-                        <span>✍️ Publicado por <strong>${escapeHtml(cp.author || 'Anónimo')}</strong> · ${cp.updatedAt ? new Date(cp.updatedAt).toLocaleString('es-ES') : ''}</span>
-                    </div>
-                    ${cp.content}
-                `,
+                content: `${cp.content}`,
                 isCustom: true,
                 rawCustom: cp
             });
@@ -323,12 +318,9 @@ function buildArticleView(section, subsection, guiaData) {
     // él); se re-vinculan en navigateTo con data-proc-id.
     const customBlocks = (subsection.customBlocks || []).map(block => `
         <section class="article-custom-block" data-proc-id="${escapeHtml(block.id)}">
-            <div class="article-custom-block-meta">
-                <span class="article-custom-block-badge"><span class="material-symbols-outlined" aria-hidden="true">terminal</span> Procedimiento colaborativo</span>
-                <span class="article-custom-block-author">✍️ ${escapeHtml(block.author || 'Anónimo')}${block.updatedAt ? ' · ' + new Date(block.updatedAt).toLocaleString('es-ES') : ''}</span>
-            </div>
             <h2 class="article-custom-block-title">${escapeHtml(block.title)}</h2>
             <div class="article-custom-block-content">${sanitizeHtml(block.content)}</div>
+            ${isAdmin() ? `
             <div class="article-custom-block-actions">
                 <button type="button" class="article-block-btn" data-action="edit" data-proc-id="${escapeHtml(block.id)}">
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span> Editar
@@ -336,7 +328,7 @@ function buildArticleView(section, subsection, guiaData) {
                 <button type="button" class="article-block-btn article-block-btn-danger" data-action="delete" data-proc-id="${escapeHtml(block.id)}">
                     <span class="material-symbols-outlined" aria-hidden="true">delete</span> Eliminar
                 </button>
-            </div>
+            </div>` : ''}
         </section>`).join('');
 
     return `

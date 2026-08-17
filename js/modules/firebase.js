@@ -98,6 +98,7 @@ export function markFirebaseRecovered() {
 let authReadyPromise = null;
 let authRetryAt = 0;
 const AUTH_RETRY_COOLDOWN = 30 * 1000;
+const AUTH_TIMEOUT = 4 * 1000;
 
 function ensureAuth() {
     if (!db) return Promise.resolve(false);
@@ -113,7 +114,10 @@ function ensureAuth() {
         authReadyPromise = (async () => {
             try {
                 if (firebase.auth && firebase.auth().currentUser) return true;
-                await firebase.auth().signInAnonymously();
+                await Promise.race([
+                    firebase.auth().signInAnonymously(),
+                    new Promise(resolve => setTimeout(resolve, AUTH_TIMEOUT))
+                ]);
                 authRetryAt = 0;
                 return true;
             } catch (error) {
@@ -436,11 +440,13 @@ export async function deleteEventFromFirebase(eventId) {
 // FUNCIONES PARA PROCEDIMIENTOS Y SUBSECCIONES PERSONALIZADAS (CRUD GUÍA)
 // ========================================
 
-export async function saveCustomProcedureToFirebase(procData) {
+export async function saveCustomProcedureToFirebase(procData, customId = null) {
     const persistLocal = () => {
         const local = Storage.get('cor_custom_procedures', []);
-        const newProc = { id: 'local_' + Date.now(), ...procData };
-        local.push(newProc);
+        const newProc = customId ? { id: customId, ...procData } : { id: 'local_' + Date.now(), ...procData };
+        const idx = local.findIndex(p => p && p.id === newProc.id);
+        if (idx !== -1) local[idx] = newProc;
+        else local.push(newProc);
         Storage.set('cor_custom_procedures', local);
         return newProc;
     };
@@ -449,10 +455,13 @@ export async function saveCustomProcedureToFirebase(procData) {
     const authed = await ensureAuth();
     if (!authed) return persistLocal();
     try {
-        const docRef = await db.collection('custom_procedures').add({
-            ...procData,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const payload = { ...procData, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (customId) {
+            await db.collection('custom_procedures').doc(customId).set(payload);
+            markFirebaseRecovered();
+            return { id: customId, ...procData };
+        }
+        const docRef = await db.collection('custom_procedures').add(payload);
         markFirebaseRecovered();
         return { id: docRef.id, ...procData };
     } catch (error) {
@@ -516,6 +525,8 @@ export async function deleteCustomProcedureFromFirebase(id) {
         return true;
     } catch (error) {
         markFirebaseFailure('deleteProcedure', error);
+        const local = Storage.get('cor_custom_procedures', []);
+        Storage.set('cor_custom_procedures', local.filter(p => p && p.id !== id));
         return false;
     }
 }

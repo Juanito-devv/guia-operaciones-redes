@@ -115,13 +115,27 @@ export function openProcedureModal(editProc = null) {
                     </select>
                 </div>
                 <div class="login-field">
-                    <label for="proc-subsection">Subsección donde se mostrará</label>
-                    <select id="proc-subsection" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;" required>
-                        <option value="">— Elige una sección primero —</option>
-                    </select>
-                    <div style="font-size:0.66rem;color:var(--text-muted);margin-top:3px;">El procedimiento se agrega como bloque al final de esta subsección.</div>
+                    <label for="proc-subsection">Dónde agregarlo</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;margin-bottom:6px;cursor:pointer;">
+                        <input type="radio" name="proc-mode" value="block" ${editProc && editProc.subId && editProc.subId.startsWith('custom_') ? '' : 'checked'}>
+                        Como bloque dentro de una subsección existente
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;margin-bottom:8px;cursor:pointer;">
+                        <input type="radio" name="proc-mode" value="newsub" ${editProc && editProc.subId && editProc.subId.startsWith('custom_') ? 'checked' : ''}>
+                        Crear una subsección nueva (aparece en el menú lateral)
+                    </label>
+                    <div id="proc-mode-block">
+                        <select id="proc-subsection" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;" required>
+                            <option value="">— Elige una sección primero —</option>
+                        </select>
+                        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:3px;">El procedimiento se agrega como bloque al final de esta subsección.</div>
+                    </div>
+                    <div id="proc-mode-newsub" style="${editProc && editProc.subId && editProc.subId.startsWith('custom_') ? '' : 'display:none;'}">
+                        <input type="text" id="proc-newsub-title" placeholder="Título de la nueva subsección (ej. 7.4 Comandos de Verificación)" value="${editProc && editProc.subId && editProc.subId.startsWith('custom_') ? escapeHtml(editProc.title) : ''}" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;">
+                        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:3px;">Se agregará al final de la sección y aparecerá en el menú lateral de la guía.</div>
+                    </div>
                 </div>
-                <div class="login-field">
+                <div class="login-field" id="proc-title-field">
                     <label for="proc-title">Título del Procedimiento o Comando</label>
                     <input type="text" id="proc-title" placeholder="ej. Comandos BGP en JBORDE / Diagnóstico Netflix CDN" value="${editProc ? escapeHtml(editProc.title) : ''}" required>
                 </div>
@@ -170,13 +184,35 @@ export function openProcedureModal(editProc = null) {
     sectionSel?.addEventListener('change', populateSubsections);
     populateSubsections();
 
+    const blockModeEl = document.getElementById('proc-mode-block');
+    const newsubModeEl = document.getElementById('proc-mode-newsub');
+    const titleFieldEl = document.getElementById('proc-title-field');
+    const newsubTitleEl = document.getElementById('proc-newsub-title');
+    const setProcMode = (mode) => {
+        const isNewSub = mode === 'newsub';
+        if (blockModeEl) blockModeEl.style.display = isNewSub ? 'none' : '';
+        if (newsubModeEl) newsubModeEl.style.display = isNewSub ? '' : 'none';
+        if (titleFieldEl) titleFieldEl.style.display = isNewSub ? 'none' : '';
+        if (subSel) subSel.required = !isNewSub;
+        if (newsubTitleEl) newsubTitleEl.required = isNewSub;
+    };
+    form.querySelectorAll('input[name="proc-mode"]').forEach(r => {
+        r.addEventListener('change', () => setProcMode(r.value));
+    });
+    setProcMode((form.querySelector('input[name="proc-mode"]:checked') || {}).value || 'block');
+
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
+        deleteBtn.addEventListener('click', () => {
             if (!editProc || !editProc.id) return;
             if (confirm('¿Estás seguro de eliminar este procedimiento de la guía?')) {
-                await deleteCustomProcedureFromFirebase(editProc.id);
+                customProcedures = customProcedures.filter(p => String(p.id) !== String(editProc.id));
+                AppState.set('customProcedures', customProcedures);
+                Storage.set('cor_custom_procedures', customProcedures);
+                renderNav();
                 closeModal();
                 showHome();
+                deleteCustomProcedureFromFirebase(editProc.id)
+                    .catch(err => console.error('Error al eliminar procedimiento', err));
             }
         });
     }
@@ -186,72 +222,80 @@ export function openProcedureModal(editProc = null) {
 
         // Evitar envíos dobles (clics repetidos creaban procedimientos duplicados)
         if (form.dataset.saving === '1') return;
+        form.dataset.saving = '1';
 
         const sectionId = sectionSel.value;
-        const subId = subSel.value;
-        const title = document.getElementById('proc-title').value.trim();
+        const mode = (form.querySelector('input[name="proc-mode"]:checked') || {}).value || 'block';
+        const isNewSub = mode === 'newsub';
+        const subId = editProc && editProc.id
+            ? editProc.subId
+            : (isNewSub ? 'custom_' + sectionId + '_' + Date.now() : subSel.value);
+        const title = (isNewSub
+            ? document.getElementById('proc-newsub-title').value
+            : document.getElementById('proc-title').value).trim();
         const content = document.getElementById('proc-content').value.trim();
 
         if (!sectionId || !subId || !title || !content) {
+            form.dataset.saving = '0';
             showGuideToast('⚠️ Faltan datos', 'Completa la sección, la subsección, el título y el contenido.', true);
             return;
         }
 
-        const submitBtn = form.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '⏳ Publicando…';
-        form.dataset.saving = '1';
-
         const author = getCurrentAuthor();
-
+        const sectionObj = sections.find(s => s.id === sectionId) || {};
+        const subObj = (sectionObj.subsections || []).find(s => s.id === subId) || {};
         const procData = {
             sectionId: sectionId,
-            subId: editProc ? editProc.subId : subId,
+            subId: subId,
             title: title,
             content: content,
             author: author,
             updatedAt: new Date().toISOString()
         };
 
-        try {
-            if (editProc && editProc.id) {
-                await updateCustomProcedureInFirebase(editProc.id, procData);
-                customProcedures = customProcedures.map(p => p.id === editProc.id ? { id: editProc.id, ...procData } : p);
-                createNotification({
-                    title: '📖 Procedimiento Actualizado',
-                    message: `"${title}" ha sido modificado por ${author}.`,
-                    type: 'guide',
-                    author: author
-                });
-            } else {
-                const saved = await saveCustomProcedureToFirebase(procData);
-                const finalId = saved && saved.id ? saved.id : ('pending_' + Date.now());
-                customProcedures = [...customProcedures, { id: finalId, ...procData }];
-                createNotification({
-                    title: '✨ Nuevo Procedimiento Agregado',
-                    message: `${author} agregó "${title}" a la guía.`,
-                    type: 'guide',
-                    author: author
-                });
-            }
-        } catch (err) {
-            console.error('Error al guardar procedimiento', err);
-        }
+        const tempId = editProc && editProc.id ? editProc.id : ('local_' + Date.now());
+        const finalProc = { id: tempId, ...procData };
 
-        // Actualizar localmente para que la navegación funcione de inmediato (sin esperar el snapshot)
+        if (editProc && editProc.id) {
+            customProcedures = customProcedures.map(p => p.id === editProc.id ? finalProc : p);
+        } else {
+            customProcedures = [...customProcedures, finalProc];
+        }
         AppState.set('customProcedures', customProcedures);
+        Storage.set('cor_custom_procedures', customProcedures);
         renderNav();
         closeModal();
         showGuideToast(
             editProc ? '✅ Procedimiento actualizado' : '✅ Procedimiento publicado',
-            `"${title}" se muestra en la subsección seleccionada de la guía.`
+            `"${title}" ${isNewSub ? 'se agregó como subsección de la guía.' : 'se muestra en la subsección seleccionada.'}`
         );
-        // Si ya estábamos viendo esa misma subsección, el guard de navigateTo
-        // (misma sección/subsección => return) impediría re-renderizar el bloque.
-        // Se resetea el estado actual para forzar el re-render con el bloque nuevo.
         AppState.set('currentSectionId', null);
         AppState.set('currentSubsectionId', null);
-        navigateTo(sectionId, procData.subId);
+        navigateTo(sectionId, subId);
+
+        createNotification({
+            title: editProc ? '📖 Procedimiento Actualizado' : '✨ Nuevo Procedimiento Agregado',
+            message: isNewSub
+                ? `${author} ${editProc ? 'actualizó' : 'creó'} la subsección "${title}" en ${sectionObj.title || ''}.`
+                : `${author} ${editProc ? 'actualizó' : 'agregó'} "${title}" en ${sectionObj.title || ''} › ${subObj.title || title}.`,
+            type: 'guide',
+            author: author
+        });
+
+        if (editProc && editProc.id) {
+            updateCustomProcedureInFirebase(editProc.id, procData)
+                .catch(err => console.error('Error al actualizar procedimiento', err));
+        } else {
+            saveCustomProcedureToFirebase(procData, tempId)
+                .then(saved => {
+                    if (!saved || !saved.id || saved.id === tempId) return;
+                    customProcedures = customProcedures.map(p => p.id === tempId ? { ...p, id: saved.id } : p);
+                    AppState.set('customProcedures', customProcedures);
+                    Storage.set('cor_custom_procedures', customProcedures);
+                    renderNav();
+                })
+                .catch(err => console.error('Error al guardar procedimiento', err));
+        }
     });
 }
 
@@ -286,28 +330,27 @@ export async function deleteCustomProcedure(procId, _sectionId, _subId) {
         alert('⚠️ No se pudo identificar el procedimiento para eliminar.');
         return;
     }
-    if (confirm('¿Estás seguro de eliminar este procedimiento de la guía?')) {
-        const ok = await deleteCustomProcedureFromFirebase(procId);
-        if (!ok) {
-            alert('❌ No se pudo eliminar el procedimiento. Intenta de nuevo.');
-            return;
-        }
-        // Refrescar el estado local de inmediato: no depender SOLO del snapshot
-        // de Firestore, que en modo degradado (cuota/offline) nunca llega.
-        customProcedures = Storage.get('cor_custom_procedures', []);
-        AppState.set('customProcedures', customProcedures);
-        renderNav();
+    if (!confirm('¿Estás seguro de eliminar este procedimiento de la guía?')) return;
 
-        // Si el bloque borrado pertenecía a la subsección que estamos viendo,
-        // re-renderizar en su lugar (en lugar de saltar a Home).
-        if (_sectionId && _subId
-            && AppState.get('currentSectionId') === _sectionId
-            && AppState.get('currentSubsectionId') === _subId) {
-            AppState.set('currentSectionId', null);
-            AppState.set('currentSubsectionId', null);
-            navigateTo(_sectionId, _subId);
-        } else {
-            showHome();
-        }
+    // Refrescar el estado local de inmediato: no depender del snapshot de
+    // Firestore, que en modo degradado (cuota/offline) nunca llega.
+    customProcedures = customProcedures.filter(p => String(p.id) !== String(procId));
+    AppState.set('customProcedures', customProcedures);
+    Storage.set('cor_custom_procedures', customProcedures);
+    renderNav();
+
+    // Si el bloque borrado pertenecía a la subsección que estamos viendo,
+    // re-renderizar en su lugar (en lugar de saltar a Home).
+    if (_sectionId && _subId
+        && AppState.get('currentSectionId') === _sectionId
+        && AppState.get('currentSubsectionId') === _subId) {
+        AppState.set('currentSectionId', null);
+        AppState.set('currentSubsectionId', null);
+        navigateTo(_sectionId, _subId);
+    } else {
+        showHome();
     }
+
+    deleteCustomProcedureFromFirebase(procId)
+        .catch(err => console.error('Error al eliminar procedimiento', err));
 }
