@@ -5,6 +5,7 @@
 import { AppState } from '../state.js';
 import { getCurrentAuthor } from './auth.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { Storage } from '../utils/storage.js';
 import { renderNav, navigateTo } from './navigation.js';
 import { showHome } from './home.js';
 import {
@@ -30,6 +31,22 @@ export function initGuideEdit() {
         customProcedures = list || [];
         AppState.set('customProcedures', customProcedures);
         renderNav();
+
+        // Race de arranque: si la URL trae hash directo a una subsección, loadData
+        // navega ANTES de que lleguen los procedimientos (localStorage/Firestore),
+        // por lo que los bloques no se renderizan en ese primer navigateTo.
+        // Cuando llega el snapshot, re-renderizar la subsección actual si aplica.
+        if (AppState.get('currentView') === 'article') {
+            const secId = AppState.get('currentSectionId');
+            const subId = AppState.get('currentSubsectionId');
+            if (secId && subId) {
+                // Resetear el estado actual para que el guard de navigateTo no
+                // bloquee el re-render (mismo secId/subId => return sin render).
+                AppState.set('currentSectionId', null);
+                AppState.set('currentSubsectionId', null);
+                navigateTo(secId, subId);
+            }
+        }
 
         // Reintentar la navegación si el hash apunta a un procedimiento personalizado recién cargado
         const hash = window.location.hash.replace('#', '');
@@ -273,7 +290,24 @@ export async function deleteCustomProcedure(procId, _sectionId, _subId) {
         const ok = await deleteCustomProcedureFromFirebase(procId);
         if (!ok) {
             alert('❌ No se pudo eliminar el procedimiento. Intenta de nuevo.');
+            return;
         }
-        showHome();
+        // Refrescar el estado local de inmediato: no depender SOLO del snapshot
+        // de Firestore, que en modo degradado (cuota/offline) nunca llega.
+        customProcedures = Storage.get('cor_custom_procedures', []);
+        AppState.set('customProcedures', customProcedures);
+        renderNav();
+
+        // Si el bloque borrado pertenecía a la subsección que estamos viendo,
+        // re-renderizar en su lugar (en lugar de saltar a Home).
+        if (_sectionId && _subId
+            && AppState.get('currentSectionId') === _sectionId
+            && AppState.get('currentSubsectionId') === _subId) {
+            AppState.set('currentSectionId', null);
+            AppState.set('currentSubsectionId', null);
+            navigateTo(_sectionId, _subId);
+        } else {
+            showHome();
+        }
     }
 }
