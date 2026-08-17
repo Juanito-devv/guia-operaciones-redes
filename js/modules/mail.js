@@ -54,45 +54,13 @@ Atentamente,
 Centro de Operaciones de Red (COR)`
     },
     {
-        id: 'btse',
-        name: 'BTSE',
-        template: `Buenos días, estimados compañeros de BTSE,
-
-Por medio del presente informamos que el circuito {circuito} {afectacion} desde las {hora} (UTC-04:00), según los logs de nuestros equipos.
-
-Hemos realizado la validación interna sin detectar anomalías en nuestra red. Solicitamos validación del lado del proveedor y nos informen el estatus del enlace.
-
-Ticket aperturado: {ticket}
-
-Quedamos atentos a su pronta respuesta.
-
-Atentamente,
-Centro de Operaciones de Red (COR)`
-    },
-    {
         id: 'tgc',
-        name: 'TGC (Movistar)',
+        name: 'Movistar',
         template: `Buenos días, estimados compañeros de TGC,
 
 Por medio de la presente informamos que el circuito {circuito} {afectacion} desde las {hora} (UTC-04:00), según los logs de nuestros equipos.
 
 Se realizó la validación interna sin encontrar fallas en nuestro segmento, por lo que solicitamos validación del lado del proveedor y el tiempo estimado de restablecimiento.
-
-Ticket aperturado: {ticket}
-
-Quedamos atentos a su pronta respuesta.
-
-Atentamente,
-Centro de Operaciones de Red (COR)`
-    },
-    {
-        id: 'lanautilus',
-        name: 'LANAUTILUS',
-        template: `Buenos días, estimados compañeros de LANAUTILUS,
-
-Por medio del presente informamos que el circuito {circuito} {afectacion} desde las {hora} (UTC-04:00), según los logs de nuestros equipos.
-
-No se detectaron anomalías en nuestra red (configuraciones, equipos locales, o fibra óptica). Solicitamos validación del enlace del lado del proveedor.
 
 Ticket aperturado: {ticket}
 

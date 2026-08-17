@@ -168,7 +168,7 @@ async function pushLocalItem(collection, item) {
     if (!item || !item.id || pushingLocal.has(item.id)) return;
     pushingLocal.add(item.id);
     try {
-        const { id, ...rest } = item;
+        const { id, _pending, ...rest } = item;
         await db.collection(collection).doc(id).set({
             ...rest,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -443,7 +443,7 @@ export async function deleteEventFromFirebase(eventId) {
 export async function saveCustomProcedureToFirebase(procData, customId = null) {
     const persistLocal = () => {
         const local = Storage.get('cor_custom_procedures', []);
-        const newProc = customId ? { id: customId, ...procData } : { id: 'local_' + Date.now(), ...procData };
+        const newProc = customId ? { id: customId, ...procData, _pending: true } : { id: 'local_' + Date.now(), ...procData, _pending: true };
         const idx = local.findIndex(p => p && p.id === newProc.id);
         if (idx !== -1) local[idx] = newProc;
         else local.push(newProc);
@@ -489,11 +489,15 @@ export function getCustomProceduresFromFirebase(callback) {
                     serverList.push({ id: doc.id, ...doc.data() });
                 });
                 const serverIds = new Set(serverList.map(p => p && p.id));
-                const list = mergeLocalList(serverList, 'cor_custom_procedures');
-                // Subir automáticamente los procedimientos creados sin conexión
-                list.forEach((p) => {
-                    if (!serverIds.has(p.id)) pushLocalItem('custom_procedures', p);
-                });
+                const local = Storage.get('cor_custom_procedures', []);
+                const localOnly = local.filter(p => p && !serverIds.has(p.id));
+                // Solo re-subir los pendientes (creados/guardados sin conexión o con
+                // Firestore caído). Los que no están pendientes ni en el servidor
+                // fueron borrados en otro lado (consola/admin): se descartan para
+                // que no reaparezcan tras refrescar.
+                const keepLocalOnly = localOnly.filter(p => p._pending);
+                keepLocalOnly.forEach(p => pushLocalItem('custom_procedures', p));
+                const list = [...serverList, ...keepLocalOnly];
                 Storage.set('cor_custom_procedures', list);
                 markFirebaseRecovered();
                 callback(list);
@@ -603,9 +607,12 @@ export function getNotificationsFromFirebase(callback) {
                 const serverIds = new Set(serverList.map(n => n && n.id));
                 const local = Storage.get('cor_notifications', []);
                 const localOnly = local.filter(n => n && !serverIds.has(n.id));
-                const list = [...serverList, ...localOnly];
-                // Subir automáticamente las creadas sin conexión
-                localOnly.forEach(n => pushLocalItem('notifications', n));
+                // Solo re-subir las pendientes (creadas sin conexión). Las que no
+                // están pendientes ni en el servidor fueron borradas en otro lado
+                // (consola/admin): se descartan para que no reaparezcan.
+                const keepLocalOnly = localOnly.filter(n => n._pending);
+                keepLocalOnly.forEach(n => pushLocalItem('notifications', n));
+                const list = [...serverList, ...keepLocalOnly];
                 list.sort((a, b) => notifTs(b) - notifTs(a));
                 markFirebaseRecovered();
                 Storage.set('cor_notifications', list);
@@ -623,7 +630,7 @@ export function getNotificationsFromFirebase(callback) {
 // (los demás dispositivos/usuarios detectan que ya existe y no la duplican).
 export async function createNotificationInFirebase(notif, { dedupeKey } = {}) {
     const id = dedupeKey || ('n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
-    const localNotif = { ...notif, id, createdAt: new Date().toISOString() };
+    const localNotif = { ...notif, id, createdAt: new Date().toISOString(), _pending: true };
 
     // Escritura local optimista (sin duplicar si el id ya está)
     const local = Storage.get('cor_notifications', []);

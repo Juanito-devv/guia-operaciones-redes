@@ -522,7 +522,7 @@ function renderSummary(indexMap) {
         </div>
         <div class="cdc-quota">
             <div class="cdc-quota-head">
-                <span>Cuota Mensual CDC</span>
+                <span>CDC trabajados en el mes</span>
                 <span class="cdc-quota-num">${monthDone}/${monthList.length || 0}</span>
             </div>
             <div class="cdc-quota-bar"><div style="width:${quotaPct}%"></div></div>

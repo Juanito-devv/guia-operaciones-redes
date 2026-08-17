@@ -79,6 +79,15 @@ export function renderNav() {
     dashLink.innerHTML = `<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">work</span> Espacio de Trabajo`;
     dashLink.addEventListener('click', (e) => {
         e.preventDefault();
+        // Iluminar el botón de inmediato (el hashchange no re-renderiza el nav)
+        document.querySelectorAll('.nav-dash-link[data-dashboard="true"]').forEach(el => {
+            el.classList.add('active');
+            el.setAttribute('aria-current', 'page');
+        });
+        document.querySelectorAll('.nav-subsection-link, .nav-home-link').forEach(el => {
+            el.classList.remove('active');
+            el.removeAttribute('aria-current');
+        });
         window.location.hash = '#/dashboard';
         closeMobileMenu();
         hideSearchResults();
@@ -318,8 +327,8 @@ function buildArticleView(section, subsection, guiaData) {
     // él); se re-vinculan en navigateTo con data-proc-id.
     const customBlocks = (subsection.customBlocks || []).map(block => `
         <section class="article-custom-block" data-proc-id="${escapeHtml(block.id)}">
-            <h2 class="article-custom-block-title">${escapeHtml(block.title)}</h2>
-            <div class="article-custom-block-content">${sanitizeHtml(block.content)}</div>
+            ${block.title ? `<h2 class="article-custom-block-title">${escapeHtml(block.title)}</h2>` : ''}
+            <div class="article-content article-custom-block-content">${sanitizeHtml(block.content)}</div>
             ${isAdmin() ? `
             <div class="article-custom-block-actions">
                 <button type="button" class="article-block-btn" data-action="edit" data-proc-id="${escapeHtml(block.id)}">

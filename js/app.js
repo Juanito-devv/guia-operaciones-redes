@@ -6,7 +6,7 @@ import { AppState } from './state.js';
 import { Storage } from './utils/storage.js';
 import { initTheme, applyDensity } from './modules/theme.js';
 import { validateSession, initLogin, logout } from './modules/auth.js';
-import { renderNav, navigateTo, initMobileMenu } from './modules/navigation.js';
+import { renderNav, navigateTo, initMobileMenu, getMergedGuiaData } from './modules/navigation.js';
 import { initSearch, hideSearchResults, initGlobalSearch, openGlobalSearch, closeGlobalSearch } from './modules/search.js';
 import { showHome, navigateToFirstSection } from './modules/home.js';
 import { updatePanelUserUI } from './modules/panel.js';
@@ -63,7 +63,8 @@ async function loadData() {
             }
             const parts = hash.split('/');
             if (parts.length === 2) {
-                const section = data.sections.find(s => s.id === parts[0]);
+                const merged = getMergedGuiaData();
+                const section = merged ? merged.sections.find(s => s.id === parts[0]) : null;
                 if (section) {
                     const subsection = section.subsections.find(s => s.id === parts[1]);
                     if (subsection) {
@@ -209,7 +210,9 @@ function handleGlobalKeys(e) {
 
 function handleHashChange() {
     const hash = window.location.hash.replace('#', '').replace(/^\//, '');
-    const guiaData = AppState.get('guiaData');
+    // Datos fusionados: incluye las subsecciones/ bloques colaborativos
+    // (custom_…) guardados en localStorage/Firestore, no solo el JSON base.
+    const guiaData = getMergedGuiaData();
 
     if (hash === 'dashboard' || hash.startsWith('dashboard/')) {
         const toolId = hash === 'dashboard' ? null : hash.split('/')[1].split('?')[0];

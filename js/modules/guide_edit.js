@@ -136,8 +136,8 @@ export function openProcedureModal(editProc = null) {
                     </div>
                 </div>
                 <div class="login-field" id="proc-title-field">
-                    <label for="proc-title">Título del Procedimiento o Comando</label>
-                    <input type="text" id="proc-title" placeholder="ej. Comandos BGP en JBORDE / Diagnóstico Netflix CDN" value="${editProc ? escapeHtml(editProc.title) : ''}" required>
+                    <label for="proc-title">Título (opcional)</label>
+                    <input type="text" id="proc-title" placeholder="ej. Comandos BGP en JBORDE / Diagnóstico Netflix CDN. Si lo dejas vacío, el contenido se muestra como parte de la guía." value="${editProc ? escapeHtml(editProc.title) : ''}">
                 </div>
                 <div class="login-field">
                     <label for="proc-content">Contenido / Comandos / Pasos de Validación (Acepta HTML o Texto)</label>
@@ -235,9 +235,9 @@ export function openProcedureModal(editProc = null) {
             : document.getElementById('proc-title').value).trim();
         const content = document.getElementById('proc-content').value.trim();
 
-        if (!sectionId || !subId || !title || !content) {
+        if (!sectionId || !subId || !content || (isNewSub && !title)) {
             form.dataset.saving = '0';
-            showGuideToast('⚠️ Faltan datos', 'Completa la sección, la subsección, el título y el contenido.', true);
+            showGuideToast('⚠️ Faltan datos', 'Completa la sección, la subsección, el contenido y (si es una subsección nueva) el título.', true);
             return;
         }
 
@@ -254,7 +254,7 @@ export function openProcedureModal(editProc = null) {
         };
 
         const tempId = editProc && editProc.id ? editProc.id : ('local_' + Date.now());
-        const finalProc = { id: tempId, ...procData };
+        const finalProc = { id: tempId, ...procData, _pending: true };
 
         if (editProc && editProc.id) {
             customProcedures = customProcedures.map(p => p.id === editProc.id ? finalProc : p);

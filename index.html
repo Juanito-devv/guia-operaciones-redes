@@ -278,6 +278,58 @@
     </div>
 
     <!-- JS Modular (ES6 Native Modules) -->
+    <!-- Captura temprana de errores: registra error/unhandledrejection/console.error
+         antes de que cargue app.js. Los ocurridos antes de inicializar el monitor
+         quedan en window.__earlyErrors; luego error_monitor.js los drena y pasa a
+         recibirlos en vivo por window.__errHook (botón de debug del encabezado). -->
+    <script>
+        (function () {
+            window.__earlyErrors = [];
+            window.__errHook = null;
+            var _cap = function (entry) {
+                if (window.__errHook) { window.__errHook(entry); }
+                else {
+                    window.__earlyErrors.push(entry);
+                    if (window.__earlyErrors.length > 100) window.__earlyErrors.length = 100;
+                }
+            };
+            window.addEventListener('error', function (e) {
+                var err = e.error || {};
+                _cap({
+                    t: Date.now(),
+                    type: 'error',
+                    msg: err.message || e.message || 'Error desconocido',
+                    src: e.filename ? e.filename + ':' + (e.lineno || 0) : '',
+                    stack: err.stack ? String(err.stack).split('\n').slice(0, 5).join('\n') : ''
+                });
+            });
+            window.addEventListener('unhandledrejection', function (e) {
+                var r = e.reason || {};
+                _cap({
+                    t: Date.now(),
+                    type: 'promise',
+                    msg: r.message || String(e.reason),
+                    src: '',
+                    stack: r.stack ? String(r.stack).split('\n').slice(0, 5).join('\n') : ''
+                });
+            });
+            var _origError = console.error.bind(console);
+            var _lastConsole = 0;
+            console.error = function () {
+                var now = Date.now();
+                if (now - _lastConsole >= 1000) {
+                    _lastConsole = now;
+                    var parts = Array.prototype.map.call(arguments, function (a) {
+                        if (a instanceof Error) return a.message + (a.stack ? '\n' + String(a.stack).split('\n').slice(0, 5).join('\n') : '');
+                        if (a && typeof a === 'object') { try { return JSON.stringify(a); } catch (x) { return String(a); } }
+                        return String(a);
+                    });
+                    _cap({ t: Date.now(), type: 'console', msg: parts.join(' '), src: '', stack: '' });
+                }
+                _origError.apply(console, arguments);
+            };
+        })();
+    </script>
     <script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

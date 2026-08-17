@@ -23,12 +23,16 @@ function persist() {
     } catch (e) { /* noop */ }
 }
 
-function push(entry) {
+function addEntry(entry) {
     log.unshift(entry);
     if (log.length > MAX_LOG) log.length = MAX_LOG;
     persist();
-    showToast(entry.msg);
     updateFab();
+}
+
+function push(entry) {
+    addEntry(entry);
+    showToast(entry.msg);
 }
 
 export function getErrorLog() {
@@ -50,28 +54,42 @@ export function logError(msg, source, stack) {
 
 /**
  * Activa la captura global de errores y crea el visor (FAB) para admin.
+ * La captura temprana (error/unhandledrejection/console.error) vive en un
+ * <script> de index.html que entrega cada error por window.__errHook y deja en
+ * window.__earlyErrors los ocurridos ANTES de que este módulo cargara (errores
+ * de arranque o de importación de módulos). Si el index.html cacheado es viejo
+ * y no trae esa captura, se registran los listeners acá mismo (fallback).
  */
 export function initErrorMonitor() {
-    window.addEventListener('error', (e) => {
-        push({
-            t: Date.now(),
-            type: 'error',
-            msg: e.message || (e.error ? String(e.error) : 'Error desconocido'),
-            src: e.filename ? `${e.filename}:${e.lineno || 0}` : '',
-            stack: e.error && e.error.stack ? String(e.error.stack).split('\n').slice(0, 5).join('\n') : ''
+    if (typeof window.__errHook === 'function') {
+        window.__errHook = push;
+        const early = window.__earlyErrors || [];
+        if (early.length) {
+            early.forEach(addEntry);
+            early.length = 0;
+        }
+    } else {
+        window.addEventListener('error', (e) => {
+            push({
+                t: Date.now(),
+                type: 'error',
+                msg: e.message || (e.error ? String(e.error) : 'Error desconocido'),
+                src: e.filename ? `${e.filename}:${e.lineno || 0}` : '',
+                stack: e.error && e.error.stack ? String(e.error.stack).split('\n').slice(0, 5).join('\n') : ''
+            });
         });
-    });
 
-    window.addEventListener('unhandledrejection', (e) => {
-        const r = e.reason;
-        push({
-            t: Date.now(),
-            type: 'promise',
-            msg: r && r.message ? r.message : String(r),
-            src: '',
-            stack: r && r.stack ? String(r.stack).split('\n').slice(0, 5).join('\n') : ''
+        window.addEventListener('unhandledrejection', (e) => {
+            const r = e.reason;
+            push({
+                t: Date.now(),
+                type: 'promise',
+                msg: r && r.message ? r.message : String(r),
+                src: '',
+                stack: r && r.stack ? String(r.stack).split('\n').slice(0, 5).join('\n') : ''
+            });
         });
-    });
+    }
 
     createFab();
     updateFab();
@@ -101,16 +119,20 @@ export function showErrorLogPage() {
     const items = getErrorLog();
     const rows = items.length === 0
         ? `<div class="err-log-empty"><span class="material-symbols-outlined" aria-hidden="true">verified</span><p>Sin errores registrados. ¡Todo en orden!</p></div>`
-        : items.map((it) => `
+        : items.map((it) => {
+            const typeLabel = it.type === 'promise' ? 'PROMESA' : it.type === 'console' ? 'CONSOLA' : 'ERROR';
+            const typeClass = it.type === 'promise' ? 'promise' : it.type === 'console' ? 'console' : 'error';
+            return `
             <div class="err-log-item">
                 <div class="err-log-head">
-                    <span class="err-log-type err-log-type-${it.type === 'promise' ? 'promise' : 'error'}">${it.type === 'promise' ? 'PROMESA' : 'ERROR'}</span>
+                    <span class="err-log-type err-log-type-${typeClass}">${typeLabel}</span>
                     <span class="err-log-time">${new Date(it.t).toLocaleString('es-ES')}</span>
                     ${it.src ? `<span class="err-log-src">${escapeHtml(it.src)}</span>` : ''}
                 </div>
                 <p class="err-log-msg">${escapeHtml(it.msg)}</p>
                 ${it.stack ? `<pre class="err-log-stack">${escapeHtml(it.stack)}</pre>` : ''}
-            </div>`).join('');
+            </div>`;
+        }).join('');
 
     body.innerHTML = `
         <div class="err-log-page">
@@ -118,7 +140,7 @@ export function showErrorLogPage() {
                 <div>
                     <span class="support-state-label">MONITOREO</span>
                     <h2>Registro de errores internos</h2>
-                    <p>Errores de JavaScript y promesas rechazadas capturados en este navegador. Los errores se guardan localmente.</p>
+                    <p>Errores de JavaScript, promesas rechazadas y mensajes de consola capturados en este navegador. Se guardan localmente.</p>
                 </div>
                 <button class="err-log-clear" id="err-log-clear-btn" type="button">
                     <span class="material-symbols-outlined" aria-hidden="true">delete_sweep</span> Limpiar
@@ -179,7 +201,13 @@ function createFab() {
     fabEl.addEventListener('click', () => {
         window.location.hash = '#/dashboard/errores';
     });
-    document.body.appendChild(fabEl);
+    // Junto a la campana de notificaciones, en el encabezado (solo admin).
+    const target = document.querySelector('.content-header-right');
+    if (target) {
+        target.appendChild(fabEl);
+    } else {
+        document.body.appendChild(fabEl);
+    }
 }
 
 function updateFab() {
