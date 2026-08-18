@@ -116,7 +116,7 @@ export const HOME_PAGE_HTML = `
             <span>Juan Irazabal · Software Development Engineer</span>
         </div>
         <div class="hp-footer-right">
-            <a href="https://wa.me/584129706050" target="_blank" rel="noopener" id="hp-report-error">
+            <a href="#" id="hp-report-error" data-open-feedback>
                 <span class="material-symbols-outlined" aria-hidden="true">forum</span> Reportar Error
             </a>
         </div>

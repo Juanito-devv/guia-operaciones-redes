@@ -16,6 +16,7 @@ import { initNotifications } from './modules/notifications.js';
 import { showDashboard } from './modules/dashboard.js';
 import { showAyuda } from './modules/ayuda.js';
 import { showLauncher, initLauncher } from './modules/launcher.js';
+import { initFeedbackModal } from './modules/feedback.js';
 import { initErrorMonitor, refreshErrorFab } from './modules/error_monitor.js';
 import { showLoadError } from './modules/states.js';
 
@@ -354,6 +355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initGlobalSearch();
         initCalendar();
         initLauncher();
+        initFeedbackModal();
         bindAppBottomNav();
         bindHeaderActions();
         initErrorMonitor();
