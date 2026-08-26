@@ -2,7 +2,7 @@
 // LAUNCHER MODULE (pantalla post-login: GUÍA o ESPACIO DE TRABAJO)
 // ========================================
 
-import { getCurrentUser } from './auth.js';
+import { getCurrentUser, isSupervisor } from './auth.js';
 import { showHome } from './home.js';
 
 /**
@@ -24,7 +24,7 @@ function typeWriterName(el, text, speed = 60) {
 
 /**
  * Muestra la pantalla de bienvenida post-login (launcher) y oculta login/app.
- * El analista decide dónde entrar: GUÍA o ESPACIO DE TRABAJO.
+ * Si es supervisor, muestra únicamente la opción de SUPERVISIÓN.
  */
 export function showLauncher() {
     const launcher = document.getElementById('launcher-screen');
@@ -32,11 +32,38 @@ export function showLauncher() {
     const app = document.getElementById('app');
     if (!launcher) return;
 
-    // Nombre del analista (primer nombre del usuario logueado) con animación
+    // Nombre del analista/supervisor con animación
     const user = getCurrentUser();
     const nameEl = document.getElementById('launcher-user-name');
     if (nameEl && user) {
         typeWriterName(nameEl, (user.name || '').split(' ')[0] || 'Analista');
+    }
+
+    const isSup = isSupervisor();
+    const goGuide = document.getElementById('launcher-go-guide');
+    const goWorkspace = document.getElementById('launcher-go-workspace');
+    const goAyuda = document.getElementById('launcher-go-ayuda');
+    const goSupervision = document.getElementById('launcher-go-supervision');
+    const subtitleEl = launcher.querySelector('.launcher-subtitle');
+
+    if (isSup) {
+        if (goGuide) goGuide.style.display = 'none';
+        if (goWorkspace) goWorkspace.style.display = 'none';
+        if (goAyuda) goAyuda.style.display = 'none';
+        if (goSupervision) goSupervision.style.display = 'flex';
+        if (subtitleEl) subtitleEl.textContent = 'Módulo Exclusivo de Supervisión COR';
+        document.querySelectorAll('.launcher-nav-btn[data-dest="busqueda"], .launcher-nav-btn[data-dest="alertas"]').forEach(btn => {
+            btn.style.display = 'none';
+        });
+    } else {
+        if (goGuide) goGuide.style.display = 'flex';
+        if (goWorkspace) goWorkspace.style.display = 'flex';
+        if (goAyuda) goAyuda.style.display = 'flex';
+        if (goSupervision) goSupervision.style.display = 'none';
+        if (subtitleEl) subtitleEl.textContent = '¿Qué necesitas hacer hoy?';
+        document.querySelectorAll('.launcher-nav-btn[data-dest="busqueda"], .launcher-nav-btn[data-dest="alertas"]').forEach(btn => {
+            btn.style.display = 'flex';
+        });
     }
 
     if (loginScreen) loginScreen.style.display = 'none';
@@ -61,6 +88,7 @@ export function initLauncher() {
     document.getElementById('launcher-go-guide')?.addEventListener('click', enterGuide);
     document.getElementById('launcher-go-workspace')?.addEventListener('click', enterWorkspace);
     document.getElementById('launcher-go-ayuda')?.addEventListener('click', enterAyuda);
+    document.getElementById('launcher-go-supervision')?.addEventListener('click', enterSupervision);
 
     document.querySelectorAll('.launcher-nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -107,4 +135,9 @@ function enterWorkspace() {
 function enterAyuda() {
     hideLauncher();
     window.location.hash = '#/ayuda';
+}
+
+function enterSupervision() {
+    hideLauncher();
+    window.location.hash = '#/dashboard/supervision';
 }

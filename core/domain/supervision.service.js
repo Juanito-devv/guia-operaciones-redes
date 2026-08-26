@@ -1,0 +1,277 @@
+﻿// ========================================
+// CORE · DOMAIN · Supervision Service (lógica pura, sin DOM)
+// ========================================
+
+export function formatSystemDateTime(date = new Date(), customHora = null) {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const hora = customHora || `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    return {
+        dateStr: `${dd}/${mm}/${yyyy}`,
+        horaStr: hora,
+        isoDate: `${yyyy}-${mm}-${dd}`
+    };
+}
+
+export function buildSupervisionHeader({ hora, date = new Date() } = {}) {
+    const { dateStr, horaStr } = formatSystemDateTime(date, hora);
+    return `🟡 MENSAJE INFORMATIVO\nVPTI / GGOC / GCOR / MYC LPG\nFecha: ${dateStr} / Hora: ${horaStr}`;
+}
+
+export const SUPERVISION_DEFAULTS = {
+    cabecerasMetro: [
+        { name: 'Boleíta', status: '✅' },
+        { name: 'Chacao', status: '✅' },
+        { name: 'CNT', status: '✅' },
+        { name: 'Nueva Caracas', status: '✅' },
+        { name: 'Miranda', status: '✅' },
+        { name: 'Camurí', status: '✅' },
+        { name: 'Maderero', status: '✅' },
+        { name: 'Las Mercedes', status: '✅' },
+        { name: 'La Trinidad', status: '✅' },
+        { name: 'Maracay', status: '✅' },
+        { name: 'Michelena', status: '✅' },
+        { name: 'Barquisimeto', status: '✅' },
+        { name: 'Maracaibo', status: '✅' },
+        { name: 'San Cristóbal', status: '✅' },
+        { name: 'Anzoátegui', status: '✅' },
+        { name: 'Cumaná', status: '✅' },
+        { name: 'Puerto Ordaz', status: '✅' },
+        { name: 'Punto Fijo', status: '✅' }
+    ],
+    transporteDwdm: [
+        { name: 'CNT', status: '✅' },
+        { name: 'Miranda', status: '✅' },
+        { name: 'Zulia', status: '✅' },
+        { name: 'Falcón', status: '✅' },
+        { name: 'Barinas', status: '✅' },
+        { name: 'Lara', status: '✅' },
+        { name: 'Portuguesa', status: '✅' },
+        { name: 'San Cristóbal', status: '✅' },
+        { name: 'Mérida', status: '✅' },
+        { name: 'Carabobo', status: '✅' },
+        { name: 'Maracay', status: '✅' },
+        { name: 'Puerto Ordaz', status: '✅' },
+        { name: 'Bolívar', status: '✅' },
+        { name: 'Anzoátegui', status: '✅' },
+        { name: 'Barinas (Bamari)', status: '✅' },
+        { name: 'Amazonas', status: '✅' },
+        { name: 'Monagas', status: '✅' }
+    ],
+    plataformaIsp: [
+        { name: 'Servicio DNS', status: '✅' },
+        { name: 'Servicio DHCP', status: '✅' },
+        { name: 'Servicio AAA', status: '✅' },
+        { name: 'BRAS', status: '✅' },
+        { name: 'Acceso DSLAM', status: '✅' },
+        { name: 'PSTN', status: '✅' },
+        { name: 'NGN', status: '✅' }
+    ],
+    servidoresTi: [
+        { name: 'Recaudación', status: '✅' },
+        { name: 'Plataformas Corporativas', status: '✅' },
+        { name: 'Data Center Chacao', status: '✅' },
+        { name: 'Data Center CNT', status: '✅' },
+        { name: 'Data Center Hatillo', status: '✅' }
+    ],
+    submarinas: [
+        { name: 'Camurí', status: '✅' },
+        { name: 'Punto Fijo', status: '✅' }
+    ]
+};
+
+export function buildFallaInicio(data, { date = new Date() } = {}) {
+    const header = buildSupervisionHeader({ hora: data.hora, date });
+    const user = data.usuario || 'Supervisor';
+    const ticket = data.ticket || 'INC000000';
+    const estado = data.estado || 'Distrito Capital';
+    const titulo = data.titulo || 'Corte de fibra óptica / Caída de enlace';
+
+    let msg = `${header}\n\nINICIO DE FALLA\n\nReporte: ${ticket}, ${titulo}, Edo ${estado}`;
+
+    if (data.isCorteFibra && data.redesInvolucradas) {
+        msg += `\n\nRedes Involucradas: ${data.redesInvolucradas}`;
+    }
+
+    const impactoLines = [];
+    if (data.impactoCisco) impactoLines.push(`BBIP CISCO: ${data.impactoCisco}`);
+    if (data.impactoHw) impactoLines.push(`BBIP HW: ${data.impactoHw}`);
+    if (data.impactoMe) impactoLines.push(`ME: ${data.impactoMe}`);
+    if (data.impactoVozAba) impactoLines.push(`VOZ/ABA: ${data.impactoVozAba}`);
+    if (data.impactoInterconectantes) impactoLines.push(`Interconectantes: ${data.impactoInterconectantes}`);
+    if (data.impactoOtro) impactoLines.push(`Otro: ${data.impactoOtro}`);
+
+    if (impactoLines.length > 0) {
+        msg += `\n\nImpacto:\n${impactoLines.join('\n')}`;
+    }
+
+    const { dateStr, horaStr } = formatSystemDateTime(date, data.hora);
+    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} Hora: ${horaStr}`;
+    msg += `\nObservaciones y/o acciones:\n${data.observaciones || 'Personal técnico de guardia validando e investigando causa raíz.'}`;
+    msg += `\n\nEnviado por: ${user}`;
+
+    return msg;
+}
+
+export function buildFallaSeguimiento(data, { date = new Date() } = {}) {
+    const header = buildSupervisionHeader({ hora: data.hora, date });
+    const user = data.usuario || 'Supervisor';
+    const ticket = data.ticket || 'INC000000';
+    const estado = data.estado || 'Distrito Capital';
+    const titulo = data.titulo || 'Corte de fibra óptica / Caída de enlace';
+
+    let msg = `${header}\n\nSEGUIMIENTO DE FALLA\n\nReporte: ${ticket}, ${titulo}, Edo ${estado}`;
+
+    if (data.isCorteFibra && data.redesInvolucradas) {
+        msg += `\n\nRedes Involucradas: ${data.redesInvolucradas}`;
+    }
+
+    const impactoLines = [];
+    if (data.impactoCisco) impactoLines.push(`BBIP CISCO: ${data.impactoCisco}`);
+    if (data.impactoHw) impactoLines.push(`BBIP HW: ${data.impactoHw}`);
+    if (data.impactoMe) impactoLines.push(`ME: ${data.impactoMe}`);
+    if (data.impactoVozAba) impactoLines.push(`VOZ/ABA: ${data.impactoVozAba}`);
+    if (data.impactoInterconectantes) impactoLines.push(`Interconectantes: ${data.impactoInterconectantes}`);
+    if (data.impactoOtro) impactoLines.push(`Otro: ${data.impactoOtro}`);
+
+    if (impactoLines.length > 0) {
+        msg += `\n\nImpacto:\n${impactoLines.join('\n')}`;
+    }
+
+    const { dateStr, horaStr } = formatSystemDateTime(date, data.hora);
+    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} Hora: ${horaStr}`;
+    msg += `\nObservaciones y/o acciones:\n${data.observaciones || 'Cuadrilla técnica en sitio ejecutando labores de empalme y pruebas.'}`;
+    msg += `\n\nEnviado por: ${user}`;
+
+    return msg;
+}
+
+export function buildFallaFin(data, { date = new Date() } = {}) {
+    const header = buildSupervisionHeader({ hora: data.hora, date });
+    const user = data.usuario || 'Supervisor';
+    const ticket = data.ticket || 'INC000000';
+    const estado = data.estado || 'Distrito Capital';
+    const solucion = data.solucion || 'Restablecimiento total de servicios';
+    const horaFin = data.horaFin || data.hora || formatSystemDateTime(date).horaStr;
+
+    let msg = `${header}\n\nFIN DE FALLA\n\nReporte: ${ticket}, Resolución: ${solucion}, Edo ${estado}`;
+
+    if (data.isCorteFibra && data.redesInvolucradas) {
+        msg += `\n\nRedes Involucradas: ${data.redesInvolucradas}`;
+    }
+
+    const { dateStr } = formatSystemDateTime(date, data.hora);
+    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} H.F: ${horaFin}`;
+    msg += `\nCausa: ${data.causa || 'Corte de fibra por terceros / falla de energía superada.'}`;
+    msg += `\nAcción Tomada: ${data.accionTomada || 'Empalme de fibra completado y servicios verificados 100% operativos.'}`;
+    msg += `\n\nEnviado por: ${user}`;
+
+    return msg;
+}
+
+export function buildCdcInicio(data, { date = new Date() } = {}) {
+    const header = buildSupervisionHeader({ hora: data.hora, date });
+    const user = data.usuario || 'Supervisor';
+    const prefix = data.ticketPrefix || 'CDC';
+    const ticketNum = data.ticket || '000000';
+    const ticket = `${prefix}${ticketNum.replace(/^(CDC|INC)/i, '')}`;
+    const estado = data.estado || 'Distrito Capital';
+    const titulo = data.titulo || 'Ventana de mantenimiento en infraestructura';
+    const ventana = data.ventana || '00:00 a 06:00';
+
+    let msg = `${header}\n\nINICIO DE CDC\n\nReporte: ${ticket}, Edo ${estado}\n\nTítulo: ${titulo}`;
+    msg += `\n\nDescripción del trabajo:\n${data.descripcion || 'Mantenimiento preventivo / correctivo en nodos de red.'}`;
+    msg += `\n\nJustificación del Trabajo:\n${data.justificacion || 'Optimización de capacidad y resiliencia de la red troncal.'}`;
+    
+    const { dateStr, horaStr } = formatSystemDateTime(date, data.hora);
+    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} Hora: ${horaStr} (Ventana: ${ventana})`;
+    msg += `\nObservaciones y/o acciones:\n${data.observaciones || 'Actividad iniciada en coordinación con personal de campo y centro de control.'}`;
+    msg += `\n\nEnviado por: ${user}`;
+
+    return msg;
+}
+
+export function buildCdcFin(data, { date = new Date() } = {}) {
+    const header = buildSupervisionHeader({ hora: data.hora, date });
+    const user = data.usuario || 'Supervisor';
+    const prefix = data.ticketPrefix || 'CDC';
+    const ticketNum = data.ticket || '000000';
+    const ticket = `${prefix}${ticketNum.replace(/^(CDC|INC)/i, '')}`;
+    const estado = data.estado || 'Distrito Capital';
+    const titulo = data.titulo || 'Ventana de mantenimiento en infraestructura';
+    const horaFin = data.horaFin || data.hora || formatSystemDateTime(date).horaStr;
+    const isExitoso = data.isExitoso !== false;
+    const statusLabel = isExitoso ? '✅ CDC Exitoso' : '❌ CDC No Exitoso';
+
+    let msg = `${header}\n\nFIN DE CDC\n\nReporte: ${ticket}, Edo ${estado}\n\nTítulo: ${titulo}`;
+    msg += `\n\nDescripción del trabajo:\n${data.descripcion || 'Mantenimiento preventivo / correctivo en nodos de red.'}`;
+    msg += `\n\nEstatus: ${statusLabel}`;
+    
+    const { dateStr } = formatSystemDateTime(date, data.hora);
+    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} H.F: ${horaFin}`;
+    msg += `\nTiempo de Duración del trabajo: ${data.duracion || '2 horas'}`;
+    msg += `\nObservaciones y/o acciones:\n${data.observaciones || 'Trabajos concluidos, parámetros validados y tráfico enrutado normalmente.'}`;
+    msg += `\n\nEnviado por: ${user}`;
+
+    return msg;
+}
+
+export function buildMensajeInformativo(data, { date = new Date() } = {}) {
+    const header = buildSupervisionHeader({ hora: data.hora, date });
+    const user = data.usuario || 'Supervisor';
+
+    if (data.tipoInformativo === 'plataformas') {
+        const cabeceras = data.cabecerasMetro || SUPERVISION_DEFAULTS.cabecerasMetro;
+        const dwdm = data.transporteDwdm || SUPERVISION_DEFAULTS.transporteDwdm;
+        const isp = data.plataformaIsp || SUPERVISION_DEFAULTS.plataformaIsp;
+        const ti = data.servidoresTi || SUPERVISION_DEFAULTS.servidoresTi;
+        const sub = data.submarinas || SUPERVISION_DEFAULTS.submarinas;
+
+        let msg = `${header}\n\nReporte de Plataformas de Telecomunicaciones CANTV a Nivel Nacional\n`;
+        msg += `\nEquipos de Cabecera Metro Ethernet:\n${cabeceras.map(i => `${i.status} ${i.name}`).join('\n')}`;
+        msg += `\n\nRed de Transporte (Anillos de Fibra Óptica DWDM/SDH):\n${dwdm.map(i => `${i.status} ${i.name}`).join('\n')}`;
+        msg += `\n\nEstatus plataforma ISP:\n${isp.map(i => `${i.status} ${i.name}`).join('\n')}`;
+        msg += `\n\nReporte Plataforma TI (Servidores Corporativos):\n${ti.map(i => `${i.status} ${i.name}`).join('\n')}`;
+        msg += `\n\nEstaciones de Salidas Submarinas Internacionales:\n${sub.map(i => `${i.status} ${i.name}`).join('\n')}`;
+        msg += `\n\nEnviado por: ${user}`;
+        return msg;
+    }
+
+    let msg = `${header}\n\nMENSAJE INFORMATIVO\n\n${data.titulo || 'Anomalía detectada en infraestructura de red'}\n\n${data.detalle || 'Sala COR evaluando la situación. En breves minutos se emitirá mayor detalle y número de ticket.'}`;
+    if (data.observaciones) {
+        msg += `\n\nObservaciones:\n${data.observaciones}`;
+    }
+    msg += `\n\nEnviado por: ${user}`;
+    return msg;
+}
+
+export function createSupervisionService({ getStorage } = {}) {
+    const storage = typeof getStorage === 'function' ? getStorage() : null;
+    const STORAGE_KEY = 'cor_supervision_v1';
+
+    async function saveDraft(draft) {
+        const data = { ...draft, savedAt: new Date().toISOString() };
+        if (storage) await storage.set(STORAGE_KEY, data);
+        return data;
+    }
+
+    async function loadDraft() {
+        if (!storage) return null;
+        return (await storage.get(STORAGE_KEY)) || null;
+    }
+
+    return {
+        saveDraft,
+        loadDraft,
+        formatDateTime: formatSystemDateTime,
+        buildHeader: buildSupervisionHeader,
+        buildFallaInicio,
+        buildFallaSeguimiento,
+        buildFallaFin,
+        buildCdcInicio,
+        buildCdcFin,
+        buildMensajeInformativo,
+        defaults: SUPERVISION_DEFAULTS
+    };
+}

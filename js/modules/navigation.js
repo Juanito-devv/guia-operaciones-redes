@@ -7,6 +7,7 @@ import { Storage } from '../utils/storage.js';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize.js';
 import { hideSearchResults } from './search.js';
 import { showLoading, hideLoading } from './states.js';
+import { isSupervisor } from './auth.js';
 
 export function getMergedGuiaData() {
     return AppState.get('guiaData');
@@ -15,9 +16,51 @@ export function getMergedGuiaData() {
 export function renderNav() {
     const navList = document.getElementById('nav-list');
     const guiaData = getMergedGuiaData();
-    if (!navList || !guiaData) return;
+    if (!navList) return;
 
     navList.innerHTML = '';
+
+    // Si es supervisor, navegación exclusiva para supervisión y perfil
+    if (isSupervisor()) {
+        const supLi = document.createElement('li');
+        const supLink = document.createElement('a');
+        supLink.className = 'nav-dash-link active';
+        supLink.setAttribute('href', '#/dashboard/supervision');
+        supLink.innerHTML = `<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">supervisor_account</span> Supervisión`;
+        supLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.hash = '#/dashboard/supervision';
+            closeMobileMenu();
+            hideSearchResults();
+        });
+        supLi.appendChild(supLink);
+        navList.appendChild(supLi);
+
+        const perfLi = document.createElement('li');
+        const perfLink = document.createElement('a');
+        perfLink.className = 'nav-dash-link';
+        perfLink.setAttribute('href', '#/dashboard/perfil');
+        perfLink.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">person</span> Mi Perfil`;
+        perfLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.hash = '#/dashboard/perfil';
+            closeMobileMenu();
+            hideSearchResults();
+        });
+        perfLi.appendChild(perfLink);
+        navList.appendChild(perfLi);
+
+        // Ocultar buscador de guía para supervisores
+        const searchBox = document.querySelector('.search-container');
+        if (searchBox) searchBox.style.display = 'none';
+
+        return;
+    }
+
+    const searchBox = document.querySelector('.search-container');
+    if (searchBox) searchBox.style.display = 'block';
+
+    if (!guiaData) return;
 
     // Acceso al Dashboard / Espacio de Trabajo (cada herramienta tiene su URL)
     const dashLi = document.createElement('li');

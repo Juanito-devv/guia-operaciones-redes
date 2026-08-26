@@ -49,6 +49,8 @@ const urlsToCache = [
     './js/modules/firebase.js',
     './js/modules/launcher.js',
     './js/modules/feedback.js',
+    './js/modules/supervision.js',
+    './core/domain/supervision.service.js',
     './data/guia.json',
     './images/avatargow.png',
     './images/avatarponce.png',

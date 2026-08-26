@@ -5,7 +5,7 @@
 import { AppState } from './state.js';
 import { Storage } from './utils/storage.js';
 import { initTheme, applyDensity } from './modules/theme.js';
-import { validateSession, initLogin, logout } from './modules/auth.js';
+import { validateSession, initLogin, logout, isSupervisor } from './modules/auth.js';
 import { renderNav, navigateTo, initMobileMenu, getMergedGuiaData } from './modules/navigation.js';
 import { initSearch, hideSearchResults, initGlobalSearch, openGlobalSearch, closeGlobalSearch } from './modules/search.js';
 import { showHome, navigateToFirstSection } from './modules/home.js';
@@ -43,6 +43,15 @@ async function loadData() {
 
         // 🔥 INICIALIZAR CDC (con Firebase)
         initCDC();
+
+        // Si es supervisor, ruta fija a Supervisión
+        if (isSupervisor()) {
+            const hash = window.location.hash.replace('#', '').replace(/^\//, '');
+            const toolId = hash === 'dashboard/perfil' ? 'perfil' : 'supervision';
+            showDashboard(toolId);
+            syncAppBottomNav();
+            return true;
+        }
 
         // Manejar hash inicial de la URL
         // Nota: se normaliza el slash inicial para aceptar #/dashboard/<id> y #/seccion/sub
@@ -209,6 +218,22 @@ function handleGlobalKeys(e) {
 
 function handleHashChange() {
     const hash = window.location.hash.replace('#', '').replace(/^\//, '');
+
+    // Si es supervisor, solo se permite supervisión y perfil
+    if (isSupervisor()) {
+        const toolId = hash === 'dashboard/perfil' ? 'perfil' : 'supervision';
+        if (hash !== `dashboard/${toolId}`) {
+            window.location.hash = `#/dashboard/${toolId}`;
+        }
+        if (AppState.get('currentView') === 'dashboard' && AppState.get('currentDashboardTool') === toolId) {
+            syncAppBottomNav();
+            return;
+        }
+        showDashboard(toolId);
+        syncAppBottomNav();
+        return;
+    }
+
     // Datos fusionados: incluye las subsecciones/ bloques colaborativos
     // (custom_…) guardados en localStorage/Firestore, no solo el JSON base.
     const guiaData = getMergedGuiaData();

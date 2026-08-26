@@ -19,7 +19,10 @@ export const USERS_DB = {
     'rmonto01': { name: 'Rafael Montoya', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/68.png', color: '#3b82f6', role: 'user' },
     'ycorre02': { name: 'Yhonny Correia', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png', color: '#10b981', role: 'user' },
     'ccordo01': { name: 'Carlos Cordova', avatar: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Cristiano_Ronaldo_2018_%284x5_cropped%29.jpg', color: '#06b6d4', role: 'user' },
-    'acontr20': { name: 'Adaney Contreras', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/37.png', color: '#8b5cf6', role: 'user' }
+    'acontr20': { name: 'Adaney Contreras', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/37.png', color: '#8b5cf6', role: 'user' },
+    'supervisor': { name: 'Supervisor de Guardia', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png', color: '#f59e0b', role: 'supervisor' },
+    'sup_cor01': { name: 'Supervisor COR', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png', color: '#f59e0b', role: 'supervisor' },
+    'supervisor01': { name: 'Supervisor Redes IP', avatar: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png', color: '#f59e0b', role: 'supervisor' }
 };
 
 export function getCurrentUser() {
@@ -41,6 +44,11 @@ export function getCurrentColor() {
 export function isAdmin() {
     const user = getCurrentUser();
     return user ? user.role === 'admin' : false;
+}
+
+export function isSupervisor() {
+    const user = getCurrentUser();
+    return user ? user.role === 'supervisor' : false;
 }
 
 /**

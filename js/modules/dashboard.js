@@ -4,6 +4,7 @@
 
 import { AppState } from '../state.js';
 import { Storage } from '../utils/storage.js';
+import { isSupervisor } from './auth.js';
 import { showMapTool } from './panel.js';
 import { showGuardia } from './guardia.js';
 import { showMail } from './mail.js';
@@ -13,6 +14,7 @@ import { showProfile } from './profile.js';
 import { showSettings } from './settings.js';
 import { showImpacto } from './impacto.js';
 import { showErrorLogPage } from './error_monitor.js';
+import { showSupervision } from './supervision.js';
 
 // Herramientas del Espacio de Trabajo: cada una tiene su propia URL (#/dashboard/<id>)
 const TOOLS = [
@@ -31,6 +33,13 @@ const TOOLS = [
  * @param {string|null} toolId - id de la herramienta o null para el dashboard general
  */
 export function showDashboard(toolId) {
+    // Si el usuario tiene rol supervisor, solo tiene acceso exclusivo a Supervisión y Perfil
+    if (isSupervisor() && toolId !== 'perfil' && toolId !== 'supervision') {
+        window.location.hash = '#/dashboard/supervision';
+        showSupervision();
+        return;
+    }
+
     AppState.set('isHomePage', false);
     AppState.set('currentView', 'dashboard');
     AppState.set('currentSectionId', null);
@@ -120,6 +129,15 @@ export function showDashboard(toolId) {
         breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Registro de errores</span>`;
         body.innerHTML = '';
         showErrorLogPage();
+        return;
+    }
+
+    if (toolId === 'supervision') {
+        // Herramienta Supervisión: emisión de reportes oficiales COR
+        titleEl.textContent = 'Supervisión';
+        breadcrumb.innerHTML = `<a href="#/dashboard" data-bc="dashboard">Espacio de Trabajo</a><span>Supervisión</span>`;
+        body.innerHTML = '';
+        showSupervision();
         return;
     }
 
