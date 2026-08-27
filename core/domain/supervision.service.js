@@ -14,9 +14,24 @@ export function formatSystemDateTime(date = new Date(), customHora = null) {
     };
 }
 
-export function buildSupervisionHeader({ hora, date = new Date() } = {}) {
+/**
+ * Construye el encabezado dinámico según el tipo de mensaje.
+ * tipo: 'inicio-falla' | 'seguimiento-falla' | 'fin-falla' | 'inicio-cdc' | 'fin-cdc' | 'info' | null
+ */
+export function buildSupervisionHeader({ hora, date = new Date(), tipo = null } = {}) {
     const { dateStr, horaStr } = formatSystemDateTime(date, hora);
-    return `🟡 MENSAJE INFORMATIVO\nVPTI / GGOC / GCOR / MYC LPG\nFecha: ${dateStr} / Hora: ${horaStr}`;
+
+    const headers = {
+        'inicio-falla':   '🔴 INICIO DE FALLA',
+        'seguimiento-falla': '🟠 SEGUIMIENTO DE FALLA',
+        'fin-falla':      '🟢 FIN DE FALLA',
+        'inicio-cdc':     '📋 INICIO DE CDC',
+        'fin-cdc':        '📋 FIN DE CDC',
+        'info':           '🟡 MENSAJE INFORMATIVO'
+    };
+
+    const label = headers[tipo] || '🟡 MENSAJE INFORMATIVO';
+    return `${label}\nVPTI / GGOC / GCOR / MYC LPG\nFecha: ${dateStr} / Hora: ${horaStr}`;
 }
 
 export const SUPERVISION_DEFAULTS = {
@@ -82,11 +97,11 @@ export const SUPERVISION_DEFAULTS = {
 };
 
 export function buildFallaInicio(data, { date = new Date() } = {}) {
-    const header = buildSupervisionHeader({ hora: data.hora, date });
     const user = data.usuario || 'Supervisor';
     const ticket = data.ticket || 'INC000000';
     const estado = data.estado || 'Distrito Capital';
     const titulo = data.titulo || 'Corte de fibra óptica / Caída de enlace';
+    const header = buildSupervisionHeader({ hora: data.hora, date, tipo: 'inicio-falla' });
 
     let msg = `${header}\n\nINICIO DE FALLA\n\nReporte: ${ticket}, ${titulo}, Edo ${estado}`;
 
@@ -97,10 +112,13 @@ export function buildFallaInicio(data, { date = new Date() } = {}) {
     const impactoLines = [];
     if (data.impactoCisco) impactoLines.push(`BBIP CISCO: ${data.impactoCisco}`);
     if (data.impactoHw) impactoLines.push(`BBIP HW: ${data.impactoHw}`);
-    if (data.impactoMe) impactoLines.push(`ME: ${data.impactoMe}`);
-    if (data.impactoVozAba) impactoLines.push(`VOZ/ABA: ${data.impactoVozAba}`);
+    if (data.impactoMetroAlcatel) impactoLines.push(`Metro Alcatel: ${data.impactoMetroAlcatel}`);
+    if (data.impactoMetroZtte) impactoLines.push(`Metro ZTTE: ${data.impactoMetroZtte}`);
+    if (data.impactoMetroHuawei) impactoLines.push(`Metro Huawei: ${data.impactoMetroHuawei}`);
+    if (data.impactoVoz) impactoLines.push(`VOZ: ${data.impactoVoz}`);
+    if (data.impactoAba) impactoLines.push(`ABA: ${data.impactoAba}`);
+    if (data.impactoAbaUltra) impactoLines.push(`ABA Ultra: ${data.impactoAbaUltra}`);
     if (data.impactoInterconectantes) impactoLines.push(`Interconectantes: ${data.impactoInterconectantes}`);
-    if (data.impactoOtro) impactoLines.push(`Otro: ${data.impactoOtro}`);
 
     if (impactoLines.length > 0) {
         msg += `\n\nImpacto:\n${impactoLines.join('\n')}`;
@@ -115,11 +133,11 @@ export function buildFallaInicio(data, { date = new Date() } = {}) {
 }
 
 export function buildFallaSeguimiento(data, { date = new Date() } = {}) {
-    const header = buildSupervisionHeader({ hora: data.hora, date });
     const user = data.usuario || 'Supervisor';
     const ticket = data.ticket || 'INC000000';
     const estado = data.estado || 'Distrito Capital';
     const titulo = data.titulo || 'Corte de fibra óptica / Caída de enlace';
+    const header = buildSupervisionHeader({ hora: data.hora, date, tipo: 'seguimiento-falla' });
 
     let msg = `${header}\n\nSEGUIMIENTO DE FALLA\n\nReporte: ${ticket}, ${titulo}, Edo ${estado}`;
 
@@ -130,10 +148,13 @@ export function buildFallaSeguimiento(data, { date = new Date() } = {}) {
     const impactoLines = [];
     if (data.impactoCisco) impactoLines.push(`BBIP CISCO: ${data.impactoCisco}`);
     if (data.impactoHw) impactoLines.push(`BBIP HW: ${data.impactoHw}`);
-    if (data.impactoMe) impactoLines.push(`ME: ${data.impactoMe}`);
-    if (data.impactoVozAba) impactoLines.push(`VOZ/ABA: ${data.impactoVozAba}`);
+    if (data.impactoMetroAlcatel) impactoLines.push(`Metro Alcatel: ${data.impactoMetroAlcatel}`);
+    if (data.impactoMetroZtte) impactoLines.push(`Metro ZTTE: ${data.impactoMetroZtte}`);
+    if (data.impactoMetroHuawei) impactoLines.push(`Metro Huawei: ${data.impactoMetroHuawei}`);
+    if (data.impactoVoz) impactoLines.push(`VOZ: ${data.impactoVoz}`);
+    if (data.impactoAba) impactoLines.push(`ABA: ${data.impactoAba}`);
+    if (data.impactoAbaUltra) impactoLines.push(`ABA Ultra: ${data.impactoAbaUltra}`);
     if (data.impactoInterconectantes) impactoLines.push(`Interconectantes: ${data.impactoInterconectantes}`);
-    if (data.impactoOtro) impactoLines.push(`Otro: ${data.impactoOtro}`);
 
     if (impactoLines.length > 0) {
         msg += `\n\nImpacto:\n${impactoLines.join('\n')}`;
@@ -148,21 +169,24 @@ export function buildFallaSeguimiento(data, { date = new Date() } = {}) {
 }
 
 export function buildFallaFin(data, { date = new Date() } = {}) {
-    const header = buildSupervisionHeader({ hora: data.hora, date });
     const user = data.usuario || 'Supervisor';
     const ticket = data.ticket || 'INC000000';
     const estado = data.estado || 'Distrito Capital';
-    const solucion = data.solucion || 'Restablecimiento total de servicios';
-    const horaFin = data.horaFin || data.hora || formatSystemDateTime(date).horaStr;
+    const titulo = data.titulo || 'Corte de fibra óptica / Caída de enlace';
+    const horaInicio = data.hora || formatSystemDateTime(date).horaStr;
+    const horaFin = data.horaFin || formatSystemDateTime(date).horaStr;
 
-    let msg = `${header}\n\nFIN DE FALLA\n\nReporte: ${ticket}, Resolución: ${solucion}, Edo ${estado}`;
+    const header = buildSupervisionHeader({ hora: `${horaInicio} - ${horaFin}`, date, tipo: 'fin-falla' });
+
+    let msg = `${header}\n\nFIN DE FALLA\n\nReporte: ${ticket}, ${titulo}, Edo ${estado}`;
 
     if (data.isCorteFibra && data.redesInvolucradas) {
         msg += `\n\nRedes Involucradas: ${data.redesInvolucradas}`;
     }
 
     const { dateStr } = formatSystemDateTime(date, data.hora);
-    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} H.F: ${horaFin}`;
+    msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} Hora: ${horaFin}`;
+    msg += `\nServicios Operativos: ${data.seguimiento || 'Servicios operativos'}`;
     msg += `\nCausa: ${data.causa || 'Corte de fibra por terceros / falla de energía superada.'}`;
     msg += `\nAcción Tomada: ${data.accionTomada || 'Empalme de fibra completado y servicios verificados 100% operativos.'}`;
     msg += `\n\nEnviado por: ${user}`;
@@ -171,7 +195,6 @@ export function buildFallaFin(data, { date = new Date() } = {}) {
 }
 
 export function buildCdcInicio(data, { date = new Date() } = {}) {
-    const header = buildSupervisionHeader({ hora: data.hora, date });
     const user = data.usuario || 'Supervisor';
     const prefix = data.ticketPrefix || 'CDC';
     const ticketNum = data.ticket || '000000';
@@ -180,10 +203,12 @@ export function buildCdcInicio(data, { date = new Date() } = {}) {
     const titulo = data.titulo || 'Ventana de mantenimiento en infraestructura';
     const ventana = data.ventana || '00:00 a 06:00';
 
+    const header = buildSupervisionHeader({ hora: data.hora, date, tipo: 'inicio-cdc' });
+
     let msg = `${header}\n\nINICIO DE CDC\n\nReporte: ${ticket}, Edo ${estado}\n\nTítulo: ${titulo}`;
     msg += `\n\nDescripción del trabajo:\n${data.descripcion || 'Mantenimiento preventivo / correctivo en nodos de red.'}`;
     msg += `\n\nJustificación del Trabajo:\n${data.justificacion || 'Optimización de capacidad y resiliencia de la red troncal.'}`;
-    
+
     const { dateStr, horaStr } = formatSystemDateTime(date, data.hora);
     msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} Hora: ${horaStr} (Ventana: ${ventana})`;
     msg += `\nObservaciones y/o acciones:\n${data.observaciones || 'Actividad iniciada en coordinación con personal de campo y centro de control.'}`;
@@ -193,7 +218,6 @@ export function buildCdcInicio(data, { date = new Date() } = {}) {
 }
 
 export function buildCdcFin(data, { date = new Date() } = {}) {
-    const header = buildSupervisionHeader({ hora: data.hora, date });
     const user = data.usuario || 'Supervisor';
     const prefix = data.ticketPrefix || 'CDC';
     const ticketNum = data.ticket || '000000';
@@ -204,10 +228,12 @@ export function buildCdcFin(data, { date = new Date() } = {}) {
     const isExitoso = data.isExitoso !== false;
     const statusLabel = isExitoso ? '✅ CDC Exitoso' : '❌ CDC No Exitoso';
 
+    const header = buildSupervisionHeader({ hora: data.hora, date, tipo: 'fin-cdc' });
+
     let msg = `${header}\n\nFIN DE CDC\n\nReporte: ${ticket}, Edo ${estado}\n\nTítulo: ${titulo}`;
     msg += `\n\nDescripción del trabajo:\n${data.descripcion || 'Mantenimiento preventivo / correctivo en nodos de red.'}`;
     msg += `\n\nEstatus: ${statusLabel}`;
-    
+
     const { dateStr } = formatSystemDateTime(date, data.hora);
     msg += `\n\nSeguimiento y Control: Fecha: ${dateStr} H.F: ${horaFin}`;
     msg += `\nTiempo de Duración del trabajo: ${data.duracion || '2 horas'}`;
@@ -218,10 +244,10 @@ export function buildCdcFin(data, { date = new Date() } = {}) {
 }
 
 export function buildMensajeInformativo(data, { date = new Date() } = {}) {
-    const header = buildSupervisionHeader({ hora: data.hora, date });
     const user = data.usuario || 'Supervisor';
 
     if (data.tipoInformativo === 'plataformas') {
+        const header = buildSupervisionHeader({ hora: data.hora, date, tipo: 'info' });
         const cabeceras = data.cabecerasMetro || SUPERVISION_DEFAULTS.cabecerasMetro;
         const dwdm = data.transporteDwdm || SUPERVISION_DEFAULTS.transporteDwdm;
         const isp = data.plataformaIsp || SUPERVISION_DEFAULTS.plataformaIsp;
@@ -238,6 +264,7 @@ export function buildMensajeInformativo(data, { date = new Date() } = {}) {
         return msg;
     }
 
+    const header = buildSupervisionHeader({ hora: data.hora, date, tipo: 'info' });
     let msg = `${header}\n\nMENSAJE INFORMATIVO\n\n${data.titulo || 'Anomalía detectada en infraestructura de red'}\n\n${data.detalle || 'Sala COR evaluando la situación. En breves minutos se emitirá mayor detalle y número de ticket.'}`;
     if (data.observaciones) {
         msg += `\n\nObservaciones:\n${data.observaciones}`;

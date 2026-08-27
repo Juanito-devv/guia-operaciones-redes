@@ -10709,6 +10709,182 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     border-color: var(--danger);
 }
 
+/* Layout con barra lateral de historial */
+.supervision-layout {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+.sup-main-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Barra lateral de Historial */
+.sup-history-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    position: sticky;
+    top: 20px;
+    transition: width 0.25s ease, opacity 0.25s ease;
+    overflow: hidden;
+}
+.sup-history-sidebar.sup-history-collapsed {
+    width: 48px;
+}
+.sup-history-sidebar.sup-history-collapsed .sup-history-title,
+.sup-history-sidebar.sup-history-collapsed .sup-history-list,
+.sup-history-sidebar.sup-history-collapsed .sup-history-empty {
+    display: none;
+}
+.sup-history-sidebar.sup-history-collapsed .sup-history-header {
+    justify-content: center;
+    padding: 12px 8px;
+}
+.sup-history-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.sup-history-header .material-symbols-outlined {
+    font-size: 18px;
+    color: #f59e0b;
+}
+.sup-history-title {
+    flex: 1;
+}
+.sup-history-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.sup-history-toggle:hover { color: var(--text-primary); }
+.sup-history-toggle .material-symbols-outlined { font-size: 18px; }
+.sup-history-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sup-history-empty {
+    padding: 20px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.sup-history-item {
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sup-history-item:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+.sup-history-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.sup-history-badge {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+}
+[data-theme="dark"] .sup-history-badge {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+.sup-history-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+.sup-history-delete:hover { color: var(--danger); }
+.sup-history-delete .material-symbols-outlined { font-size: 14px; }
+.sup-history-item-ticket {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.sup-history-item-title {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.sup-history-item-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 4px;
+}
+
+/* Grid de 3 columnas para impacto */
+.sup-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+/* Botón de Guardar */
+.sup-btn-accent {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+.sup-btn-accent:hover {
+    border-color: #f59e0b;
+    color: #d97706;
+}
+.sup-btn-accent.sup-saved {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border-color: #f59e0b !important;
+    color: #d97706 !important;
+}
+
 /* Animaciones */
 .sup-anim-slide {
     animation: supSlideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -10719,7 +10895,43 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 }
 
 /* Responsive */
+@media (max-width: 1100px) {
+    .sup-history-sidebar {
+        width: 200px;
+    }
+}
 @media (max-width: 980px) {
+    .supervision-layout {
+        flex-direction: column;
+    }
+    .sup-history-sidebar {
+        width: 100%;
+        max-height: 200px;
+        position: static;
+        flex-direction: row;
+    }
+    .sup-history-sidebar.sup-history-collapsed {
+        width: 100%;
+    }
+    .sup-history-sidebar.sup-history-collapsed .sup-history-list {
+        display: none;
+    }
+    .sup-history-header {
+        border-bottom: none;
+        border-right: 1px solid var(--border-color);
+        padding: 10px 12px;
+    }
+    .sup-history-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 8px;
+        padding: 8px;
+    }
+    .sup-history-item {
+        min-width: 140px;
+        flex-shrink: 0;
+    }
     .sup-grid {
         grid-template-columns: 1fr;
     }
@@ -10730,6 +10942,33 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
         grid-template-columns: 1fr;
     }
     .sup-actions-bar {
+        grid-template-columns: 1fr 1fr;
+    }
+    .sup-row-3 {
         grid-template-columns: 1fr;
+    }
+    .sup-header-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .sup-header-clock {
+        align-items: flex-start;
+    }
+}
+@media (max-width: 480px) {
+    .sup-grid {
+        grid-template-columns: 1fr;
+    }
+    .sup-actions-bar {
+        grid-template-columns: 1fr;
+    }
+    .sup-row-2 {
+        grid-template-columns: 1fr;
+    }
+    .sup-prefix-selector {
+        grid-template-columns: 1fr;
+    }
+    .sup-subtabs {
+        flex-wrap: wrap;
     }
 }

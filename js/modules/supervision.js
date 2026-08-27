@@ -23,13 +23,14 @@ import {
     SUPERVISION_DEFAULTS
 } from '../../core/domain/supervision.service.js';
 
+const HISTORY_KEY = 'cor_supervision_history_v1';
+
 let supervisionState = {
-    category: 'fallas', // 'fallas' | 'cdc' | 'info'
-    subTabFalla: 'inicio', // 'inicio' | 'seguimiento' | 'fin'
-    subTabCdc: 'inicio', // 'inicio' | 'fin'
-    subTabInfo: 'alerta', // 'alerta' | 'plataformas'
-    
-    // Datos de Fallas
+    category: 'fallas',
+    subTabFalla: 'inicio',
+    subTabCdc: 'inicio',
+    subTabInfo: 'alerta',
+
     fallaTicket: 'INC',
     fallaEstado: 'Distrito Capital',
     fallaTitulo: '',
@@ -37,17 +38,19 @@ let supervisionState = {
     fallaRedes: 'Anillos DWDM, Anillo ME',
     fallaImpactoCisco: '',
     fallaImpactoHw: '',
-    fallaImpactoMe: '',
-    fallaImpactoVozAba: '',
+    fallaImpactoMetroAlcatel: '',
+    fallaImpactoMetroZtte: '',
+    fallaImpactoMetroHuawei: '',
+    fallaImpactoVoz: '',
+    fallaImpactoAba: '',
+    fallaImpactoAbaUltra: '',
     fallaImpactoInter: '',
-    fallaImpactoOtro: '',
     fallaObs: '',
-    fallaSolucion: '',
-    fallaHoraFin: '',
+    fallaSeguimiento: 'Servicios operativos',
     fallaCausa: '',
     fallaAccion: '',
+    fallaHoraFin: '',
 
-    // Datos de CDC
     cdcPrefix: 'CDC',
     cdcTicket: '',
     cdcEstado: 'Distrito Capital',
@@ -60,35 +63,51 @@ let supervisionState = {
     cdcHoraFin: '',
     cdcDuracion: '2 horas',
 
-    // Datos de Informativos
     infoTitulo: '',
     infoDetalle: 'Sala COR evaluando la situación. En breves minutos se emitirá mayor detalle y número de ticket.',
     infoObs: '',
 
-    // Checklists de Plataformas
     cabecerasMetro: JSON.parse(JSON.stringify(SUPERVISION_DEFAULTS.cabecerasMetro)),
     transporteDwdm: JSON.parse(JSON.stringify(SUPERVISION_DEFAULTS.transporteDwdm)),
     plataformaIsp: JSON.parse(JSON.stringify(SUPERVISION_DEFAULTS.plataformaIsp)),
     servidoresTi: JSON.parse(JSON.stringify(SUPERVISION_DEFAULTS.servidoresTi)),
     submarinas: JSON.parse(JSON.stringify(SUPERVISION_DEFAULTS.submarinas)),
 
-    // Configuración horaria
     useSystemTime: true,
     manualHora: ''
 };
 
-const STORAGE_KEY = 'cor_supervision_state_v1';
-
 function loadSavedState() {
-    const saved = Storage.get(STORAGE_KEY);
+    const saved = Storage.get('cor_supervision_state_v1');
     if (saved && typeof saved === 'object') {
-        supervisionState = { ...supervisionState, ...saved };
+        const legacy = {};
+        if (saved.fallaImpactoVozAba !== undefined) {
+            legacy.fallaImpactoVoz = saved.fallaImpactoVozAba;
+        }
+        if (saved.fallaImpactoMe !== undefined) {
+            legacy.fallaImpactoMetroAlcatel = saved.fallaImpactoMe;
+        }
+        if (saved.fallaImpactoOtro !== undefined) {
+            legacy.fallaImpactoInter = saved.fallaImpactoInter || saved.fallaImpactoOtro;
+        }
+        supervisionState = { ...supervisionState, ...saved, ...legacy };
+        delete supervisionState.fallaImpactoVozAba;
+        delete supervisionState.fallaImpactoMe;
+        delete supervisionState.fallaImpactoOtro;
     }
 }
 
 const saveStateDebounced = debounce(() => {
-    Storage.set(STORAGE_KEY, supervisionState);
+    Storage.set('cor_supervision_state_v1', supervisionState);
 }, 300);
+
+function getHistory() {
+    return Storage.get(HISTORY_KEY) || [];
+}
+
+function saveHistory(history) {
+    Storage.set(HISTORY_KEY, history);
+}
 
 export function showSupervision() {
     loadSavedState();
@@ -129,15 +148,18 @@ function getFormattedMessage() {
             redesInvolucradas: supervisionState.fallaRedes,
             impactoCisco: supervisionState.fallaImpactoCisco,
             impactoHw: supervisionState.fallaImpactoHw,
-            impactoMe: supervisionState.fallaImpactoMe,
-            impactoVozAba: supervisionState.fallaImpactoVozAba,
+            impactoMetroAlcatel: supervisionState.fallaImpactoMetroAlcatel,
+            impactoMetroZtte: supervisionState.fallaImpactoMetroZtte,
+            impactoMetroHuawei: supervisionState.fallaImpactoMetroHuawei,
+            impactoVoz: supervisionState.fallaImpactoVoz,
+            impactoAba: supervisionState.fallaImpactoAba,
+            impactoAbaUltra: supervisionState.fallaImpactoAbaUltra,
             impactoInterconectantes: supervisionState.fallaImpactoInter,
-            impactoOtro: supervisionState.fallaImpactoOtro,
             observaciones: supervisionState.fallaObs,
-            solucion: supervisionState.fallaSolucion,
-            horaFin: supervisionState.fallaHoraFin,
+            seguimiento: supervisionState.fallaSeguimiento,
             causa: supervisionState.fallaCausa,
-            accionTomada: supervisionState.fallaAccion
+            accionTomada: supervisionState.fallaAccion,
+            horaFin: supervisionState.fallaHoraFin
         };
 
         if (supervisionState.subTabFalla === 'inicio') return buildFallaInicio(payload, { date });
@@ -197,68 +219,82 @@ function renderSupervisionUI(container) {
     const sysTime = formatSystemDateTime();
 
     container.innerHTML = `
-        <div class="supervision-container">
-            <!-- Header con info de Supervisor y Reloj en tiempo real -->
-            <div class="sup-header-card">
-                <div class="sup-header-info">
-                    <div class="sup-badge"><span class="material-symbols-outlined">verified_user</span> ROL SUPERVISOR</div>
-                    <h2>Emisión Oficial de Comunicados COR</h2>
-                    <p>Generador estandarizado de mensajes para Telegram, WhatsApp y Salas de Crisis.</p>
+        <div class="supervision-layout">
+            <aside class="sup-history-sidebar" id="sup-history-sidebar">
+                <div class="sup-history-header">
+                    <span class="material-symbols-outlined">history</span>
+                    <span class="sup-history-title">Historial</span>
+                    <button type="button" class="sup-history-toggle" id="sup-history-toggle" title="Colapsar">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
                 </div>
-                <div class="sup-header-clock">
-                    <div class="sup-clock-label">HORA DEL SISTEMA (LOCAL)</div>
-                    <div class="sup-clock-time" id="sup-live-clock">${sysTime.horaStr}</div>
-                    <div class="sup-clock-date">${sysTime.dateStr}</div>
+                <div class="sup-history-list" id="sup-history-list">
+                    ${renderHistoryItems()}
                 </div>
-            </div>
+            </aside>
 
-            <!-- Navegación por Categorías Principales -->
-            <div class="sup-category-nav">
-                <button type="button" class="sup-cat-btn ${supervisionState.category === 'fallas' ? 'active' : ''}" data-cat="fallas">
-                    <span class="material-symbols-outlined">emergency</span>
-                    <span>1. Fallas e Incidencias</span>
-                </button>
-                <button type="button" class="sup-cat-btn ${supervisionState.category === 'cdc' ? 'active' : ''}" data-cat="cdc">
-                    <span class="material-symbols-outlined">change_circle</span>
-                    <span>2. Control de Cambios (CDC)</span>
-                </button>
-                <button type="button" class="sup-cat-btn ${supervisionState.category === 'info' ? 'active' : ''}" data-cat="info">
-                    <span class="material-symbols-outlined">campaign</span>
-                    <span>3. Mensajes Informativos</span>
-                </button>
-            </div>
-
-            <!-- Contenedor Principal en Dos Columnas: Formulario + Vista Previa -->
-            <div class="sup-grid">
-                <!-- Columna Izquierda: Formulario Interactivo -->
-                <div class="sup-form-panel">
-                    ${renderActiveForm()}
+            <div class="sup-main-content">
+                <div class="sup-header-card">
+                    <div class="sup-header-info">
+                        <div class="sup-badge"><span class="material-symbols-outlined">verified_user</span> ROL SUPERVISOR</div>
+                        <h2>Emisión Oficial de Comunicados COR</h2>
+                        <p>Generador estandarizado de mensajes para Telegram, WhatsApp y Salas de Crisis.</p>
+                    </div>
+                    <div class="sup-header-clock">
+                        <div class="sup-clock-label">HORA DEL SISTEMA (LOCAL)</div>
+                        <div class="sup-clock-time" id="sup-live-clock">${sysTime.horaStr}</div>
+                        <div class="sup-clock-date">${sysTime.dateStr}</div>
+                    </div>
                 </div>
 
-                <!-- Columna Derecha: Vista Previa y Acciones -->
-                <div class="sup-preview-panel">
-                    <div class="sup-preview-header">
-                        <div class="sup-preview-title">
-                            <span class="material-symbols-outlined">preview</span> Vista Previa Formateada
+                <div class="sup-category-nav">
+                    <button type="button" class="sup-cat-btn ${supervisionState.category === 'fallas' ? 'active' : ''}" data-cat="fallas">
+                        <span class="material-symbols-outlined">emergency</span>
+                        <span>1. Fallas e Incidencias</span>
+                    </button>
+                    <button type="button" class="sup-cat-btn ${supervisionState.category === 'cdc' ? 'active' : ''}" data-cat="cdc">
+                        <span class="material-symbols-outlined">change_circle</span>
+                        <span>2. Control de Cambios (CDC)</span>
+                    </button>
+                    <button type="button" class="sup-cat-btn ${supervisionState.category === 'info' ? 'active' : ''}" data-cat="info">
+                        <span class="material-symbols-outlined">campaign</span>
+                        <span>3. Mensajes Informativos</span>
+                    </button>
+                </div>
+
+                <div class="sup-grid">
+                    <div class="sup-form-panel">
+                        ${renderActiveForm()}
+                    </div>
+
+                    <div class="sup-preview-panel">
+                        <div class="sup-preview-header">
+                            <div class="sup-preview-title">
+                                <span class="material-symbols-outlined">preview</span> Vista Previa Formateada
+                            </div>
+                            <div class="sup-preview-tag">Telegram / WhatsApp Ready</div>
                         </div>
-                        <div class="sup-preview-tag">Telegram / WhatsApp Ready</div>
-                    </div>
-                    <div class="sup-bubble-container">
-                        <pre class="sup-bubble-text" id="sup-rendered-msg"></pre>
-                    </div>
-                    <div class="sup-actions-bar">
-                        <button type="button" class="sup-btn-action sup-btn-primary" id="sup-copy-btn">
-                            <span class="material-symbols-outlined">content_copy</span>
-                            <span id="sup-copy-text">Copiar Mensaje</span>
-                        </button>
-                        <button type="button" class="sup-btn-action sup-btn-secondary" id="sup-sync-time-btn" title="Actualizar hora con reloj del sistema">
-                            <span class="material-symbols-outlined">update</span>
-                            <span>Sincronizar Hora</span>
-                        </button>
-                        <button type="button" class="sup-btn-action sup-btn-danger" id="sup-reset-btn" title="Limpiar formulario actual">
-                            <span class="material-symbols-outlined">restart_alt</span>
-                            <span>Limpiar</span>
-                        </button>
+                        <div class="sup-bubble-container">
+                            <pre class="sup-bubble-text" id="sup-rendered-msg"></pre>
+                        </div>
+                        <div class="sup-actions-bar">
+                            <button type="button" class="sup-btn-action sup-btn-primary" id="sup-copy-btn">
+                                <span class="material-symbols-outlined">content_copy</span>
+                                <span id="sup-copy-text">Copiar Mensaje</span>
+                            </button>
+                            <button type="button" class="sup-btn-action sup-btn-accent" id="sup-save-btn" title="Guardar en historial">
+                                <span class="material-symbols-outlined">bookmark_add</span>
+                                <span>Guardar</span>
+                            </button>
+                            <button type="button" class="sup-btn-action sup-btn-secondary" id="sup-sync-time-btn" title="Actualizar hora de Seguimiento y Control con reloj del sistema">
+                                <span class="material-symbols-outlined">update</span>
+                                <span>Sincronizar Hora</span>
+                            </button>
+                            <button type="button" class="sup-btn-action sup-btn-danger" id="sup-reset-btn" title="Limpiar formulario actual">
+                                <span class="material-symbols-outlined">restart_alt</span>
+                                <span>Limpiar</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -267,6 +303,36 @@ function renderSupervisionUI(container) {
 
     bindSupervisionEvents(container);
     updatePreviewText();
+}
+
+function renderHistoryItems() {
+    const history = getHistory();
+    if (history.length === 0) {
+        return `<div class="sup-history-empty">No hay mensajes guardados aún</div>`;
+    }
+    return history.map((item, idx) => {
+        const tipoLabels = {
+            'fallas': item.subTab === 'fin' ? 'Fin Falla' : item.subTab === 'seguimiento' ? 'Seg. Falla' : 'Inicio Falla',
+            'cdc': item.subTab === 'fin' ? 'Fin CDC' : 'Inicio CDC',
+            'info': item.subTab === 'plataformas' ? 'Reporte Nal.' : 'Informativo'
+        };
+        const label = tipoLabels[item.category] || item.category;
+        const ticket = item.ticket || '—';
+        const title = item.titulo || 'Sin título';
+        return `
+            <div class="sup-history-item" data-history-idx="${idx}">
+                <div class="sup-history-item-header">
+                    <span class="sup-history-badge">${escapeHtml(label)}</span>
+                    <button type="button" class="sup-history-delete" data-delete-idx="${idx}" title="Eliminar">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="sup-history-item-ticket">${escapeHtml(ticket)}</div>
+                <div class="sup-history-item-title">${escapeHtml(title)}</div>
+                <div class="sup-history-item-time">${item.savedAt ? new Date(item.savedAt).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderActiveForm() {
@@ -295,7 +361,6 @@ function renderActiveForm() {
                     <input type="text" id="falla-titulo" value="${escapeHtml(supervisionState.fallaTitulo)}" placeholder="Corte de FO tramo Chacao - Los Cortijos">
                 </div>
 
-                <!-- Switch de Corte de Fibra Óptica -->
                 <div class="sup-switch-box">
                     <label class="sup-switch">
                         <input type="checkbox" id="falla-is-fibra" ${supervisionState.fallaIsFibra ? 'checked' : ''}>
@@ -314,7 +379,6 @@ function renderActiveForm() {
                 </div>` : ''}
 
                 ${supervisionState.subTabFalla !== 'fin' ? `
-                <!-- Bloque de Impacto (solo para Inicio y Seguimiento) -->
                 <div class="sup-impact-section">
                     <div class="sup-section-label"><span class="material-symbols-outlined">warning</span> Desglose de Impacto</div>
                     <div class="sup-row-2">
@@ -327,37 +391,48 @@ function renderActiveForm() {
                             <input type="text" id="falla-imp-hw" value="${escapeHtml(supervisionState.fallaImpactoHw)}" placeholder="Afectación interfaces 100G">
                         </div>
                     </div>
-                    <div class="sup-row-2">
+                    <div class="sup-row-3">
                         <div class="sup-field">
-                            <label>Metro Ethernet (ME)</label>
-                            <input type="text" id="falla-imp-me" value="${escapeHtml(supervisionState.fallaImpactoMe)}" placeholder="Anillo Cafetal sin redundancia">
+                            <label>Metro Alcatel</label>
+                            <input type="text" id="falla-imp-metro-alcatel" value="${escapeHtml(supervisionState.fallaImpactoMetroAlcatel)}" placeholder="2 interfaces 10GB">
                         </div>
                         <div class="sup-field">
-                            <label>VOZ / ABA</label>
-                            <input type="text" id="falla-imp-vozaba" value="${escapeHtml(supervisionState.fallaImpactoVozAba)}" placeholder="Clientes con degradación">
+                            <label>Metro ZTTE</label>
+                            <input type="text" id="falla-imp-metro-ztte" value="${escapeHtml(supervisionState.fallaImpactoMetroZtte)}" placeholder="1 interface 10GB">
+                        </div>
+                        <div class="sup-field">
+                            <label>Metro Huawei</label>
+                            <input type="text" id="falla-imp-metro-huawei" value="${escapeHtml(supervisionState.fallaImpactoMetroHuawei)}" placeholder="3 interfaces 10GB">
                         </div>
                     </div>
-                    <div class="sup-row-2">
+                    <div class="sup-row-3">
                         <div class="sup-field">
-                            <label>Interconectantes</label>
-                            <input type="text" id="falla-imp-inter" value="${escapeHtml(supervisionState.fallaImpactoInter)}" placeholder="Movilnet, Digitel, Movistar, VNET">
+                            <label>VOZ</label>
+                            <input type="text" id="falla-imp-voz" value="${escapeHtml(supervisionState.fallaImpactoVoz)}" placeholder="Clientes VoIP afectados">
                         </div>
                         <div class="sup-field">
-                            <label>Otro</label>
-                            <input type="text" id="falla-imp-otro" value="${escapeHtml(supervisionState.fallaImpactoOtro)}" placeholder="Servicios corporativos">
+                            <label>ABA</label>
+                            <input type="text" id="falla-imp-aba" value="${escapeHtml(supervisionState.fallaImpactoAba)}" placeholder="Clientes ABA degradados">
                         </div>
+                        <div class="sup-field">
+                            <label>ABA Ultra</label>
+                            <input type="text" id="falla-imp-aba-ultra" value="${escapeHtml(supervisionState.fallaImpactoAbaUltra)}" placeholder="Clientes ABA Ultra">
+                        </div>
+                    </div>
+                    <div class="sup-field">
+                        <label>Interconectantes</label>
+                        <input type="text" id="falla-imp-inter" value="${escapeHtml(supervisionState.fallaImpactoInter)}" placeholder="Móvilnet, Vnet, datalink, clientes corporativos">
                     </div>
                 </div>
                 ` : ''}
 
                 ${supervisionState.subTabFalla === 'fin' ? `
-                <!-- Bloque de Cierre de Falla -->
                 <div class="sup-closure-section sup-anim-slide">
                     <div class="sup-section-label"><span class="material-symbols-outlined">task_alt</span> Cierre y Resolución</div>
                     <div class="sup-row-2">
                         <div class="sup-field">
-                            <label>Resolución / Solución</label>
-                            <input type="text" id="falla-solucion" value="${escapeHtml(supervisionState.fallaSolucion)}" placeholder="Restablecimiento total de servicios">
+                            <label>Hora Inicio (H.I)</label>
+                            <input type="text" id="falla-horainicio" value="${escapeHtml(supervisionState.fallaHoraFin ? supervisionState.fallaTicket : formatSystemDateTime().horaStr)}" placeholder="Hora de inicio de la falla">
                         </div>
                         <div class="sup-field">
                             <label>Hora Fin (H.F)</label>
@@ -379,6 +454,13 @@ function renderActiveForm() {
                     <label>Seguimiento y Control (Observaciones / Acciones)</label>
                     <textarea id="falla-obs" rows="3" placeholder="Personal técnico en sitio ejecutando mediciones ópticas.">${escapeHtml(supervisionState.fallaObs)}</textarea>
                 </div>
+
+                ${supervisionState.subTabFalla === 'fin' ? `
+                <div class="sup-field sup-anim-slide">
+                    <label>Servicios Operativos (Seguimiento)</label>
+                    <input type="text" id="falla-seguimiento" value="${escapeHtml(supervisionState.fallaSeguimiento)}" placeholder="Servicios operativos">
+                </div>
+                ` : ''}
             </div>
         `;
     }
@@ -391,7 +473,6 @@ function renderActiveForm() {
             </div>
 
             <div class="sup-fields-group">
-                <!-- Selector de Prefijo CDC vs INC -->
                 <div class="sup-field">
                     <label>Tipo de Identificador del Ticket</label>
                     <div class="sup-prefix-selector">
@@ -495,7 +576,7 @@ function renderActiveForm() {
             ${supervisionState.subTabInfo === 'plataformas' ? `
             <div class="sup-platforms-checklist sup-anim-slide">
                 <p class="sup-check-intro">Haz clic sobre cualquier elemento para alternar su estado: <strong>✅ Operativo</strong> ➔ <strong>⚠️ Afectación</strong> ➔ <strong>❌ Caído</strong>.</p>
-                
+
                 <div class="sup-check-group">
                     <div class="sup-check-header"><span class="material-symbols-outlined">hub</span> Cabeceras Metro Ethernet</div>
                     <div class="sup-pills-grid">
@@ -578,57 +659,40 @@ function bindSupervisionEvents(container) {
         });
     });
 
-    const fTicket = document.getElementById('falla-ticket');
-    fTicket?.addEventListener('input', () => { supervisionState.fallaTicket = fTicket.value; updatePreviewText(); saveStateDebounced(); });
+    const bind = (id, key) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+            supervisionState[key] = el.value;
+            updatePreviewText();
+            saveStateDebounced();
+        });
+    };
 
-    const fEstado = document.getElementById('falla-estado');
-    fEstado?.addEventListener('input', () => { supervisionState.fallaEstado = fEstado.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fTitulo = document.getElementById('falla-titulo');
-    fTitulo?.addEventListener('input', () => { supervisionState.fallaTitulo = fTitulo.value; updatePreviewText(); saveStateDebounced(); });
+    bind('falla-ticket', 'fallaTicket');
+    bind('falla-estado', 'fallaEstado');
+    bind('falla-titulo', 'fallaTitulo');
+    bind('falla-redes', 'fallaRedes');
+    bind('falla-imp-cisco', 'fallaImpactoCisco');
+    bind('falla-imp-hw', 'fallaImpactoHw');
+    bind('falla-imp-metro-alcatel', 'fallaImpactoMetroAlcatel');
+    bind('falla-imp-metro-ztte', 'fallaImpactoMetroZtte');
+    bind('falla-imp-metro-huawei', 'fallaImpactoMetroHuawei');
+    bind('falla-imp-voz', 'fallaImpactoVoz');
+    bind('falla-imp-aba', 'fallaImpactoAba');
+    bind('falla-imp-aba-ultra', 'fallaImpactoAbaUltra');
+    bind('falla-imp-inter', 'fallaImpactoInter');
+    bind('falla-obs', 'fallaObs');
+    bind('falla-seguimiento', 'fallaSeguimiento');
+    bind('falla-causa', 'fallaCausa');
+    bind('falla-accion', 'fallaAccion');
+    bind('falla-horafin', 'fallaHoraFin');
 
     const fFibra = document.getElementById('falla-is-fibra');
-    fFibra?.addEventListener('change', () => {
+    if (fFibra) fFibra.addEventListener('change', () => {
         supervisionState.fallaIsFibra = fFibra.checked;
         saveStateDebounced();
         renderSupervisionUI(container);
     });
-
-    const fRedes = document.getElementById('falla-redes');
-    fRedes?.addEventListener('input', () => { supervisionState.fallaRedes = fRedes.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fCisco = document.getElementById('falla-imp-cisco');
-    fCisco?.addEventListener('input', () => { supervisionState.fallaImpactoCisco = fCisco.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fHw = document.getElementById('falla-imp-hw');
-    fHw?.addEventListener('input', () => { supervisionState.fallaImpactoHw = fHw.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fMe = document.getElementById('falla-imp-me');
-    fMe?.addEventListener('input', () => { supervisionState.fallaImpactoMe = fMe.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fVoz = document.getElementById('falla-imp-vozaba');
-    fVoz?.addEventListener('input', () => { supervisionState.fallaImpactoVozAba = fVoz.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fInter = document.getElementById('falla-imp-inter');
-    fInter?.addEventListener('input', () => { supervisionState.fallaImpactoInter = fInter.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fOtro = document.getElementById('falla-imp-otro');
-    fOtro?.addEventListener('input', () => { supervisionState.fallaImpactoOtro = fOtro.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fObs = document.getElementById('falla-obs');
-    fObs?.addEventListener('input', () => { supervisionState.fallaObs = fObs.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fSol = document.getElementById('falla-solucion');
-    fSol?.addEventListener('input', () => { supervisionState.fallaSolucion = fSol.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fHoraFin = document.getElementById('falla-horafin');
-    fHoraFin?.addEventListener('input', () => { supervisionState.fallaHoraFin = fHoraFin.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fCausa = document.getElementById('falla-causa');
-    fCausa?.addEventListener('input', () => { supervisionState.fallaCausa = fCausa.value; updatePreviewText(); saveStateDebounced(); });
-
-    const fAccion = document.getElementById('falla-accion');
-    fAccion?.addEventListener('input', () => { supervisionState.fallaAccion = fAccion.value; updatePreviewText(); saveStateDebounced(); });
 
     container.querySelectorAll('.sup-prefix-btn[data-prefix]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -638,55 +702,33 @@ function bindSupervisionEvents(container) {
         });
     });
 
-    const cdcTicket = document.getElementById('cdc-ticket');
-    cdcTicket?.addEventListener('input', () => { supervisionState.cdcTicket = cdcTicket.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcEstado = document.getElementById('cdc-estado');
-    cdcEstado?.addEventListener('input', () => { supervisionState.cdcEstado = cdcEstado.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcTitulo = document.getElementById('cdc-titulo');
-    cdcTitulo?.addEventListener('input', () => { supervisionState.cdcTitulo = cdcTitulo.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcDesc = document.getElementById('cdc-descripcion');
-    cdcDesc?.addEventListener('input', () => { supervisionState.cdcDescripcion = cdcDesc.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcJust = document.getElementById('cdc-justificacion');
-    cdcJust?.addEventListener('input', () => { supervisionState.cdcJustificacion = cdcJust.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcVentana = document.getElementById('cdc-ventana');
-    cdcVentana?.addEventListener('input', () => { supervisionState.cdcVentana = cdcVentana.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcObs = document.getElementById('cdc-obs');
-    cdcObs?.addEventListener('input', () => { supervisionState.cdcObs = cdcObs.value; updatePreviewText(); saveStateDebounced(); });
+    bind('cdc-ticket', 'cdcTicket');
+    bind('cdc-estado', 'cdcEstado');
+    bind('cdc-titulo', 'cdcTitulo');
+    bind('cdc-descripcion', 'cdcDescripcion');
+    bind('cdc-justificacion', 'cdcJustificacion');
+    bind('cdc-ventana', 'cdcVentana');
+    bind('cdc-obs', 'cdcObs');
+    bind('cdc-horafin', 'cdcHoraFin');
+    bind('cdc-duracion', 'cdcDuracion');
 
     const cdcOk = document.getElementById('cdc-status-ok');
-    cdcOk?.addEventListener('click', () => {
+    if (cdcOk) cdcOk.addEventListener('click', () => {
         supervisionState.cdcIsExitoso = true;
         saveStateDebounced();
         renderSupervisionUI(container);
     });
 
     const cdcFail = document.getElementById('cdc-status-fail');
-    cdcFail?.addEventListener('click', () => {
+    if (cdcFail) cdcFail.addEventListener('click', () => {
         supervisionState.cdcIsExitoso = false;
         saveStateDebounced();
         renderSupervisionUI(container);
     });
 
-    const cdcHoraFin = document.getElementById('cdc-horafin');
-    cdcHoraFin?.addEventListener('input', () => { supervisionState.cdcHoraFin = cdcHoraFin.value; updatePreviewText(); saveStateDebounced(); });
-
-    const cdcDuracion = document.getElementById('cdc-duracion');
-    cdcDuracion?.addEventListener('input', () => { supervisionState.cdcDuracion = cdcDuracion.value; updatePreviewText(); saveStateDebounced(); });
-
-    const infoTit = document.getElementById('info-titulo');
-    infoTit?.addEventListener('input', () => { supervisionState.infoTitulo = infoTit.value; updatePreviewText(); saveStateDebounced(); });
-
-    const infoDet = document.getElementById('info-detalle');
-    infoDet?.addEventListener('input', () => { supervisionState.infoDetalle = infoDet.value; updatePreviewText(); saveStateDebounced(); });
-
-    const infoObs = document.getElementById('info-obs');
-    infoObs?.addEventListener('input', () => { supervisionState.infoObs = infoObs.value; updatePreviewText(); saveStateDebounced(); });
+    bind('info-titulo', 'infoTitulo');
+    bind('info-detalle', 'infoDetalle');
+    bind('info-obs', 'infoObs');
 
     container.querySelectorAll('.sup-pill').forEach(pill => {
         pill.addEventListener('click', () => {
@@ -705,7 +747,7 @@ function bindSupervisionEvents(container) {
 
     const copyBtn = document.getElementById('sup-copy-btn');
     const copyText = document.getElementById('sup-copy-text');
-    copyBtn?.addEventListener('click', async () => {
+    if (copyBtn) copyBtn.addEventListener('click', async () => {
         const msg = getFormattedMessage();
         try {
             await navigator.clipboard.writeText(msg);
@@ -723,7 +765,7 @@ function bindSupervisionEvents(container) {
     document.getElementById('sup-sync-time-btn')?.addEventListener('click', () => {
         supervisionState.useSystemTime = true;
         supervisionState.manualHora = '';
-        renderSupervisionUI(container);
+        updatePreviewText();
     });
 
     document.getElementById('sup-reset-btn')?.addEventListener('click', () => {
@@ -733,11 +775,18 @@ function bindSupervisionEvents(container) {
                 supervisionState.fallaTitulo = '';
                 supervisionState.fallaImpactoCisco = '';
                 supervisionState.fallaImpactoHw = '';
-                supervisionState.fallaImpactoMe = '';
-                supervisionState.fallaImpactoVozAba = '';
+                supervisionState.fallaImpactoMetroAlcatel = '';
+                supervisionState.fallaImpactoMetroZtte = '';
+                supervisionState.fallaImpactoMetroHuawei = '';
+                supervisionState.fallaImpactoVoz = '';
+                supervisionState.fallaImpactoAba = '';
+                supervisionState.fallaImpactoAbaUltra = '';
                 supervisionState.fallaImpactoInter = '';
-                supervisionState.fallaImpactoOtro = '';
                 supervisionState.fallaObs = '';
+                supervisionState.fallaSeguimiento = 'Servicios operativos';
+                supervisionState.fallaCausa = '';
+                supervisionState.fallaAccion = '';
+                supervisionState.fallaHoraFin = '';
             } else if (supervisionState.category === 'cdc') {
                 supervisionState.cdcTicket = '';
                 supervisionState.cdcTitulo = '';
@@ -751,5 +800,91 @@ function bindSupervisionEvents(container) {
             saveStateDebounced();
             renderSupervisionUI(container);
         }
+    });
+
+    const saveBtn = document.getElementById('sup-save-btn');
+    if (saveBtn) saveBtn.addEventListener('click', () => {
+        const msg = getFormattedMessage();
+        if (!msg.trim()) return;
+
+        const history = getHistory();
+        const categoryLabel = supervisionState.category;
+        const subTab = categoryLabel === 'fallas' ? supervisionState.subTabFalla
+            : categoryLabel === 'cdc' ? supervisionState.subTabCdc
+            : supervisionState.subTabInfo;
+
+        let ticket = '';
+        let titulo = '';
+        if (categoryLabel === 'fallas') {
+            ticket = supervisionState.fallaTicket;
+            titulo = supervisionState.fallaTitulo;
+        } else if (categoryLabel === 'cdc') {
+            ticket = `${supervisionState.cdcPrefix}${supervisionState.cdcTicket}`;
+            titulo = supervisionState.cdcTitulo;
+        } else {
+            ticket = 'INFO';
+            titulo = supervisionState.infoTitulo;
+        }
+
+        history.unshift({
+            category: categoryLabel,
+            subTab,
+            ticket,
+            titulo,
+            message: msg,
+            savedAt: new Date().toISOString()
+        });
+
+        if (history.length > 50) history.pop();
+        saveHistory(history);
+
+        const listEl = document.getElementById('sup-history-list');
+        if (listEl) listEl.innerHTML = renderHistoryItems();
+        bindHistoryEvents(container);
+
+        saveBtn.classList.add('sup-saved');
+        setTimeout(() => saveBtn.classList.remove('sup-saved'), 1500);
+    });
+
+    bindHistoryEvents(container);
+
+    const historyToggle = document.getElementById('sup-history-toggle');
+    if (historyToggle) historyToggle.addEventListener('click', () => {
+        const sidebar = document.getElementById('sup-history-sidebar');
+        if (sidebar) sidebar.classList.toggle('sup-history-collapsed');
+    });
+}
+
+function bindHistoryEvents(container) {
+    document.querySelectorAll('.sup-history-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.sup-history-delete')) return;
+            const idx = Number(item.dataset.historyIdx);
+            const history = getHistory();
+            if (!history[idx]) return;
+
+            const entry = history[idx];
+            supervisionState.category = entry.category;
+            if (entry.category === 'fallas') supervisionState.subTabFalla = entry.subTab;
+            if (entry.category === 'cdc') supervisionState.subTabCdc = entry.subTab;
+            if (entry.category === 'info') supervisionState.subTabInfo = entry.subTab;
+
+            saveStateDebounced();
+            renderSupervisionUI(container);
+        });
+    });
+
+    document.querySelectorAll('.sup-history-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = Number(btn.dataset.deleteIdx);
+            const history = getHistory();
+            if (!history[idx]) return;
+            history.splice(idx, 1);
+            saveHistory(history);
+            const listEl = document.getElementById('sup-history-list');
+            if (listEl) listEl.innerHTML = renderHistoryItems();
+            bindHistoryEvents(container);
+        });
     });
 }
