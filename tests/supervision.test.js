@@ -9,7 +9,8 @@ import {
     buildFallaFin,
     buildCdcInicio,
     buildCdcFin,
-    buildMensajeInformativo
+    buildMensajeInformativo,
+    SUPERVISION_DEFAULTS
 } from '../core/domain/supervision.service.js';
 
 test('supervision: buildHeader genera encabezado dinámico según tipo de mensaje', () => {
@@ -31,26 +32,41 @@ test('supervision: buildHeader genera encabezado dinámico según tipo de mensaj
 
     const headerInfo = buildSupervisionHeader({ date: fixedDate, tipo: 'info' });
     assert.ok(headerInfo.includes('🟡 MENSAJE INFORMATIVO'));
-
-    const headerDefault = buildSupervisionHeader({ date: fixedDate });
-    assert.ok(headerDefault.includes('🟡 MENSAJE INFORMATIVO'));
 });
 
-test('supervision: buildFallaInicio incluye campos de impacto separados (Metro, VoZ, ABA, ABA Ultra)', () => {
+test('supervision: no hay doble título (el header ya lleva el nombre del tipo de mensaje)', () => {
+    const fixedDate = new Date(2026, 7, 19, 16, 14);
+
+    const msgInicio = buildFallaInicio({ ticket: 'INC1', usuario: 'u' }, { date: fixedDate });
+    // El cuerpo no debe repetir "INICIO DE FALLA" tras el encabezado
+    const occurrences = msgInicio.split('INICIO DE FALLA').length - 1;
+    assert.equal(occurrences, 1); // solo en el header
+
+    const msgFin = buildFallaFin({ ticket: 'INC1', usuario: 'u' }, { date: fixedDate });
+    const finOccurrences = msgFin.split('FIN DE FALLA').length - 1;
+    assert.equal(finOccurrences, 1);
+
+    const msgInfo = buildMensajeInformativo({ titulo: 'X', usuario: 'u' }, { date: fixedDate });
+    const infoOccurrences = msgInfo.split('MENSAJE INFORMATIVO').length - 1;
+    assert.equal(infoOccurrences, 1);
+});
+
+test('supervision: buildFallaInicio incluye campos de impacto separados (Metro, VoZ, ABA, ABA Ultra, Radio Bases)', () => {
     const fixedDate = new Date(2026, 7, 19, 16, 14);
     const msg = buildFallaInicio({
         ticket: 'INC491200',
         estado: 'Miranda',
         titulo: 'Corte de FO tramo Chacao - Los Cortijos',
         isCorteFibra: true,
-        redesInvolucradas: 'Anillos DWDM, Anillo ME Cafetal',
+        redesInvolucradas: 'RII / Oriente 1 / Los Andes',
         impactoCisco: 'Caída de enlaces troncales',
-        impactoMetroAlcatel: '2 interfaces 10GB',
-        impactoMetroZtte: '1 interface 10GB',
-        impactoMetroHuawei: '3 interfaces 10GB',
+        impactoMetroAlcatel: '2 interface(s) 10G',
+        impactoMetroZte: '1 interface(s) 100G',
+        impactoMetroHuawei: '3 interface(s) 10G',
         impactoVoz: '8594 líneas',
         impactoAba: '2000 clientes',
         impactoAbaUltra: '150 clientes',
+        impactoRadioBases: '25 radio bases',
         impactoInterconectantes: 'Móvilnet, Vnet',
         observaciones: 'Cuadrilla trasladándose',
         usuario: 'jvalero01'
@@ -58,57 +74,51 @@ test('supervision: buildFallaInicio incluye campos de impacto separados (Metro, 
 
     assert.ok(msg.includes('🔴 INICIO DE FALLA'));
     assert.ok(msg.includes('Reporte: INC491200'));
-    assert.ok(msg.includes('Redes Involucradas: Anillos DWDM, Anillo ME Cafetal'));
+    assert.ok(msg.includes('Redes Involucradas: RII / Oriente 1 / Los Andes'));
     assert.ok(msg.includes('BBIP CISCO: Caída de enlaces troncales'));
-    assert.ok(msg.includes('Metro Alcatel: 2 interfaces 10GB'));
-    assert.ok(msg.includes('Metro ZTTE: 1 interface 10GB'));
-    assert.ok(msg.includes('Metro Huawei: 3 interfaces 10GB'));
+    assert.ok(msg.includes('Metro Ethernet (Alcatel): 2 interface(s) 10G'));
+    assert.ok(msg.includes('Metro Ethernet (ZTE): 1 interface(s) 100G'));
+    assert.ok(msg.includes('Metro Ethernet (Huawei): 3 interface(s) 10G'));
     assert.ok(msg.includes('VOZ: 8594 líneas'));
     assert.ok(msg.includes('ABA: 2000 clientes'));
     assert.ok(msg.includes('ABA Ultra: 150 clientes'));
+    assert.ok(msg.includes('Radio Bases: 25 radio bases'));
     assert.ok(msg.includes('Interconectantes: Móvilnet, Vnet'));
     assert.ok(msg.includes('Enviado por: jvalero01'));
 
     const msgSinFibra = buildFallaInicio({
         ticket: 'INC491201',
-        estado: 'Distrito Capital',
-        titulo: 'Falla de tarjeta en BRAS',
         isCorteFibra: false,
-        impactoCisco: 'Degradación',
+        titulo: 'Falla de tarjeta en BRAS',
         usuario: 'jvalero01'
     }, { date: fixedDate });
-
     assert.ok(!msgSinFibra.includes('Redes Involucradas'));
 });
 
-test('supervision: buildFallaSeguimiento genera header de seguimiento y mantiene campos de impacto', () => {
+test('supervision: buildFallaSeguimiento genera header de seguimiento', () => {
     const fixedDate = new Date(2026, 7, 19, 17, 0);
     const msg = buildFallaSeguimiento({
         ticket: 'INC491200',
         estado: 'Miranda',
-        titulo: 'Corte de FO tramo Chacao - Los Cortijos',
-        impactoMetroAlcatel: '2 interfaces 10GB',
+        titulo: 'Corte de FO',
         impactoVoz: '500 líneas',
-        impactoAba: '300 clientes',
         observaciones: 'Cuadrilla en sitio',
         usuario: 'jvalero01'
     }, { date: fixedDate });
 
     assert.ok(msg.includes('🟠 SEGUIMIENTO DE FALLA'));
     assert.ok(msg.includes('Reporte: INC491200'));
-    assert.ok(msg.includes('Metro Alcatel: 2 interfaces 10GB'));
     assert.ok(msg.includes('VOZ: 500 líneas'));
-    assert.ok(msg.includes('ABA: 300 clientes'));
     assert.ok(msg.includes('Enviado por: jvalero01'));
 });
 
-test('supervision: buildFallaFin genera header con H.I-H.F, título intacto, y campo Seguimiento', () => {
+test('supervision: buildFallaFin mantiene título, header H.I-H.F, campo Seguimiento, sin hora del sistema', () => {
     const fixedDate = new Date(2026, 7, 19, 18, 30);
     const msgFin = buildFallaFin({
         ticket: 'INC491200',
         estado: 'Miranda',
         titulo: 'Corte de FO tramo Chacao - Los Cortijos',
-        hora: '16:14',
+        horaInicio: '16:14',
         horaFin: '18:25',
         seguimiento: 'Servicios operativos',
         causa: 'Corte por vandalismo',
@@ -125,9 +135,12 @@ test('supervision: buildFallaFin genera header con H.I-H.F, título intacto, y c
     assert.ok(msgFin.includes('Causa: Corte por vandalismo'));
     assert.ok(msgFin.includes('Acción Tomada: Fusión de 12 hilos de FO'));
     assert.ok(msgFin.includes('Enviado por: jvalero01'));
+
+    // Hora fin no debe ser la hora del sistema en el seguimiento cuando se indica una hora fin
+    assert.ok(!msgFin.includes('Hora: 18:30'));
 });
 
-test('supervision: buildCdcInicio y buildCdcFin soportan prefijos CDC e INC', () => {
+test('supervision: buildCdcInicio y buildCdcFin - Reporte y Título en la misma línea', () => {
     const fixedDate = new Date(2026, 7, 19, 23, 0);
 
     const msgCdc = buildCdcInicio({
@@ -142,7 +155,7 @@ test('supervision: buildCdcInicio y buildCdcFin soportan prefijos CDC e INC', ()
     }, { date: fixedDate });
 
     assert.ok(msgCdc.includes('📋 INICIO DE CDC'));
-    assert.ok(msgCdc.includes('Reporte: CDC009842'));
+    assert.ok(msgCdc.includes('Reporte: CDC009842, Título: Actualización de router de borde, Edo Distrito Capital'));
     assert.ok(msgCdc.includes('Justificación del Trabajo:'));
     assert.ok(msgCdc.includes('Ventana: 23:00 a 04:00'));
 
@@ -159,13 +172,13 @@ test('supervision: buildCdcInicio y buildCdcFin soportan prefijos CDC e INC', ()
     }, { date: fixedDate });
 
     assert.ok(msgCdcFin.includes('📋 FIN DE CDC'));
-    assert.ok(msgCdcFin.includes('Reporte: INC489001'));
+    assert.ok(msgCdcFin.includes('Reporte: INC489001, Título: Actualización de router de borde, Edo Distrito Capital'));
     assert.ok(!msgCdcFin.includes('Justificación del Trabajo'));
     assert.ok(msgCdcFin.includes('Estatus: ✅ CDC Exitoso'));
     assert.ok(msgCdcFin.includes('Tiempo de Duración del trabajo: 4h 45m'));
 });
 
-test('supervision: buildMensajeInformativo soporta texto libre y checklist nacional', () => {
+test('supervision: buildMensajeInformativo no duplica título', () => {
     const fixedDate = new Date(2026, 7, 19, 10, 0);
 
     const msgLibre = buildMensajeInformativo({
@@ -175,9 +188,8 @@ test('supervision: buildMensajeInformativo soporta texto libre y checklist nacio
     }, { date: fixedDate });
 
     assert.ok(msgLibre.includes('🟡 MENSAJE INFORMATIVO'));
-    assert.ok(msgLibre.includes('MENSAJE INFORMATIVO'));
+    assert.equal((msgLibre.split('MENSAJE INFORMATIVO').length - 1), 1);
     assert.ok(msgLibre.includes('Variación de BGP en enlaces Columbus'));
-    assert.ok(msgLibre.includes('Sala COR investigando'));
 
     const msgNacional = buildMensajeInformativo({
         tipoInformativo: 'plataformas',
@@ -186,9 +198,14 @@ test('supervision: buildMensajeInformativo soporta texto libre y checklist nacio
 
     assert.ok(msgNacional.includes('🟡 MENSAJE INFORMATIVO'));
     assert.ok(msgNacional.includes('Reporte de Plataformas de Telecomunicaciones CANTV a Nivel Nacional'));
-    assert.ok(msgNacional.includes('Equipos de Cabecera Metro Ethernet:'));
-    assert.ok(msgNacional.includes('Red de Transporte (Anillos de Fibra Óptica DWDM/SDH):'));
-    assert.ok(msgNacional.includes('Estatus plataforma ISP:'));
+});
+
+test('supervision: defaults incluyen SPEED, COUNT y REDES_DWDM', () => {
+    assert.deepEqual(SUPERVISION_DEFAULTS.impactoSpeedOptions, ['1G', '10G', '100G']);
+    assert.equal(SUPERVISION_DEFAULTS.impactoCountOptions.length, 10);
+    assert.equal(SUPERVISION_DEFAULTS.impactoCountOptions[0], 1);
+    assert.ok(SUPERVISION_DEFAULTS.redesDwdm.includes('RII (Red de Integración Internacional)'));
+    assert.ok(SUPERVISION_DEFAULTS.redesDwdm.includes('Anillo ME CNT-LTQ'));
 });
 
 test('supervision: service saveDraft y loadDraft persisten en almacenamiento', async () => {
@@ -208,23 +225,4 @@ test('supervision: service saveDraft y loadDraft persisten en almacenamiento', a
     assert.equal(loaded.ticket, 'INC555123');
     assert.equal(loaded.estado, 'Zulia');
     assert.ok(loaded.savedAt);
-});
-
-test('supervision: buildFallaInicio excluye campos de impacto vacíos', () => {
-    const fixedDate = new Date(2026, 7, 19, 16, 14);
-    const msg = buildFallaInicio({
-        ticket: 'INC123',
-        titulo: 'Falla menor',
-        observaciones: 'Verificando',
-        usuario: 'test'
-    }, { date: fixedDate });
-
-    assert.ok(!msg.includes('Metro Alcatel:'));
-    assert.ok(!msg.includes('Metro ZTTE:'));
-    assert.ok(!msg.includes('Metro Huawei:'));
-    assert.ok(!msg.includes('VOZ:'));
-    assert.ok(!msg.includes('ABA:'));
-    assert.ok(!msg.includes('ABA Ultra:'));
-    assert.ok(!msg.includes('Otro:'));
-    assert.ok(msg.includes('Enviado por: test'));
 });

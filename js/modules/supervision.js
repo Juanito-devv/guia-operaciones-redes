@@ -1,9 +1,5 @@
 // ========================================
 // SUPERVISION MODULE (Exclusivo para Supervisores COR)
-// Generador de plantillas oficiales para mensajería:
-// 1. Fallas (Inicio, Seguimiento, Fin)
-// 2. Controles de Cambio CDC (Inicio, Fin con toggle CDC/INC)
-// 3. Mensajes Informativos (Alerta y Reporte Nacional de Plataformas)
 // ========================================
 
 import { AppState } from '../state.js';
@@ -25,6 +21,10 @@ import {
 
 const HISTORY_KEY = 'cor_supervision_history_v1';
 
+const SPEED_OPTIONS = SUPERVISION_DEFAULTS.impactoSpeedOptions; // ['1G','10G','100G']
+const COUNT_OPTIONS = SUPERVISION_DEFAULTS.impactoCountOptions; // [1..10]
+const REDES_DWDM = SUPERVISION_DEFAULTS.redesDwdm;
+
 let supervisionState = {
     category: 'fallas',
     subTabFalla: 'inicio',
@@ -35,21 +35,30 @@ let supervisionState = {
     fallaEstado: 'Distrito Capital',
     fallaTitulo: '',
     fallaIsFibra: false,
-    fallaRedes: 'Anillos DWDM, Anillo ME',
+    fallaRedes: [],            // array de redes DWDM seleccionadas
+    fallaRedesText: '',
     fallaImpactoCisco: '',
     fallaImpactoHw: '',
-    fallaImpactoMetroAlcatel: '',
-    fallaImpactoMetroZtte: '',
-    fallaImpactoMetroHuawei: '',
+    fallaImpactoMetroAlcatelSpeed: '10G',
+    fallaImpactoMetroAlcatelCount: 1,
+    fallaImpactoMetroZteSpeed: '10G',
+    fallaImpactoMetroZteCount: 1,
+    fallaImpactoMetroHuaweiSpeed: '10G',
+    fallaImpactoMetroHuaweiCount: 1,
     fallaImpactoVoz: '',
     fallaImpactoAba: '',
     fallaImpactoAbaUltra: '',
+    fallaImpactoRadioBases: '',
     fallaImpactoInter: '',
     fallaObs: '',
     fallaSeguimiento: 'Servicios operativos',
     fallaCausa: '',
     fallaAccion: '',
+    fallaHoraInicio: '',
     fallaHoraFin: '',
+    fallaUsuario: '',
+    cdcUsuario: '',
+    infoUsuario: '',
 
     cdcPrefix: 'CDC',
     cdcTicket: '',
@@ -81,19 +90,18 @@ function loadSavedState() {
     const saved = Storage.get('cor_supervision_state_v1');
     if (saved && typeof saved === 'object') {
         const legacy = {};
-        if (saved.fallaImpactoVozAba !== undefined) {
-            legacy.fallaImpactoVoz = saved.fallaImpactoVozAba;
-        }
-        if (saved.fallaImpactoMe !== undefined) {
-            legacy.fallaImpactoMetroAlcatel = saved.fallaImpactoMe;
-        }
-        if (saved.fallaImpactoOtro !== undefined) {
-            legacy.fallaImpactoInter = saved.fallaImpactoInter || saved.fallaImpactoOtro;
-        }
+        if (saved.fallaImpactoVozAba !== undefined) legacy.fallaImpactoVoz = saved.fallaImpactoVozAba;
+        if (saved.fallaImpactoMetroAlcatel !== undefined) legacy.fallaImpactoMetroAlcatelCount = 1;
+        if (saved.fallaImpactoMetroZtte !== undefined) legacy.fallaImpactoMetroZteCount = 1;
+        if (saved.fallaImpactoMetroZtte !== undefined) legacy.fallaImpactoMetroZteSpeed = '10G';
+        if (saved.fallaImpactoOtro !== undefined) legacy.fallaImpactoInter = saved.fallaImpactoInter || saved.fallaImpactoOtro;
         supervisionState = { ...supervisionState, ...saved, ...legacy };
         delete supervisionState.fallaImpactoVozAba;
-        delete supervisionState.fallaImpactoMe;
+        delete supervisionState.fallaImpactoMetroAlcatel;
+        delete supervisionState.fallaImpactoMetroZtte;
+        delete supervisionState.fallaImpactoMetroHuawei;
         delete supervisionState.fallaImpactoOtro;
+        if (!Array.isArray(supervisionState.fallaRedes)) supervisionState.fallaRedes = String(supervisionState.fallaRedes || '').split(',').map(s => s.trim()).filter(Boolean);
     }
 }
 
@@ -127,9 +135,24 @@ export function showSupervision() {
 }
 
 function getActiveUser() {
+    if (supervisionState.fallaUsuario && supervisionState.fallaUsuario.trim()) {
+        return supervisionState.fallaUsuario.trim();
+    }
     const u = getCurrentUser();
     const username = AppState.get('currentUser') || 'supervisor';
     return (u && u.name) ? `${u.name} (@${username})` : `@${username}`;
+}
+
+// Normaliza el texto de los mensajes para que pegue bien en Telegram/WhatsApp:
+// - Un tamaño consistente de saltos de línea
+// - Evita dobles espacios entre líneas
+function normalizeMessageText(text) {
+    if (!text) return '';
+    return text
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 function getFormattedMessage() {
@@ -138,6 +161,10 @@ function getFormattedMessage() {
     const hora = supervisionState.useSystemTime ? null : (supervisionState.manualHora || null);
 
     if (supervisionState.category === 'fallas') {
+        const redesText = supervisionState.fallaRedes.length > 0
+            ? supervisionState.fallaRedes.join(' / ')
+            : supervisionState.fallaRedesText;
+
         const payload = {
             usuario: user,
             hora: hora,
@@ -145,20 +172,22 @@ function getFormattedMessage() {
             estado: supervisionState.fallaEstado,
             titulo: supervisionState.fallaTitulo,
             isCorteFibra: supervisionState.fallaIsFibra,
-            redesInvolucradas: supervisionState.fallaRedes,
+            redesInvolucradas: redesText,
             impactoCisco: supervisionState.fallaImpactoCisco,
             impactoHw: supervisionState.fallaImpactoHw,
-            impactoMetroAlcatel: supervisionState.fallaImpactoMetroAlcatel,
-            impactoMetroZtte: supervisionState.fallaImpactoMetroZtte,
-            impactoMetroHuawei: supervisionState.fallaImpactoMetroHuawei,
+            impactoMetroAlcatel: supervisionState.fallaImpactoMetroAlcatelCount ? `${supervisionState.fallaImpactoMetroAlcatelCount} interface(s) ${supervisionState.fallaImpactoMetroAlcatelSpeed}` : '',
+            impactoMetroZte: supervisionState.fallaImpactoMetroZteCount ? `${supervisionState.fallaImpactoMetroZteCount} interface(s) ${supervisionState.fallaImpactoMetroZteSpeed}` : '',
+            impactoMetroHuawei: supervisionState.fallaImpactoMetroHuaweiCount ? `${supervisionState.fallaImpactoMetroHuaweiCount} interface(s) ${supervisionState.fallaImpactoMetroHuaweiSpeed}` : '',
             impactoVoz: supervisionState.fallaImpactoVoz,
             impactoAba: supervisionState.fallaImpactoAba,
             impactoAbaUltra: supervisionState.fallaImpactoAbaUltra,
+            impactoRadioBases: supervisionState.fallaImpactoRadioBases,
             impactoInterconectantes: supervisionState.fallaImpactoInter,
             observaciones: supervisionState.fallaObs,
             seguimiento: supervisionState.fallaSeguimiento,
             causa: supervisionState.fallaCausa,
             accionTomada: supervisionState.fallaAccion,
+            horaInicio: supervisionState.fallaHoraInicio,
             horaFin: supervisionState.fallaHoraFin
         };
 
@@ -335,6 +364,24 @@ function renderHistoryItems() {
     }).join('');
 }
 
+function renderMetroImpactField(idPrefix, label, speedKey, countKey) {
+    const speedVal = supervisionState[speedKey] || '10G';
+    const countVal = supervisionState[countKey] || 1;
+    return `
+        <div class="sup-field">
+            <label>${label}</label>
+            <div class="sup-row-2-slim">
+                <select id="${idPrefix}-speed">
+                    ${SPEED_OPTIONS.map(s => `<option value="${s}" ${s === speedVal ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+                <select id="${idPrefix}-count">
+                    ${COUNT_OPTIONS.map(n => `<option value="${n}" ${n === countVal ? 'selected' : ''}>${n}</option>`).join('')}
+                </select>
+            </div>
+        </div>
+    `;
+}
+
 function renderActiveForm() {
     if (supervisionState.category === 'fallas') {
         return `
@@ -374,8 +421,16 @@ function renderActiveForm() {
 
                 ${supervisionState.fallaIsFibra ? `
                 <div class="sup-field sup-anim-slide">
-                    <label>Redes Involucradas</label>
-                    <input type="text" id="falla-redes" value="${escapeHtml(supervisionState.fallaRedes)}" placeholder="Anillos DWDM, Anillo ME Cafetal, Red de Integración">
+                    <label>Redes Involucradas (DWDM / SDH)</label>
+                    <div class="sup-multiselect">
+                        ${REDES_DWDM.map(r => `
+                            <label class="sup-check-chip ${supervisionState.fallaRedes.includes(r) ? 'selected' : ''}">
+                                <input type="checkbox" value="${escapeHtml(r)}" ${supervisionState.fallaRedes.includes(r) ? 'checked' : ''} data-red-dwdm>
+                                <span>${escapeHtml(r)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <input type="text" id="falla-redes-text" value="${escapeHtml(supervisionState.fallaRedesText)}" placeholder="O escribe manualmente (separadas con - o /)">
                 </div>` : ''}
 
                 ${supervisionState.subTabFalla !== 'fin' ? `
@@ -391,19 +446,11 @@ function renderActiveForm() {
                             <input type="text" id="falla-imp-hw" value="${escapeHtml(supervisionState.fallaImpactoHw)}" placeholder="Afectación interfaces 100G">
                         </div>
                     </div>
+                    <div class="sup-section-subtitle">Metro Ethernet (interfaces afectadas)</div>
                     <div class="sup-row-3">
-                        <div class="sup-field">
-                            <label>Metro Alcatel</label>
-                            <input type="text" id="falla-imp-metro-alcatel" value="${escapeHtml(supervisionState.fallaImpactoMetroAlcatel)}" placeholder="2 interfaces 10GB">
-                        </div>
-                        <div class="sup-field">
-                            <label>Metro ZTTE</label>
-                            <input type="text" id="falla-imp-metro-ztte" value="${escapeHtml(supervisionState.fallaImpactoMetroZtte)}" placeholder="1 interface 10GB">
-                        </div>
-                        <div class="sup-field">
-                            <label>Metro Huawei</label>
-                            <input type="text" id="falla-imp-metro-huawei" value="${escapeHtml(supervisionState.fallaImpactoMetroHuawei)}" placeholder="3 interfaces 10GB">
-                        </div>
+                        ${renderMetroImpactField('falla-imp-metro-alcatel', 'Metro Alcatel', 'fallaImpactoMetroAlcatelSpeed', 'fallaImpactoMetroAlcatelCount')}
+                        ${renderMetroImpactField('falla-imp-metro-zte', 'Metro ZTE', 'fallaImpactoMetroZteSpeed', 'fallaImpactoMetroZteCount')}
+                        ${renderMetroImpactField('falla-imp-metro-huawei', 'Metro Huawei', 'fallaImpactoMetroHuaweiSpeed', 'fallaImpactoMetroHuaweiCount')}
                     </div>
                     <div class="sup-row-3">
                         <div class="sup-field">
@@ -420,6 +467,10 @@ function renderActiveForm() {
                         </div>
                     </div>
                     <div class="sup-field">
+                        <label>Radio Bases</label>
+                        <input type="text" id="falla-imp-radio" value="${escapeHtml(supervisionState.fallaImpactoRadioBases)}" placeholder="Radio bases afectadas">
+                    </div>
+                    <div class="sup-field">
                         <label>Interconectantes</label>
                         <input type="text" id="falla-imp-inter" value="${escapeHtml(supervisionState.fallaImpactoInter)}" placeholder="Móvilnet, Vnet, datalink, clientes corporativos">
                     </div>
@@ -432,11 +483,11 @@ function renderActiveForm() {
                     <div class="sup-row-2">
                         <div class="sup-field">
                             <label>Hora Inicio (H.I)</label>
-                            <input type="text" id="falla-horainicio" value="${escapeHtml(supervisionState.fallaHoraFin ? supervisionState.fallaTicket : formatSystemDateTime().horaStr)}" placeholder="Hora de inicio de la falla">
+                            <input type="text" id="falla-horainicio" value="${escapeHtml(supervisionState.fallaHoraInicio)}" placeholder="Hora de inicio de la falla">
                         </div>
                         <div class="sup-field">
                             <label>Hora Fin (H.F)</label>
-                            <input type="text" id="falla-horafin" value="${escapeHtml(supervisionState.fallaHoraFin || formatSystemDateTime().horaStr)}" placeholder="18:30">
+                            <input type="text" id="falla-horafin" value="${escapeHtml(supervisionState.fallaHoraFin)}" placeholder="18:30">
                         </div>
                     </div>
                     <div class="sup-field">
@@ -461,6 +512,11 @@ function renderActiveForm() {
                     <input type="text" id="falla-seguimiento" value="${escapeHtml(supervisionState.fallaSeguimiento)}" placeholder="Servicios operativos">
                 </div>
                 ` : ''}
+
+                <div class="sup-field">
+                    <label>Enviado por (Usuario de Red)</label>
+                    <input type="text" id="falla-usuario" value="${escapeHtml(supervisionState.fallaUsuario)}" placeholder="@usuario de red">
+                </div>
             </div>
         `;
     }
@@ -491,14 +547,20 @@ function renderActiveForm() {
                         <input type="text" id="cdc-ticket" value="${escapeHtml(supervisionState.cdcTicket)}" placeholder="Ej: 009842">
                     </div>
                     <div class="sup-field">
-                        <label>Estado / Región</label>
-                        <input type="text" id="cdc-estado" value="${escapeHtml(supervisionState.cdcEstado)}" placeholder="Distrito Capital, Zulia, etc.">
+                        <label>Título del Control de Cambio</label>
+                        <input type="text" id="cdc-titulo" value="${escapeHtml(supervisionState.cdcTitulo)}" placeholder="Actualización de software en router de borde">
                     </div>
                 </div>
 
-                <div class="sup-field">
-                    <label>Título del Control de Cambio</label>
-                    <input type="text" id="cdc-titulo" value="${escapeHtml(supervisionState.cdcTitulo)}" placeholder="Actualización de software en router de borde">
+                <div class="sup-row-2">
+                    <div class="sup-field">
+                        <label>Estado / Región</label>
+                        <input type="text" id="cdc-estado" value="${escapeHtml(supervisionState.cdcEstado)}" placeholder="Distrito Capital, Zulia, etc.">
+                    </div>
+                    <div class="sup-field">
+                        <label>Ventana de Mantenimiento</label>
+                        <input type="text" id="cdc-ventana" value="${escapeHtml(supervisionState.cdcVentana)}" placeholder="00:00 a 06:00">
+                    </div>
                 </div>
 
                 <div class="sup-field">
@@ -510,10 +572,6 @@ function renderActiveForm() {
                 <div class="sup-field sup-anim-slide">
                     <label>Justificación del Trabajo</label>
                     <textarea id="cdc-justificacion" rows="2" placeholder="Optimización de capacidad y aplicación de parches de seguridad.">${escapeHtml(supervisionState.cdcJustificacion)}</textarea>
-                </div>
-                <div class="sup-field sup-anim-slide">
-                    <label>Ventana de Mantenimiento</label>
-                    <input type="text" id="cdc-ventana" value="${escapeHtml(supervisionState.cdcVentana)}" placeholder="00:00 a 06:00">
                 </div>
                 ` : ''}
 
@@ -531,7 +589,7 @@ function renderActiveForm() {
                     <div class="sup-row-2" style="margin-top:12px;">
                         <div class="sup-field">
                             <label>Hora Fin (H.F)</label>
-                            <input type="text" id="cdc-horafin" value="${escapeHtml(supervisionState.cdcHoraFin || formatSystemDateTime().horaStr)}" placeholder="04:30">
+                            <input type="text" id="cdc-horafin" value="${escapeHtml(supervisionState.cdcHoraFin)}" placeholder="04:30">
                         </div>
                         <div class="sup-field">
                             <label>Tiempo de Duración del Trabajo</label>
@@ -544,6 +602,11 @@ function renderActiveForm() {
                 <div class="sup-field">
                     <label>Observaciones y/o Acciones</label>
                     <textarea id="cdc-obs" rows="3" placeholder="Actividad coordinada con sala COR y especialistas de plataforma.">${escapeHtml(supervisionState.cdcObs)}</textarea>
+                </div>
+
+                <div class="sup-field">
+                    <label>Enviado por (Usuario de Red)</label>
+                    <input type="text" id="cdc-usuario" value="${escapeHtml(supervisionState.cdcUsuario || supervisionState.fallaUsuario)}" placeholder="@usuario de red">
                 </div>
             </div>
         `;
@@ -569,6 +632,10 @@ function renderActiveForm() {
                 <div class="sup-field">
                     <label>Observaciones Opcionales</label>
                     <textarea id="info-obs" rows="2" placeholder="Notificado a gerencia y unidades de soporte.">${escapeHtml(supervisionState.infoObs)}</textarea>
+                </div>
+                <div class="sup-field">
+                    <label>Enviado por (Usuario de Red)</label>
+                    <input type="text" id="info-usuario" value="${escapeHtml(supervisionState.infoUsuario || supervisionState.fallaUsuario)}" placeholder="@usuario de red">
                 </div>
             </div>
             ` : ''}
@@ -624,6 +691,11 @@ function renderActiveForm() {
                         `).join('')}
                     </div>
                 </div>
+
+                <div class="sup-field">
+                    <label>Enviado por (Usuario de Red)</label>
+                    <input type="text" id="info-usuario" value="${escapeHtml(supervisionState.infoUsuario || supervisionState.fallaUsuario)}" placeholder="@usuario de red">
+                </div>
             </div>
             ` : ''}
         `;
@@ -632,10 +704,23 @@ function renderActiveForm() {
     return '';
 }
 
+function renderPreviewBold(message) {
+    // Renderiza el mensaje en la burbuja de preview con la primera línea (título) en negrita.
+    // El texto copiado sigue siendo el texto plano original (normalizeMessageText).
+    if (!message) return '';
+    const lines = message.split('\n');
+    if (lines.length === 0) return '';
+    const title = lines[0];
+    const rest = lines.slice(1).join('\n');
+    if (!rest) return `<span class="sup-msg-title">${escapeHtml(title)}</span>`;
+    return `<span class="sup-msg-title">${escapeHtml(title)}</span>\n${escapeHtml(rest)}`;
+}
+
 function updatePreviewText() {
     const previewEl = document.getElementById('sup-rendered-msg');
     if (previewEl) {
-        previewEl.textContent = getFormattedMessage();
+        const raw = normalizeMessageText(getFormattedMessage());
+        previewEl.innerHTML = renderPreviewBold(raw);
     }
 }
 
@@ -671,21 +756,58 @@ function bindSupervisionEvents(container) {
     bind('falla-ticket', 'fallaTicket');
     bind('falla-estado', 'fallaEstado');
     bind('falla-titulo', 'fallaTitulo');
-    bind('falla-redes', 'fallaRedes');
+    bind('falla-redes-text', 'fallaRedesText');
     bind('falla-imp-cisco', 'fallaImpactoCisco');
     bind('falla-imp-hw', 'fallaImpactoHw');
-    bind('falla-imp-metro-alcatel', 'fallaImpactoMetroAlcatel');
-    bind('falla-imp-metro-ztte', 'fallaImpactoMetroZtte');
-    bind('falla-imp-metro-huawei', 'fallaImpactoMetroHuawei');
     bind('falla-imp-voz', 'fallaImpactoVoz');
     bind('falla-imp-aba', 'fallaImpactoAba');
     bind('falla-imp-aba-ultra', 'fallaImpactoAbaUltra');
+    bind('falla-imp-radio', 'fallaImpactoRadioBases');
     bind('falla-imp-inter', 'fallaImpactoInter');
     bind('falla-obs', 'fallaObs');
     bind('falla-seguimiento', 'fallaSeguimiento');
     bind('falla-causa', 'fallaCausa');
     bind('falla-accion', 'fallaAccion');
+    bind('falla-horainicio', 'fallaHoraInicio');
     bind('falla-horafin', 'fallaHoraFin');
+    bind('falla-usuario', 'fallaUsuario');
+    bind('cdc-usuario', 'cdcUsuario');
+    bind('info-usuario', 'infoUsuario');
+
+    // Metro impact selects
+    const bindSelect = (speedId, countId, speedKey, countKey) => {
+        const sEl = document.getElementById(speedId);
+        if (sEl) sEl.addEventListener('change', () => {
+            supervisionState[speedKey] = sEl.value;
+            updatePreviewText();
+            saveStateDebounced();
+        });
+        const cEl = document.getElementById(countId);
+        if (cEl) cEl.addEventListener('change', () => {
+            supervisionState[countKey] = Number(cEl.value);
+            updatePreviewText();
+            saveStateDebounced();
+        });
+    };
+    bindSelect('falla-imp-metro-alcatel-speed', 'falla-imp-metro-alcatel-count', 'fallaImpactoMetroAlcatelSpeed', 'fallaImpactoMetroAlcatelCount');
+    bindSelect('falla-imp-metro-zte-speed', 'falla-imp-metro-zte-count', 'fallaImpactoMetroZteSpeed', 'fallaImpactoMetroZteCount');
+    bindSelect('falla-imp-metro-huawei-speed', 'falla-imp-metro-huawei-count', 'fallaImpactoMetroHuaweiSpeed', 'fallaImpactoMetroHuaweiCount');
+
+    // Redes DWDM multiselect
+    container.querySelectorAll('[data-red-dwdm]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const val = cb.value;
+            if (cb.checked) {
+                if (!supervisionState.fallaRedes.includes(val)) supervisionState.fallaRedes.push(val);
+                cb.closest('.sup-check-chip')?.classList.add('selected');
+            } else {
+                supervisionState.fallaRedes = supervisionState.fallaRedes.filter(r => r !== val);
+                cb.closest('.sup-check-chip')?.classList.remove('selected');
+            }
+            updatePreviewText();
+            saveStateDebounced();
+        });
+    });
 
     const fFibra = document.getElementById('falla-is-fibra');
     if (fFibra) fFibra.addEventListener('change', () => {
@@ -748,7 +870,7 @@ function bindSupervisionEvents(container) {
     const copyBtn = document.getElementById('sup-copy-btn');
     const copyText = document.getElementById('sup-copy-text');
     if (copyBtn) copyBtn.addEventListener('click', async () => {
-        const msg = getFormattedMessage();
+        const msg = normalizeMessageText(getFormattedMessage());
         try {
             await navigator.clipboard.writeText(msg);
             if (copyText) copyText.textContent = '¡Copiado con Éxito!';
@@ -758,7 +880,18 @@ function bindSupervisionEvents(container) {
                 copyBtn.classList.remove('sup-copied');
             }, 2000);
         } catch (err) {
-            console.error('Error al copiar:', err);
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = msg;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (copyText) copyText.textContent = '¡Copiado con Éxito!';
+                setTimeout(() => { if (copyText) copyText.textContent = 'Copiar Mensaje'; }, 2000);
+            } catch (err2) {
+                console.error('Error al copiar:', err2);
+            }
         }
     });
 
@@ -766,6 +899,7 @@ function bindSupervisionEvents(container) {
         supervisionState.useSystemTime = true;
         supervisionState.manualHora = '';
         updatePreviewText();
+        saveStateDebounced();
     });
 
     document.getElementById('sup-reset-btn')?.addEventListener('click', () => {
@@ -775,24 +909,32 @@ function bindSupervisionEvents(container) {
                 supervisionState.fallaTitulo = '';
                 supervisionState.fallaImpactoCisco = '';
                 supervisionState.fallaImpactoHw = '';
-                supervisionState.fallaImpactoMetroAlcatel = '';
-                supervisionState.fallaImpactoMetroZtte = '';
-                supervisionState.fallaImpactoMetroHuawei = '';
+                supervisionState.fallaImpactoMetroAlcatelSpeed = '10G';
+                supervisionState.fallaImpactoMetroAlcatelCount = 1;
+                supervisionState.fallaImpactoMetroZteSpeed = '10G';
+                supervisionState.fallaImpactoMetroZteCount = 1;
+                supervisionState.fallaImpactoMetroHuaweiSpeed = '10G';
+                supervisionState.fallaImpactoMetroHuaweiCount = 1;
                 supervisionState.fallaImpactoVoz = '';
                 supervisionState.fallaImpactoAba = '';
                 supervisionState.fallaImpactoAbaUltra = '';
+                supervisionState.fallaImpactoRadioBases = '';
                 supervisionState.fallaImpactoInter = '';
                 supervisionState.fallaObs = '';
                 supervisionState.fallaSeguimiento = 'Servicios operativos';
                 supervisionState.fallaCausa = '';
                 supervisionState.fallaAccion = '';
+                supervisionState.fallaHoraInicio = '';
                 supervisionState.fallaHoraFin = '';
+                supervisionState.fallaRedes = [];
+                supervisionState.fallaRedesText = '';
             } else if (supervisionState.category === 'cdc') {
                 supervisionState.cdcTicket = '';
                 supervisionState.cdcTitulo = '';
                 supervisionState.cdcDescripcion = '';
                 supervisionState.cdcJustificacion = '';
                 supervisionState.cdcObs = '';
+                supervisionState.cdcHoraFin = '';
             } else if (supervisionState.category === 'info') {
                 supervisionState.infoTitulo = '';
                 supervisionState.infoObs = '';
@@ -804,46 +946,52 @@ function bindSupervisionEvents(container) {
 
     const saveBtn = document.getElementById('sup-save-btn');
     if (saveBtn) saveBtn.addEventListener('click', () => {
-        const msg = getFormattedMessage();
-        if (!msg.trim()) return;
+        try {
+            const msg = normalizeMessageText(getFormattedMessage());
+            if (!msg.trim()) return;
 
-        const history = getHistory();
-        const categoryLabel = supervisionState.category;
-        const subTab = categoryLabel === 'fallas' ? supervisionState.subTabFalla
-            : categoryLabel === 'cdc' ? supervisionState.subTabCdc
-            : supervisionState.subTabInfo;
+            const history = getHistory();
+            const categoryLabel = supervisionState.category;
+            const subTab = categoryLabel === 'fallas' ? supervisionState.subTabFalla
+                : categoryLabel === 'cdc' ? supervisionState.subTabCdc
+                : supervisionState.subTabInfo;
 
-        let ticket = '';
-        let titulo = '';
-        if (categoryLabel === 'fallas') {
-            ticket = supervisionState.fallaTicket;
-            titulo = supervisionState.fallaTitulo;
-        } else if (categoryLabel === 'cdc') {
-            ticket = `${supervisionState.cdcPrefix}${supervisionState.cdcTicket}`;
-            titulo = supervisionState.cdcTitulo;
-        } else {
-            ticket = 'INFO';
-            titulo = supervisionState.infoTitulo;
+            let ticket = '';
+            let titulo = '';
+            if (categoryLabel === 'fallas') {
+                ticket = supervisionState.fallaTicket;
+                titulo = supervisionState.fallaTitulo;
+            } else if (categoryLabel === 'cdc') {
+                ticket = `${supervisionState.cdcPrefix}${supervisionState.cdcTicket}`;
+                titulo = supervisionState.cdcTitulo;
+            } else {
+                ticket = 'INFO';
+                titulo = supervisionState.infoTitulo;
+            }
+
+            const snapshot = {
+                category: categoryLabel,
+                subTab,
+                ticket,
+                titulo,
+                message: msg,
+                savedAt: new Date().toISOString(),
+                state: JSON.parse(JSON.stringify(supervisionState))
+            };
+
+            history.unshift(snapshot);
+            if (history.length > 50) history.pop();
+            saveHistory(history);
+
+            const listEl = document.getElementById('sup-history-list');
+            if (listEl) listEl.innerHTML = renderHistoryItems();
+            bindHistoryEvents(container);
+
+            saveBtn.classList.add('sup-saved');
+            setTimeout(() => saveBtn.classList.remove('sup-saved'), 1500);
+        } catch (e) {
+            console.error('Error al guardar:', e);
         }
-
-        history.unshift({
-            category: categoryLabel,
-            subTab,
-            ticket,
-            titulo,
-            message: msg,
-            savedAt: new Date().toISOString()
-        });
-
-        if (history.length > 50) history.pop();
-        saveHistory(history);
-
-        const listEl = document.getElementById('sup-history-list');
-        if (listEl) listEl.innerHTML = renderHistoryItems();
-        bindHistoryEvents(container);
-
-        saveBtn.classList.add('sup-saved');
-        setTimeout(() => saveBtn.classList.remove('sup-saved'), 1500);
     });
 
     bindHistoryEvents(container);
@@ -864,10 +1012,33 @@ function bindHistoryEvents(container) {
             if (!history[idx]) return;
 
             const entry = history[idx];
-            supervisionState.category = entry.category;
-            if (entry.category === 'fallas') supervisionState.subTabFalla = entry.subTab;
-            if (entry.category === 'cdc') supervisionState.subTabCdc = entry.subTab;
-            if (entry.category === 'info') supervisionState.subTabInfo = entry.subTab;
+
+            // Si el item guardó el estado completo, restaurarlo íntegramente
+            if (entry.state && typeof entry.state === 'object') {
+                supervisionState = JSON.parse(JSON.stringify(entry.state));
+                // preservar el subTab guardado
+                if (entry.subTab) {
+                    if (entry.category === 'fallas') supervisionState.subTabFalla = entry.subTab;
+                    if (entry.category === 'cdc') supervisionState.subTabCdc = entry.subTab;
+                    if (entry.category === 'info') supervisionState.subTabInfo = entry.subTab;
+                }
+            } else {
+                // Fallback: solo restaurar datos básicos
+                supervisionState.category = entry.category;
+                if (entry.category === 'fallas') {
+                    supervisionState.subTabFalla = entry.subTab;
+                    if (entry.ticket) supervisionState.fallaTicket = entry.ticket;
+                    if (entry.state) { Object.assign(supervisionState, entry.state); }
+                }
+                if (entry.category === 'cdc') {
+                    supervisionState.subTabCdc = entry.subTab;
+                    if (entry.ticket) {
+                        const m = entry.ticket.match(/^(CDC|INC)(.*)$/);
+                        if (m) { supervisionState.cdcPrefix = m[1]; supervisionState.cdcTicket = m[2]; }
+                    }
+                }
+                if (entry.category === 'info') supervisionState.subTabInfo = entry.subTab;
+            }
 
             saveStateDebounced();
             renderSupervisionUI(container);

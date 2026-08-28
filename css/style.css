@@ -10655,6 +10655,10 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     white-space: pre-wrap;
     word-break: break-word;
 }
+.sup-msg-title {
+    font-weight: 800;
+    color: #ffffff;
+}
 
 /* Barra de Acciones */
 .sup-actions-bar {
@@ -10707,6 +10711,61 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 .sup-btn-danger:hover {
     background: rgba(239, 68, 68, 0.1);
     border-color: var(--danger);
+}
+
+/* Subtítulo dentro de secciones de impacto */
+.sup-section-subtitle {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Selects compactos (Metro Ethernet) */
+.sup-row-2-slim {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.sup-row-2-slim select {
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 13px;
+}
+
+/* Multiselect de Redes DWDM */
+.sup-multiselect {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.sup-check-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sup-check-chip input { display: none; }
+.sup-check-chip:hover { border-color: #f59e0b; }
+.sup-check-chip.selected {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #d97706;
+    font-weight: 600;
 }
 
 /* Layout con barra lateral de historial */
@@ -10946,6 +11005,9 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     }
     .sup-row-3 {
         grid-template-columns: 1fr;
+    }
+    .sup-row-2-slim {
+        grid-template-columns: 1fr 1fr;
     }
     .sup-header-card {
         flex-direction: column;

@@ -116,7 +116,6 @@ export function guardiaTabHTML() {
             <button id="btn-copy-msg3" style="padding:6px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius);color:var(--text-primary);font-size:0.7rem;cursor:pointer;font-weight:600;">📋 Copiar Msg 3 (OLTs)</button>
             <button id="btn-copy-msg4" style="padding:6px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius);color:var(--text-primary);font-size:0.7rem;cursor:pointer;font-weight:600;">📋 Copiar Msg 4 (ABA TV)</button>
             <button id="btn-copy-msg5" style="grid-column:span 2;padding:6px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius);color:var(--text-primary);font-size:0.7rem;cursor:pointer;font-weight:600;">📋 Copiar Msg 5 (Informe Tickets)</button>
-            <button id="btn-copy-all-guardia" style="grid-column:span 2;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:0.75rem;cursor:pointer;font-weight:700;margin-top:2px;">🚀 Copiar el Combo (5 Mensajes)</button>
         </div>
 
         <!-- Acordeón de Configuración de Mensajes -->
@@ -440,11 +439,6 @@ function copyGuardiaMsg(root, num) {
     copyText(buildGuardiaMsg(root, num), `📋 Mensaje ${num} copiado al portapapeles listo para enviar a Telegram.`);
 }
 
-function copyAllGuardiaMsgs(root) {
-    const msgs = [1, 2, 3, 4, 5].map(n => `------------------ MENSAJE ${n} ------------------\n` + buildGuardiaMsg(root, n)).join('\n\n\n');
-    copyText(msgs, '🚀 Los 5 mensajes de Entrega de Guardia han sido copiados al portapapeles (separados).');
-}
-
 // ========================================
 // EVENTOS
 // ========================================
@@ -456,7 +450,6 @@ export function bindGuardiaTabEvents(root) {
     $el(root, 'btn-copy-msg3')?.addEventListener('click', () => copyGuardiaMsg(root, 3));
     $el(root, 'btn-copy-msg4')?.addEventListener('click', () => copyGuardiaMsg(root, 4));
     $el(root, 'btn-copy-msg5')?.addEventListener('click', () => copyGuardiaMsg(root, 5));
-    $el(root, 'btn-copy-all-guardia')?.addEventListener('click', () => copyAllGuardiaMsgs(root));
 
     ['g-usuario', 'g-hora', 'g-ixp-alerta', 'g-enlaces-variaciones', 'g-olt-tickets', 'g-t-proceso', 'g-t-seguimiento', 'g-t-resueltos'].forEach(id => {
         $el(root, id)?.addEventListener('input', () => autoSaveGuardia(root));
@@ -669,7 +662,6 @@ function refreshGuardiaVisuals(root) {
 
 function bindGuardiaPageEvents(root) {
     $el(root, 'guard-copy-msg')?.addEventListener('click', () => copyGuardiaMsgWithNote(root, guardSelected));
-    $el(root, 'guard-copy-combo')?.addEventListener('click', () => copyAllGuardiaMsgs(root));
 
     $el(root, 'guard-restore')?.addEventListener('click', () => {
         if (confirm('¿Restaurar la plantilla de guardia a los valores por defecto? Se perderán los cambios guardados.')) {
@@ -717,9 +709,6 @@ export function showGuardia() {
                         <button type="button" class="calt-btn" id="guard-restore">
                             <span class="material-symbols-outlined" aria-hidden="true">restore</span>
                             <span>Restaurar Plantilla</span>
-                        </button>
-                        <button type="button" class="tool-btn-primary" id="guard-copy-combo">
-                            <span class="material-symbols-outlined" aria-hidden="true">content_copy</span> Copiar Combo (5 Mensajes)
                         </button>
                     </div>
                 </header>
