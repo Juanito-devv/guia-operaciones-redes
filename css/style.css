@@ -10318,7 +10318,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 /* Categorías Principales */
 .sup-category-nav {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
     gap: 12px;
 }
 .sup-cat-btn {
@@ -10357,7 +10357,7 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
 /* Grid de Formulario y Vista Previa */
 .sup-grid {
     display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
     gap: 20px;
     align-items: start;
     min-width: 0;
@@ -10635,8 +10635,6 @@ h1, h2, h3, h4, .brand-title, #content-title, .calendar-header .month-year {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    position: sticky;
-    top: 20px;
 }
 .sup-preview-header {
     display: flex;
